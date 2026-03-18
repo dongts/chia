@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chia
+      POSTGRES_PASSWORD: chia
+      POSTGRES_DB: chia
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      CHIA_DATABASE_URL: postgresql+asyncpg://chia:chia@db:5432/chia
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+
+volumes:
+  pgdata:
+  uploads:

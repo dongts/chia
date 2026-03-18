@@ -1,1 +1,5 @@
 .superpowers/
+backend/venv/
+uploads/
+__pycache__/
+*.pyc
