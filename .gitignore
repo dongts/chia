@@ -3,3 +3,6 @@ backend/venv/
 uploads/
 __pycache__/
 *.pyc
+node_modules/
+frontend/dist/
+.pytest_cache/
