@@ -3,15 +3,17 @@ import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { createExpense } from "@/api/expenses";
+import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
-import type { GroupMember, Category, SplitType, SplitInput } from "@/types";
+import type { Group, GroupMember, Category, SplitType, SplitInput } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function AddExpense() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
 
+  const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,8 @@ export default function AddExpense() {
   // Form fields
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [currencyCode, setCurrencyCode] = useState("");
+  const [exchangeRate, setExchangeRate] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [paidBy, setPaidBy] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -33,8 +37,10 @@ export default function AddExpense() {
 
   useEffect(() => {
     if (!groupId) return;
-    Promise.all([listMembers(groupId), listGroupCategories(groupId)])
-      .then(([m, c]) => {
+    Promise.all([getGroup(groupId), listMembers(groupId), listGroupCategories(groupId)])
+      .then(([g, m, c]) => {
+        setGroup(g);
+        setCurrencyCode(g.currency_code);
         setMembers(m);
         setCategories(c);
         if (m.length > 0) {
@@ -116,11 +122,19 @@ export default function AddExpense() {
     const splits = buildSplits();
     if (!splits) return;
 
+    const isDifferentCurrency = group && currencyCode !== group.currency_code;
+    if (isDifferentCurrency && (!exchangeRate || parseFloat(exchangeRate) <= 0)) {
+      window.alert("Please enter a valid exchange rate");
+      return;
+    }
+
     setSubmitting(true);
     try {
       await createExpense(groupId, {
         description,
         amount: parseFloat(amount),
+        currency_code: isDifferentCurrency ? currencyCode : undefined,
+        exchange_rate: isDifferentCurrency ? parseFloat(exchangeRate) : undefined,
         date,
         paid_by: paidBy,
         category_id: categoryId,
@@ -181,6 +195,66 @@ export default function AddExpense() {
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
+
+        {/* Currency */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              maxLength={3}
+              value={currencyCode}
+              onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
+              placeholder="USD"
+              className="w-24 border border-gray-200 rounded-lg px-3 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            {group && currencyCode !== group.currency_code && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrencyCode(group.currency_code);
+                  setExchangeRate("");
+                }}
+                className="text-xs text-green-600 hover:text-green-700 font-medium"
+              >
+                Reset to {group.currency_code}
+              </button>
+            )}
+          </div>
+          {group && currencyCode && currencyCode !== group.currency_code && (
+            <p className="text-xs text-amber-600 mt-1">
+              Different from group currency ({group.currency_code}). Enter the exchange rate below.
+            </p>
+          )}
+        </div>
+
+        {/* Exchange rate — only shown when currency differs */}
+        {group && currencyCode && currencyCode !== group.currency_code && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Exchange rate <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">1 {currencyCode} =</span>
+              <input
+                type="number"
+                required
+                min="0.000001"
+                step="any"
+                value={exchangeRate}
+                onChange={(e) => setExchangeRate(e.target.value)}
+                placeholder="0.00"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <span className="text-sm text-gray-500">{group.currency_code}</span>
+            </div>
+            {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                ≈ {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)} {group.currency_code}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Date */}
         <div>

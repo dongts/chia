@@ -17,6 +17,8 @@ class SplitInput(BaseModel):
 class ExpenseCreate(BaseModel):
     description: str
     amount: Decimal
+    currency_code: Optional[str] = None  # None = use group's main currency
+    exchange_rate: Optional[Decimal] = None  # None = 1.0 (same currency)
     date: DateType
     paid_by: uuid.UUID
     category_id: uuid.UUID
@@ -40,6 +42,9 @@ class ExpenseRead(BaseModel):
     description: str
     amount: Decimal
     currency_code: str
+    exchange_rate: Decimal
+    converted_amount: Decimal
+    group_currency: Optional[str] = None
     date: DateType
     paid_by: uuid.UUID
     payer_name: Optional[str] = None
@@ -55,6 +60,8 @@ class ExpenseRead(BaseModel):
 class ExpenseUpdate(BaseModel):
     description: Optional[str] = None
     amount: Optional[Decimal] = None
+    currency_code: Optional[str] = None
+    exchange_rate: Optional[Decimal] = None
     date: Optional[DateType] = None
     paid_by: Optional[uuid.UUID] = None
     category_id: Optional[uuid.UUID] = None

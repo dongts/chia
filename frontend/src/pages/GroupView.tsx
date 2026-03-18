@@ -199,9 +199,22 @@ export default function GroupView() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="font-semibold text-gray-900">
-                      {formatCurrency(Number(expense.amount), group.currency_code)}
-                    </span>
+                    <div className="text-right">
+                      {expense.currency_code !== group.currency_code ? (
+                        <>
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(Number(expense.amount), expense.currency_code)}
+                          </span>
+                          <p className="text-xs text-gray-400">
+                            ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
+                          </p>
+                        </>
+                      ) : (
+                        <span className="font-semibold text-gray-900">
+                          {formatCurrency(Number(expense.amount), group.currency_code)}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-1">
                       <Link
                         to={`/groups/${groupId}/expenses/${expense.id}/edit`}

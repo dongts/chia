@@ -94,6 +94,9 @@ export interface Expense {
   description: string;
   amount: number;
   currency_code: string;
+  exchange_rate: number;
+  converted_amount: number;
+  group_currency: string | null;
   date: string;
   paid_by: string;
   payer_name: string | null;
@@ -107,6 +110,8 @@ export interface Expense {
 export interface ExpenseCreate {
   description: string;
   amount: number;
+  currency_code?: string | null;
+  exchange_rate?: number | null;
   date: string;
   paid_by: string;
   category_id: string;
@@ -117,6 +122,8 @@ export interface ExpenseCreate {
 export interface ExpenseUpdate {
   description?: string | null;
   amount?: number | null;
+  currency_code?: string | null;
+  exchange_rate?: number | null;
   date?: string | null;
   paid_by?: string | null;
   category_id?: string | null;

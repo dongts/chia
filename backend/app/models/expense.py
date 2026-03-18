@@ -27,6 +27,8 @@ class Expense(Base):
     description: Mapped[str] = mapped_column(String(500))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     currency_code: Mapped[str] = mapped_column(String(3))
+    exchange_rate: Mapped[Decimal] = mapped_column(Numeric(12, 6), default=Decimal("1"))
+    converted_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     category_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("categories.id"))
     receipt_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     date: Mapped[date] = mapped_column(Date)

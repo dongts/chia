@@ -19,7 +19,7 @@ from app.services.split_calculator import calculate_splits
 router = APIRouter(prefix="/groups/{group_id}/expenses", tags=["expenses"])
 
 
-def _build_expense_read(expense: Expense) -> ExpenseRead:
+def _build_expense_read(expense: Expense, group_currency: str | None = None) -> ExpenseRead:
     splits = []
     for s in expense.splits:
         sr = SplitRead.model_validate(s)
@@ -28,6 +28,7 @@ def _build_expense_read(expense: Expense) -> ExpenseRead:
     result = ExpenseRead.model_validate(expense)
     result.splits = splits
     result.payer_name = expense.payer.display_name if expense.payer else None
+    result.group_currency = group_currency or expense.group.currency_code if expense.group else None
     return result
 
 
@@ -46,9 +47,18 @@ async def create_expense(
         if current.role == MemberRole.member and not group.allow_log_on_behalf:
             raise Forbidden("This group does not allow logging expenses on behalf of others")
 
-    # Compute splits
+    # Determine currency and exchange rate
+    expense_currency = data.currency_code or group.currency_code
+    exchange_rate = Decimal("1")
+    if expense_currency != group.currency_code:
+        if data.exchange_rate is None or data.exchange_rate <= 0:
+            raise BadRequest("Exchange rate is required when using a different currency")
+        exchange_rate = data.exchange_rate
+    converted_amount = (data.amount * exchange_rate).quantize(Decimal("0.01"))
+
+    # Compute splits against converted amount (in group's main currency)
     members_map = {str(s.group_member_id): s.value for s in data.splits}
-    resolved = calculate_splits(data.amount, data.split_type.value, members_map)
+    resolved = calculate_splits(converted_amount, data.split_type.value, members_map)
 
     expense = Expense(
         group_id=group_id,
@@ -56,7 +66,9 @@ async def create_expense(
         created_by=current.id,
         description=data.description,
         amount=data.amount,
-        currency_code=group.currency_code,
+        currency_code=expense_currency,
+        exchange_rate=exchange_rate,
+        converted_amount=converted_amount,
         category_id=data.category_id,
         date=data.date,
     )
@@ -87,10 +99,11 @@ async def create_expense(
         .options(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
+            selectinload(Expense.group),
         )
     )
     expense = result.scalars().first()
-    return _build_expense_read(expense)
+    return _build_expense_read(expense, group.currency_code)
 
 
 @router.get("", response_model=list[ExpenseRead])
@@ -103,6 +116,7 @@ async def list_expenses(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    group = await get_group_or_404(db, group_id)
     await get_current_member(db, group_id, current_user.id)
     query = (
         select(Expense)
@@ -110,6 +124,7 @@ async def list_expenses(
         .options(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
+            selectinload(Expense.group),
         )
         .order_by(Expense.date.desc(), Expense.created_at.desc())
         .limit(limit)
@@ -121,7 +136,7 @@ async def list_expenses(
         query = query.where(Expense.paid_by == member_id)
 
     result = await db.execute(query)
-    return [_build_expense_read(e) for e in result.scalars().all()]
+    return [_build_expense_read(e, group.currency_code) for e in result.scalars().all()]
 
 
 @router.get("/{expense_id}", response_model=ExpenseRead)
@@ -131,6 +146,7 @@ async def get_expense(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    group = await get_group_or_404(db, group_id)
     await get_current_member(db, group_id, current_user.id)
     result = await db.execute(
         select(Expense)
@@ -138,12 +154,13 @@ async def get_expense(
         .options(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
+            selectinload(Expense.group),
         )
     )
     expense = result.scalars().first()
     if not expense:
         raise NotFound("Expense not found")
-    return _build_expense_read(expense)
+    return _build_expense_read(expense, group.currency_code)
 
 
 @router.patch("/{expense_id}", response_model=ExpenseRead)
@@ -173,6 +190,10 @@ async def update_expense(
         expense.description = data.description
     if data.amount is not None:
         expense.amount = data.amount
+    if data.currency_code is not None:
+        expense.currency_code = data.currency_code
+    if data.exchange_rate is not None:
+        expense.exchange_rate = data.exchange_rate
     if data.date is not None:
         expense.date = data.date
     if data.paid_by is not None:
@@ -180,15 +201,19 @@ async def update_expense(
     if data.category_id is not None:
         expense.category_id = data.category_id
 
+    # Recalculate converted amount
+    if data.amount is not None or data.exchange_rate is not None or data.currency_code is not None:
+        rate = expense.exchange_rate if expense.currency_code != group.currency_code else Decimal("1")
+        expense.converted_amount = (expense.amount * rate).quantize(Decimal("0.01"))
+
     # Recalculate splits if provided
     if data.splits is not None and data.split_type is not None:
-        # Delete old splits
         for old_split in expense.splits:
             await db.delete(old_split)
         await db.flush()
 
         members_map = {str(s.group_member_id): s.value for s in data.splits}
-        resolved = calculate_splits(expense.amount, data.split_type.value, members_map)
+        resolved = calculate_splits(expense.converted_amount, data.split_type.value, members_map)
 
         for s in data.splits:
             split = ExpenseSplit(
@@ -214,10 +239,11 @@ async def update_expense(
         .options(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
+            selectinload(Expense.group),
         )
     )
     expense = result.scalars().first()
-    return _build_expense_read(expense)
+    return _build_expense_read(expense, group.currency_code)
 
 
 @router.delete("/{expense_id}")

@@ -39,13 +39,13 @@ async def _compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.
     members = {m.id: m for m in members_result.scalars().all()}
     balances: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
 
-    # Sum what each member paid
+    # Sum what each member paid (in group's main currency)
     expenses_result = await db.execute(
         select(Expense).where(Expense.group_id == group_id)
     )
     for expense in expenses_result.scalars().all():
         if expense.paid_by in members:
-            balances[expense.paid_by] += expense.amount
+            balances[expense.paid_by] += expense.converted_amount
 
     # Subtract what each member owes
     splits_result = await db.execute(
