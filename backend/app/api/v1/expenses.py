@@ -11,7 +11,7 @@ from app.core.exceptions import BadRequest, Forbidden, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Expense, ExpenseSplit, Group, GroupMember, MemberRole, User
+from app.models import Expense, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, SplitRead
 from app.services.notification import notify_group
 from app.services.split_calculator import calculate_splits
@@ -48,12 +48,27 @@ async def create_expense(
             raise Forbidden("This group does not allow logging expenses on behalf of others")
 
     # Determine currency and exchange rate
-    expense_currency = data.currency_code or group.currency_code
+    expense_currency = (data.currency_code or group.currency_code).upper().strip()
     exchange_rate = Decimal("1")
     if expense_currency != group.currency_code:
-        if data.exchange_rate is None or data.exchange_rate <= 0:
-            raise BadRequest("Exchange rate is required when using a different currency")
-        exchange_rate = data.exchange_rate
+        # Look up allowed currency for default rate
+        gc_result = await db.execute(
+            select(GroupCurrency).where(
+                GroupCurrency.group_id == group_id,
+                GroupCurrency.currency_code == expense_currency,
+            )
+        )
+        allowed_currency = gc_result.scalars().first()
+        if not allowed_currency:
+            raise BadRequest(
+                f"{expense_currency} is not an allowed currency for this group. "
+                f"Add it in group settings first."
+            )
+        # Use provided rate or fall back to default
+        if data.exchange_rate is not None and data.exchange_rate > 0:
+            exchange_rate = data.exchange_rate
+        else:
+            exchange_rate = allowed_currency.exchange_rate
     converted_amount = (data.amount * exchange_rate).quantize(Decimal("0.01"))
 
     # Compute splits against converted amount (in group's main currency)

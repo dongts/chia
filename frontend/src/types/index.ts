@@ -131,6 +131,22 @@ export interface ExpenseUpdate {
   splits?: SplitInput[] | null;
 }
 
+// Group Currency
+export interface GroupCurrencyRead {
+  id: string;
+  currency_code: string;
+  exchange_rate: number;
+}
+
+export interface GroupCurrencyCreate {
+  currency_code: string;
+  exchange_rate: number;
+}
+
+export interface GroupCurrencyUpdate {
+  exchange_rate: number;
+}
+
 // Category
 export interface Category {
   id: string;

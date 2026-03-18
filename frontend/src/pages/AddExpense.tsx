@@ -6,7 +6,8 @@ import { createExpense } from "@/api/expenses";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
-import type { Group, GroupMember, Category, SplitType, SplitInput } from "@/types";
+import { listGroupCurrencies } from "@/api/groupCurrencies";
+import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput } from "@/types";
 import { cn } from "@/lib/utils";
 
 export default function AddExpense() {
@@ -16,6 +17,7 @@ export default function AddExpense() {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [allowedCurrencies, setAllowedCurrencies] = useState<GroupCurrencyRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,12 +39,13 @@ export default function AddExpense() {
 
   useEffect(() => {
     if (!groupId) return;
-    Promise.all([getGroup(groupId), listMembers(groupId), listGroupCategories(groupId)])
-      .then(([g, m, c]) => {
+    Promise.all([getGroup(groupId), listMembers(groupId), listGroupCategories(groupId), listGroupCurrencies(groupId)])
+      .then(([g, m, c, gc]) => {
         setGroup(g);
         setCurrencyCode(g.currency_code);
         setMembers(m);
         setCategories(c);
+        setAllowedCurrencies(gc);
         if (m.length > 0) {
           setPaidBy(m[0].id);
           const checked: Record<string, boolean> = {};
@@ -123,10 +126,6 @@ export default function AddExpense() {
     if (!splits) return;
 
     const isDifferentCurrency = group && currencyCode !== group.currency_code;
-    if (isDifferentCurrency && (!exchangeRate || parseFloat(exchangeRate) <= 0)) {
-      window.alert("Please enter a valid exchange rate");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -134,7 +133,7 @@ export default function AddExpense() {
         description,
         amount: parseFloat(amount),
         currency_code: isDifferentCurrency ? currencyCode : undefined,
-        exchange_rate: isDifferentCurrency ? parseFloat(exchangeRate) : undefined,
+        exchange_rate: isDifferentCurrency && exchangeRate ? parseFloat(exchangeRate) : undefined,
         date,
         paid_by: paidBy,
         category_id: categoryId,
@@ -197,48 +196,43 @@ export default function AddExpense() {
         </div>
 
         {/* Currency */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              maxLength={3}
+        {allowedCurrencies.length > 0 && group && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <select
               value={currencyCode}
-              onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
-              placeholder="USD"
-              className="w-24 border border-gray-200 rounded-lg px-3 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-            {group && currencyCode !== group.currency_code && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrencyCode(group.currency_code);
+              onChange={(e) => {
+                const code = e.target.value;
+                setCurrencyCode(code);
+                if (code === group.currency_code) {
                   setExchangeRate("");
-                }}
-                className="text-xs text-green-600 hover:text-green-700 font-medium"
-              >
-                Reset to {group.currency_code}
-              </button>
-            )}
+                } else {
+                  const gc = allowedCurrencies.find((c) => c.currency_code === code);
+                  setExchangeRate(gc ? String(gc.exchange_rate) : "");
+                }
+              }}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value={group.currency_code}>{group.currency_code} (main)</option>
+              {allowedCurrencies.map((gc) => (
+                <option key={gc.id} value={gc.currency_code}>
+                  {gc.currency_code} (rate: {gc.exchange_rate})
+                </option>
+              ))}
+            </select>
           </div>
-          {group && currencyCode && currencyCode !== group.currency_code && (
-            <p className="text-xs text-amber-600 mt-1">
-              Different from group currency ({group.currency_code}). Enter the exchange rate below.
-            </p>
-          )}
-        </div>
+        )}
 
         {/* Exchange rate — only shown when currency differs */}
         {group && currencyCode && currencyCode !== group.currency_code && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Exchange rate <span className="text-red-500">*</span>
+              Exchange rate
             </label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">1 {currencyCode} =</span>
               <input
                 type="number"
-                required
                 min="0.000001"
                 step="any"
                 value={exchangeRate}
@@ -253,6 +247,9 @@ export default function AddExpense() {
                 ≈ {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)} {group.currency_code}
               </p>
             )}
+            <p className="text-xs text-gray-400 mt-1">
+              Pre-filled from default rate. Edit if needed.
+            </p>
           </div>
         )}
 

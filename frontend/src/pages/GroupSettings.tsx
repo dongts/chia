@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Plus } from "lucide-react";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
 import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
-import type { Group, GroupMember, MemberRole } from "@/types";
+import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
+import type { Group, GroupMember, GroupCurrencyRead, MemberRole } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -33,6 +34,10 @@ export default function GroupSettings() {
   const [deleting, setDeleting] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [addingMember, setAddingMember] = useState(false);
+  const [currencies, setCurrencies] = useState<GroupCurrencyRead[]>([]);
+  const [newCurrencyCode, setNewCurrencyCode] = useState("");
+  const [newCurrencyRate, setNewCurrencyRate] = useState("");
+  const [addingCurrency, setAddingCurrency] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -48,9 +53,10 @@ export default function GroupSettings() {
   async function loadData() {
     if (!groupId) return;
     try {
-      const [g, m] = await Promise.all([getGroup(groupId), listMembers(groupId)]);
+      const [g, m, c] = await Promise.all([getGroup(groupId), listMembers(groupId), listGroupCurrencies(groupId)]);
       setGroup(g);
       setMembers(m);
+      setCurrencies(c);
       setName(g.name);
       setDescription(g.description ?? "");
       setRequireVerified(g.require_verified_users);
@@ -120,6 +126,51 @@ export default function GroupSettings() {
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         "Failed to remove member";
       window.alert(msg);
+    }
+  }
+
+  async function handleAddCurrency(e: FormEvent) {
+    e.preventDefault();
+    if (!groupId || !newCurrencyCode.trim() || !newCurrencyRate) return;
+    setAddingCurrency(true);
+    try {
+      const gc = await addGroupCurrency(groupId, {
+        currency_code: newCurrencyCode.trim().toUpperCase(),
+        exchange_rate: parseFloat(newCurrencyRate),
+      });
+      setCurrencies((prev) => [...prev, gc]);
+      setNewCurrencyCode("");
+      setNewCurrencyRate("");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Failed to add currency";
+      window.alert(msg);
+    } finally {
+      setAddingCurrency(false);
+    }
+  }
+
+  async function handleUpdateCurrencyRate(currencyId: string, rate: string) {
+    if (!groupId) return;
+    const parsed = parseFloat(rate);
+    if (!parsed || parsed <= 0) return;
+    try {
+      const updated = await updateGroupCurrency(groupId, currencyId, { exchange_rate: parsed });
+      setCurrencies((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    } catch {
+      window.alert("Failed to update exchange rate");
+    }
+  }
+
+  async function handleDeleteCurrency(currencyId: string, code: string) {
+    if (!groupId) return;
+    if (!window.confirm(`Remove ${code} from allowed currencies?`)) return;
+    try {
+      await deleteGroupCurrency(groupId, currencyId);
+      setCurrencies((prev) => prev.filter((c) => c.id !== currencyId));
+    } catch {
+      window.alert("Failed to remove currency");
     }
   }
 
@@ -275,6 +326,80 @@ export default function GroupSettings() {
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
+        </section>
+
+        {/* Allowed Currencies */}
+        <section className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Allowed Currencies</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Main currency: <span className="font-medium text-gray-600">{group.currency_code}</span>.
+            Add other currencies with default exchange rates for expenses.
+          </p>
+
+          {/* Existing currencies */}
+          {currencies.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {currencies.map((gc) => (
+                <div key={gc.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-sm font-medium text-gray-800 w-12">{gc.currency_code}</span>
+                  <span className="text-xs text-gray-400">1 {gc.currency_code} =</span>
+                  <input
+                    type="number"
+                    min="0.000001"
+                    step="any"
+                    defaultValue={gc.exchange_rate}
+                    onBlur={(e) => handleUpdateCurrencyRate(gc.id, e.target.value)}
+                    disabled={!isAdminOrOwner}
+                    className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-60"
+                  />
+                  <span className="text-xs text-gray-400">{group.currency_code}</span>
+                  {isAdminOrOwner && (
+                    <button
+                      onClick={() => handleDeleteCurrency(gc.id, gc.currency_code)}
+                      className="ml-auto text-gray-300 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add currency form — owner/admin only */}
+          {isAdminOrOwner && (
+            <form onSubmit={handleAddCurrency} className="flex items-center gap-2">
+              <input
+                type="text"
+                maxLength={3}
+                required
+                value={newCurrencyCode}
+                onChange={(e) => setNewCurrencyCode(e.target.value.toUpperCase())}
+                placeholder="EUR"
+                className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <span className="text-xs text-gray-400">=</span>
+              <input
+                type="number"
+                min="0.000001"
+                step="any"
+                required
+                value={newCurrencyRate}
+                onChange={(e) => setNewCurrencyRate(e.target.value)}
+                placeholder="Rate"
+                className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <span className="text-xs text-gray-400">{group.currency_code}</span>
+              <button
+                type="submit"
+                disabled={addingCurrency || !newCurrencyCode.trim() || !newCurrencyRate}
+                className="flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+              >
+                <Plus size={14} />
+                Add
+              </button>
+            </form>
+          )}
         </section>
 
         {/* Members */}
