@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Check, Trash2 } from "lucide-react";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
-import { listMembers, updateMember, removeMember } from "@/api/members";
+import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
 import type { Group, GroupMember, MemberRole } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +31,8 @@ export default function GroupSettings() {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -63,6 +65,7 @@ export default function GroupSettings() {
   // Find current user's member record and role
   const myMember = members.find((m) => m.user_id === user?.id);
   const isOwner = myMember?.role === "owner";
+  const isAdminOrOwner = myMember?.role === "owner" || myMember?.role === "admin";
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -117,6 +120,24 @@ export default function GroupSettings() {
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         "Failed to remove member";
       window.alert(msg);
+    }
+  }
+
+  async function handleAddMember(e: FormEvent) {
+    e.preventDefault();
+    if (!groupId || !newMemberName.trim()) return;
+    setAddingMember(true);
+    try {
+      const member = await addMember(groupId, { display_name: newMemberName.trim() });
+      setMembers((prev) => [...prev, member]);
+      setNewMemberName("");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Failed to add member";
+      window.alert(msg);
+    } finally {
+      setAddingMember(false);
     }
   }
 
@@ -259,6 +280,28 @@ export default function GroupSettings() {
         {/* Members */}
         <section className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-4">Members</h2>
+
+          {/* Add member form — owner/admin only */}
+          {isAdminOrOwner && (
+            <form onSubmit={handleAddMember} className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                required
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                placeholder="New member name"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <button
+                type="submit"
+                disabled={addingMember || !newMemberName.trim()}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+              >
+                {addingMember ? "Adding..." : "Add Member"}
+              </button>
+            </form>
+          )}
+
           <div className="space-y-3">
             {members.map((m) => (
               <div key={m.id} className="flex items-center justify-between gap-3">
@@ -295,7 +338,7 @@ export default function GroupSettings() {
                       {ROLE_LABELS[m.role]}
                     </span>
                   )}
-                  {isOwner && m.role !== "owner" && (
+                  {isAdminOrOwner && m.role !== "owner" && m.id !== myMember?.id && (
                     <button
                       onClick={() => handleRemoveMember(m.id, m.display_name)}
                       className="text-gray-300 hover:text-red-400 transition-colors"

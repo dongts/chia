@@ -41,7 +41,8 @@ async def add_member(
     db: AsyncSession = Depends(get_db),
 ):
     await get_group_or_404(db, group_id)
-    await get_current_member(db, group_id, current_user.id)
+    current = await get_current_member(db, group_id, current_user.id)
+    require_role(current, MemberRole.owner, MemberRole.admin)
     member = GroupMember(
         group_id=group_id,
         display_name=data.display_name,
