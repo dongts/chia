@@ -9,6 +9,7 @@ import { listGroupCategories } from "@/api/categories";
 import { listGroupCurrencies } from "@/api/groupCurrencies";
 import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput } from "@/types";
 import { cn } from "@/lib/utils";
+import CurrencySelect from "@/components/CurrencySelect";
 
 export default function AddExpense() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -199,10 +200,11 @@ export default function AddExpense() {
         {allowedCurrencies.length > 0 && group && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-            <select
+            <CurrencySelect
               value={currencyCode}
-              onChange={(e) => {
-                const code = e.target.value;
+              allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
+              extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main currency` }]}
+              onChange={(code) => {
                 setCurrencyCode(code);
                 if (code === group.currency_code) {
                   setExchangeRate("");
@@ -211,15 +213,7 @@ export default function AddExpense() {
                   setExchangeRate(gc ? String(gc.exchange_rate) : "");
                 }
               }}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value={group.currency_code}>{group.currency_code} (main)</option>
-              {allowedCurrencies.map((gc) => (
-                <option key={gc.id} value={gc.currency_code}>
-                  {gc.currency_code} (rate: {gc.exchange_rate})
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
 

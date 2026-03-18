@@ -8,6 +8,8 @@ import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroup
 import type { Group, GroupMember, GroupCurrencyRead, MemberRole } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import CurrencySelect from "@/components/CurrencySelect";
+import { getCurrencyName } from "@/utils/currencies";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   owner: "Owner",
@@ -342,6 +344,7 @@ export default function GroupSettings() {
               {currencies.map((gc) => (
                 <div key={gc.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm font-medium text-gray-800 w-12">{gc.currency_code}</span>
+                  <span className="text-xs text-gray-400 truncate max-w-[100px]">{getCurrencyName(gc.currency_code)}</span>
                   <span className="text-xs text-gray-400">1 {gc.currency_code} =</span>
                   <input
                     type="number"
@@ -368,36 +371,37 @@ export default function GroupSettings() {
 
           {/* Add currency form — owner/admin only */}
           {isAdminOrOwner && (
-            <form onSubmit={handleAddCurrency} className="flex items-center gap-2">
-              <input
-                type="text"
-                maxLength={3}
-                required
-                value={newCurrencyCode}
-                onChange={(e) => setNewCurrencyCode(e.target.value.toUpperCase())}
-                placeholder="EUR"
-                className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <span className="text-xs text-gray-400">=</span>
-              <input
-                type="number"
-                min="0.000001"
-                step="any"
-                required
-                value={newCurrencyRate}
-                onChange={(e) => setNewCurrencyRate(e.target.value)}
-                placeholder="Rate"
-                className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <span className="text-xs text-gray-400">{group.currency_code}</span>
-              <button
-                type="submit"
-                disabled={addingCurrency || !newCurrencyCode.trim() || !newCurrencyRate}
-                className="flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
-              >
-                <Plus size={14} />
-                Add
-              </button>
+            <form onSubmit={handleAddCurrency} className="space-y-2">
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Currency</label>
+                  <CurrencySelect
+                    value={newCurrencyCode}
+                    onChange={setNewCurrencyCode}
+                  />
+                </div>
+                <div className="w-28">
+                  <label className="block text-xs text-gray-500 mb-1">Rate → {group.currency_code}</label>
+                  <input
+                    type="number"
+                    min="0.000001"
+                    step="any"
+                    required
+                    value={newCurrencyRate}
+                    onChange={(e) => setNewCurrencyRate(e.target.value)}
+                    placeholder="1.00"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={addingCurrency || !newCurrencyCode.trim() || !newCurrencyRate}
+                  className="flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-3 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
+                >
+                  <Plus size={14} />
+                  Add
+                </button>
+              </div>
             </form>
           )}
         </section>

@@ -6,6 +6,7 @@ import { listGroups, createGroup } from "@/api/groups";
 import type { GroupListItem } from "@/types";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
+import CurrencySelect from "@/components/CurrencySelect";
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<GroupListItem[]>([]);
@@ -110,22 +111,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="USD">USD — US Dollar</option>
-                  <option value="EUR">EUR — Euro</option>
-                  <option value="GBP">GBP — British Pound</option>
-                  <option value="JPY">JPY — Japanese Yen</option>
-                  <option value="AUD">AUD — Australian Dollar</option>
-                  <option value="CAD">CAD — Canadian Dollar</option>
-                  <option value="CHF">CHF — Swiss Franc</option>
-                  <option value="CNY">CNY — Chinese Yuan</option>
-                  <option value="INR">INR — Indian Rupee</option>
-                  <option value="BRL">BRL — Brazilian Real</option>
-                </select>
+                <CurrencySelect value={currency} onChange={setCurrency} />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
