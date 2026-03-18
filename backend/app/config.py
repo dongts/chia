@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
     cors_origins: list[str] = ["http://localhost:5173"]
-    serverless: bool = False
     use_connection_pooler: bool = False
+    port: int = 8000
 
     model_config = {"env_prefix": "CHIA_"}
 
