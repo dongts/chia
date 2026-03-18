@@ -11,8 +11,11 @@ from app.utils.seed import seed_categories
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with async_session() as db:
-        await seed_categories(db)
+    try:
+        async with async_session() as db:
+            await seed_categories(db)
+    except Exception:
+        pass  # Don't block startup if seeding fails (e.g., tables not yet migrated)
     yield
 
 
