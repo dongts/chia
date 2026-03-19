@@ -149,6 +149,8 @@ async def create_settlement(
         from_member=data.from_member,
         to_member=data.to_member,
         amount=data.amount,
+        description=data.description,
+        type=data.type,
         created_by=current.id,
     )
     db.add(settlement)
@@ -178,6 +180,8 @@ async def create_settlement(
         to_member=settlement.to_member,
         to_member_name=member_names.get(data.to_member),
         amount=settlement.amount,
+        description=settlement.description,
+        type=settlement.type,
         settled_at=settlement.settled_at,
     )
 
@@ -222,6 +226,8 @@ async def list_settlements(
             to_member=s.to_member,
             to_member_name=member_names.get(s.to_member),
             amount=s.amount,
+            description=s.description,
+            type=s.type or "settle_up",
             settled_at=s.settled_at,
         )
         for s in settlements

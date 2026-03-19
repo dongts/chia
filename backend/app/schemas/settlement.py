@@ -9,6 +9,8 @@ class SettlementCreate(BaseModel):
     from_member: uuid.UUID
     to_member: uuid.UUID
     amount: Decimal
+    description: str | None = None
+    type: str = "settle_up"  # "settle_up" or "transfer"
 
 
 class SettlementRead(BaseModel):
@@ -18,6 +20,8 @@ class SettlementRead(BaseModel):
     to_member: uuid.UUID
     to_member_name: str | None = None
     amount: Decimal
+    description: str | None = None
+    type: str = "settle_up"
     settled_at: datetime
 
     model_config = {"from_attributes": True}

@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2 } from "lucide-react";
+import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
-import type { Group, Expense, Balance, SuggestedSettlement, Settlement, Category } from "@/types";
+import { listMembers } from "@/api/members";
+import type { Group, GroupMember, Expense, Balance, SuggestedSettlement, Settlement, Category } from "@/types";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,16 @@ export default function GroupView() {
   const [suggested, setSuggested] = useState<SuggestedSettlement[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [tab, setTab] = useState<Tab>("expenses");
+
+  // Transfer modal
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferFrom, setTransferFrom] = useState("");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferNote, setTransferNote] = useState("");
+  const [transferring, setTransferring] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
@@ -35,13 +45,14 @@ export default function GroupView() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [g, exp, bal, sug, set, cats] = await Promise.all([
+      const [g, exp, bal, sug, set, cats, mem] = await Promise.all([
         getGroup(groupId),
         listExpenses(groupId),
         getBalances(groupId),
         getSuggestedSettlements(groupId),
         listSettlements(groupId),
         listGroupCategories(groupId),
+        listMembers(groupId),
       ]);
       setGroup(g);
       setExpenses(exp);
@@ -49,6 +60,7 @@ export default function GroupView() {
       setSuggested(sug);
       setSettlements(set);
       setCategories(cats);
+      setMembers(mem);
     } catch {
       window.alert("Failed to load group data");
     } finally {
@@ -85,6 +97,7 @@ export default function GroupView() {
         from_member: s.from_member,
         to_member: s.to_member,
         amount: s.amount,
+        type: "settle_up",
       });
       await loadAll();
     } catch {
@@ -92,6 +105,25 @@ export default function GroupView() {
     } finally {
       setSettlingId(null);
     }
+  }
+
+  async function handleTransfer() {
+    if (!groupId || !transferFrom || !transferTo || !transferAmount) return;
+    if (transferFrom === transferTo) { window.alert("Cannot transfer to the same person"); return; }
+    setTransferring(true);
+    try {
+      await createSettlement(groupId, {
+        from_member: transferFrom,
+        to_member: transferTo,
+        amount: parseFloat(transferAmount),
+        description: transferNote || null,
+        type: "transfer",
+      });
+      setShowTransfer(false);
+      setTransferFrom(""); setTransferTo(""); setTransferAmount(""); setTransferNote("");
+      await loadAll();
+    } catch { window.alert("Failed to record transfer"); }
+    finally { setTransferring(false); }
   }
 
   function getCategoryIcon(categoryId: string) {
@@ -176,7 +208,14 @@ export default function GroupView() {
       {/* Expenses Tab */}
       {tab === "expenses" && (
         <div>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end gap-2 mb-4">
+            <button
+              onClick={() => setShowTransfer(true)}
+              className="flex items-center gap-2 border border-green-600 text-green-700 hover:bg-green-50 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              <ArrowLeftRight size={16} />
+              Transfer
+            </button>
             <Link
               to={`/groups/${groupId}/add-expense`}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
@@ -347,11 +386,23 @@ export default function GroupView() {
                   className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between"
                 >
                   <div>
-                    <p className="text-sm text-gray-700">
+                    <div className="flex items-center gap-2">
+                      {s.type === "transfer" ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                          <ArrowLeftRight size={10} /> Transfer
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">
+                          <Check size={10} /> Settle up
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1">
                       <span className="font-semibold">{s.from_member_name ?? "?"}</span>
-                      {" paid "}
+                      {" → "}
                       <span className="font-semibold">{s.to_member_name ?? "?"}</span>
                     </p>
+                    {s.description && <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>}
                     <p className="text-xs text-gray-400 mt-0.5">
                       {new Date(s.settled_at).toLocaleDateString()}
                     </p>
@@ -363,6 +414,61 @@ export default function GroupView() {
               ))}
             </div>
           )}
+        </div>
+      )}
+      {/* Transfer modal */}
+      {showTransfer && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowTransfer(false)}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-5">
+              <ArrowLeftRight size={20} className="text-green-600" />
+              <h3 className="text-lg font-bold text-gray-900">Money Transfer</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <select value={transferFrom} onChange={(e) => setTransferFrom(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Select person...</option>
+                  {members.map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Select person...</option>
+                  {members.filter((m) => m.id !== transferFrom).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount ({group.currency_code})</label>
+                <input type="number" min="0.01" step="0.01" value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)} placeholder="0.00"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Note <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" value={transferNote} onChange={(e) => setTransferNote(e.target.value)}
+                  placeholder="e.g. Cash payment, bank transfer..."
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => setShowTransfer(false)}
+                className="flex-1 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={handleTransfer}
+                disabled={transferring || !transferFrom || !transferTo || !transferAmount}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm">
+                {transferring ? "Recording..." : "Record Transfer"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

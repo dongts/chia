@@ -170,6 +170,8 @@ export interface Settlement {
   to_member: string;
   to_member_name: string | null;
   amount: number;
+  description: string | null;
+  type: "settle_up" | "transfer";
   settled_at: string;
 }
 
@@ -177,6 +179,8 @@ export interface SettlementCreate {
   from_member: string;
   to_member: string;
   amount: number;
+  description?: string | null;
+  type?: "settle_up" | "transfer";
 }
 
 export interface Balance {
