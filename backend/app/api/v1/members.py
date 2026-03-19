@@ -83,6 +83,9 @@ async def update_member(
             )
 
     if data.display_name is not None:
+        # Members can rename themselves; owner/admin can rename anyone
+        if target.id != current.id:
+            require_role(current, MemberRole.owner, MemberRole.admin)
         target.display_name = data.display_name
 
     await db.commit()

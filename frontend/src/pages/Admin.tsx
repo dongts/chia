@@ -586,6 +586,14 @@ function GroupsTab() {
                   onDelete={() => deleteGroup(group.id)}
                   onToggleExpenses={() => setShowExpenses(showExpenses === group.id ? null : group.id)}
                   onAddMember={() => { setAddMemberGroupId(group.id); setNewMemberName(""); setNewMemberRole("member"); }}
+                  onMemberRenamed={(memberId, newName) => {
+                    if (expandedDetail) {
+                      setExpandedDetail({
+                        ...expandedDetail,
+                        members: expandedDetail.members.map((m) => m.id === memberId ? { ...m, display_name: newName } : m),
+                      });
+                    }
+                  }}
                 />
               ))}
             </tbody>
@@ -607,12 +615,27 @@ function GroupsTab() {
 }
 
 function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpenses, deletingId,
-  onToggleExpand, onDelete, onToggleExpenses, onAddMember,
+  onToggleExpand, onDelete, onToggleExpenses, onAddMember, onMemberRenamed,
 }: {
   group: GroupItem; isExpanded: boolean; expandedDetail: GroupDetail | null;
   loadingDetail: boolean; showExpenses: boolean; deletingId: string | null;
   onToggleExpand: () => void; onDelete: () => void; onToggleExpenses: () => void; onAddMember: () => void;
+  onMemberRenamed: (memberId: string, newName: string) => void;
 }) {
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [savingRename, setSavingRename] = useState(false);
+
+  async function handleRename(memberId: string) {
+    if (!renameValue.trim()) return;
+    setSavingRename(true);
+    try {
+      await client.patch(`/admin/groups/${group.id}/members/${memberId}`, { display_name: renameValue.trim() });
+      onMemberRenamed(memberId, renameValue.trim());
+      setRenamingId(null);
+    } catch { window.alert("Failed to rename"); }
+    finally { setSavingRename(false); }
+  }
   return (
     <>
       <tr className={cn("border-b border-gray-100 hover:bg-gray-50 cursor-pointer", isExpanded && "bg-green-50/40")} onClick={onToggleExpand}>
@@ -645,7 +668,21 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                       <span key={m.id} className={cn("inline-flex items-center gap-1.5 border rounded-lg px-3 py-1.5 text-sm",
                         m.is_active ? "bg-white border-gray-200 text-gray-700" : "bg-gray-50 border-gray-100 text-gray-400 line-through"
                       )}>
-                        <span className="font-medium">{m.display_name}</span>
+                        {renamingId === m.id ? (
+                          <>
+                            <input type="text" value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") handleRename(m.id); if (e.key === "Escape") setRenamingId(null); }}
+                              autoFocus className="border border-gray-200 rounded px-1.5 py-0.5 text-sm w-24 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                            <button onClick={() => handleRename(m.id)} disabled={savingRename} className="text-green-600 hover:text-green-700"><Check size={13} /></button>
+                            <button onClick={() => setRenamingId(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-medium">{m.display_name}</span>
+                            <button onClick={() => { setRenamingId(m.id); setRenameValue(m.display_name); }}
+                              className="text-gray-300 hover:text-gray-500" title="Rename"><Pencil size={11} /></button>
+                          </>
+                        )}
                         {m.email && <span className="text-xs text-gray-400">{m.email}</span>}
                         <Badge green={m.role === "owner"}>{m.role}</Badge>
                         {!m.user_id && <span className="text-xs text-amber-500">unclaimed</span>}

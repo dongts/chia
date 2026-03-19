@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X } from "lucide-react";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
 import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
 import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
@@ -40,6 +40,9 @@ export default function GroupSettings() {
   const [newCurrencyCode, setNewCurrencyCode] = useState("");
   const [newCurrencyRate, setNewCurrencyRate] = useState("");
   const [addingCurrency, setAddingCurrency] = useState(false);
+  const [renamingMemberId, setRenamingMemberId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [savingRename, setSavingRename] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -174,6 +177,19 @@ export default function GroupSettings() {
     } catch {
       window.alert("Failed to remove currency");
     }
+  }
+
+  async function handleRenameMember() {
+    if (!groupId || !renamingMemberId || !renamingValue.trim()) return;
+    setSavingRename(true);
+    try {
+      const updated = await updateMember(groupId, renamingMemberId, { display_name: renamingValue.trim() });
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      setRenamingMemberId(null);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to rename";
+      window.alert(msg);
+    } finally { setSavingRename(false); }
   }
 
   async function handleAddMember(e: FormEvent) {
@@ -439,7 +455,26 @@ export default function GroupSettings() {
                     {m.display_name[0]?.toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{m.display_name}</p>
+                    {renamingMemberId === m.id ? (
+                      <div className="flex items-center gap-1">
+                        <input type="text" value={renamingValue} onChange={(e) => setRenamingValue(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
+                          autoFocus
+                          className="border border-gray-200 rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                        <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
+                          className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"><Check size={14} /></button>
+                        <button onClick={() => setRenamingMemberId(null)}
+                          className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-medium text-gray-800 truncate">{m.display_name}</p>
+                        {isAdminOrOwner && (
+                          <button onClick={() => { setRenamingMemberId(m.id); setRenamingValue(m.display_name); }}
+                            className="p-0.5 text-gray-300 hover:text-gray-500" title="Rename"><Pencil size={12} /></button>
+                        )}
+                      </div>
+                    )}
                     {m.user_id ? (
                       <p className="text-xs text-gray-400">Linked account</p>
                     ) : (

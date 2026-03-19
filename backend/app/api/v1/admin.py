@@ -248,6 +248,33 @@ async def add_member_to_group(group_id: uuid.UUID, data: AddMemberToGroupRequest
     return {"detail": f"Member '{data.display_name}' added to {group.name}"}
 
 
+class UpdateMemberRequest(BaseModel):
+    display_name: str | None = None
+    role: str | None = None
+
+
+@router.patch("/groups/{group_id}/members/{member_id}")
+async def update_group_member(
+    group_id: uuid.UUID, member_id: uuid.UUID, data: UpdateMemberRequest, db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(GroupMember).where(GroupMember.id == member_id, GroupMember.group_id == group_id)
+    )
+    member = result.scalars().first()
+    if not member:
+        raise NotFound("Member not found")
+    if data.display_name is not None:
+        member.display_name = data.display_name
+    if data.role is not None:
+        member.role = MemberRole(data.role)
+    await db.commit()
+    await db.refresh(member)
+    return {
+        "id": str(member.id), "display_name": member.display_name,
+        "role": member.role.value, "is_active": member.is_active,
+    }
+
+
 @router.delete("/groups/{group_id}")
 async def delete_group(group_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Group).where(Group.id == group_id))
