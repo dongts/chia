@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Wallet } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Sprout } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/dashboard";
   const { login, guestLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,35 +18,29 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/dashboard");
+      navigate(redirect);
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Login failed. Please check your credentials.";
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Login failed.";
       window.alert(msg);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function handleGuest() {
     setLoading(true);
     try {
       await guestLogin("Guest");
-      navigate("/dashboard");
+      navigate(redirect);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to continue as guest";
       window.alert(message);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   return (
     <div className="w-full max-w-sm">
       <div className="flex justify-center mb-6">
         <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center">
-          <Wallet size={24} className="text-white" />
+          <Sprout size={24} className="text-white" />
         </div>
       </div>
 
@@ -54,50 +50,32 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
             placeholder="Your password"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition-colors"
-        >
+        <button type="submit" disabled={loading}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition-colors">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
       <div className="mt-4 text-center">
-        <button
-          onClick={handleGuest}
-          disabled={loading}
-          className="text-sm text-green-600 hover:underline"
-        >
+        <button onClick={handleGuest} disabled={loading} className="text-sm text-green-600 hover:underline">
           Continue as guest
         </button>
       </div>
 
       <p className="mt-6 text-center text-sm text-gray-500">
         Don't have an account?{" "}
-        <Link to="/register" className="text-green-600 font-medium hover:underline">
-          Sign up
-        </Link>
+        <Link to={redirect !== "/dashboard" ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}
+          className="text-green-600 font-medium hover:underline">Sign up</Link>
       </p>
     </div>
   );

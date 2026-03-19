@@ -77,17 +77,8 @@ export default function App() {
             <Route path="/register" element={<Register />} />
           </Route>
 
-          {/* Join route (needs auth, shown in public-style layout) */}
-          <Route
-            path="/join/:inviteCode"
-            element={
-              <RequireAuth>
-                <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-                  <JoinGroup />
-                </div>
-              </RequireAuth>
-            }
-          />
+          {/* Join route — handles auth internally (guest/login/register) */}
+          <Route path="/join/:inviteCode" element={<JoinGroup />} />
 
           {/* Protected app routes */}
           <Route
