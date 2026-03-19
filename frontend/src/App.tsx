@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+const Admin = lazy(() => import("./pages/Admin"));
 import { useAuthStore } from "@/store/authStore";
 
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -94,6 +96,14 @@ export default function App() {
             />
             <Route path="/groups/:groupId/settings" element={<GroupSettings />} />
             <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/admin"
+              element={
+                <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>}>
+                  <Admin />
+                </Suspense>
+              }
+            />
           </Route>
 
           {/* 404 */}

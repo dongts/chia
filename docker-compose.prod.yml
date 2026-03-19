@@ -54,6 +54,7 @@ services:
       USE_CONNECTION_POOLER: ${USE_CONNECTION_POOLER:-false}
       CHIA_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       CHIA_CORS_ORIGINS: '["${FRONTEND_URL:-http://localhost:5173}"]'
+      CHIA_SUPERADMIN_EMAILS: ${CHIA_SUPERADMIN_EMAILS:-'[]'}
       CHIA_UPLOAD_DIR: /data/uploads
     depends_on:
       db:

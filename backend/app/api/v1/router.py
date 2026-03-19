@@ -21,3 +21,6 @@ api_router.include_router(notifications_router)
 
 from app.api.v1.group_currencies import router as group_currencies_router
 api_router.include_router(group_currencies_router)
+
+from app.api.v1.admin import router as admin_router
+api_router.include_router(admin_router)
