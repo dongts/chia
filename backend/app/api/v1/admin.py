@@ -1,18 +1,20 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.admin import require_superadmin
-from app.core.exceptions import NotFound
+from app.core.exceptions import BadRequest, NotFound
 from app.database import get_db
 from app.models import (
     Category, Expense, ExpenseSplit, Group, GroupCurrency,
     GroupMember, MemberRole, Notification, Settlement, User,
 )
 from app.schemas.user import UserRead
+from app.services.auth import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_superadmin)])
 
@@ -25,12 +27,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     groups = (await db.execute(select(func.count(Group.id)))).scalar()
     expenses = (await db.execute(select(func.count(Expense.id)))).scalar()
     settlements = (await db.execute(select(func.count(Settlement.id)))).scalar()
-    return {
-        "users": users,
-        "groups": groups,
-        "expenses": expenses,
-        "settlements": settlements,
-    }
+    return {"users": users, "groups": groups, "expenses": expenses, "settlements": settlements}
 
 
 # ── Users ────────────────────────────────────────────────────────────────────
@@ -43,19 +40,14 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(User).order_by(User.created_at.desc()).limit(limit).offset(offset)
-    if search:
-        query = query.where(
-            User.display_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%")
-        )
-    result = await db.execute(query)
-    users = result.scalars().all()
     count_q = select(func.count(User.id))
     if search:
-        count_q = count_q.where(
-            User.display_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%")
-        )
+        filt = User.display_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%")
+        query = query.where(filt)
+        count_q = count_q.where(filt)
+    result = await db.execute(query)
     total = (await db.execute(count_q)).scalar()
-    return {"items": [UserRead.model_validate(u) for u in users], "total": total}
+    return {"items": [UserRead.model_validate(u) for u in result.scalars().all()], "total": total}
 
 
 @router.get("/users/{user_id}")
@@ -64,25 +56,20 @@ async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     user = result.scalars().first()
     if not user:
         raise NotFound("User not found")
-    # Get user's groups
     memberships = await db.execute(
         select(GroupMember, Group)
         .join(Group, Group.id == GroupMember.group_id)
         .where(GroupMember.user_id == user_id, GroupMember.is_active.is_(True))
     )
     groups = [
-        {"group_id": str(m.group_id), "group_name": g.name, "role": m.role.value, "display_name": m.display_name}
+        {"id": str(g.id), "name": g.name, "currency_code": g.currency_code, "role": m.role.value}
         for m, g in memberships.all()
     ]
     return {**UserRead.model_validate(user).model_dump(), "groups": groups}
 
 
 @router.patch("/users/{user_id}")
-async def update_user(
-    user_id: uuid.UUID,
-    data: dict,
-    db: AsyncSession = Depends(get_db),
-):
+async def update_user(user_id: uuid.UUID, data: dict, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -93,6 +80,21 @@ async def update_user(
     await db.commit()
     await db.refresh(user)
     return UserRead.model_validate(user)
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str
+
+
+@router.post("/users/{user_id}/reset-password")
+async def reset_password(user_id: uuid.UUID, data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise NotFound("User not found")
+    user.password_hash = hash_password(data.new_password)
+    await db.commit()
+    return {"detail": "Password reset successfully"}
 
 
 @router.delete("/users/{user_id}")
@@ -106,6 +108,40 @@ async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     return {"detail": "User deleted"}
 
 
+class AddUserToGroupRequest(BaseModel):
+    group_id: uuid.UUID
+    role: str = "member"
+
+
+@router.post("/users/{user_id}/add-to-group")
+async def add_user_to_group(user_id: uuid.UUID, data: AddUserToGroupRequest, db: AsyncSession = Depends(get_db)):
+    user = (await db.execute(select(User).where(User.id == user_id))).scalars().first()
+    if not user:
+        raise NotFound("User not found")
+    group = (await db.execute(select(Group).where(Group.id == data.group_id))).scalars().first()
+    if not group:
+        raise NotFound("Group not found")
+    existing = (await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == data.group_id,
+            GroupMember.user_id == user_id,
+            GroupMember.is_active.is_(True),
+        )
+    )).scalars().first()
+    if existing:
+        raise BadRequest("User is already a member of this group")
+    member = GroupMember(
+        group_id=data.group_id,
+        user_id=user_id,
+        display_name=user.display_name,
+        role=MemberRole(data.role),
+        claimed_at=func.now(),
+    )
+    db.add(member)
+    await db.commit()
+    return {"detail": f"User added to {group.name} as {data.role}"}
+
+
 # ── Groups ───────────────────────────────────────────────────────────────────
 
 @router.get("/groups")
@@ -115,12 +151,19 @@ async def list_groups(
     search: str = Query(""),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Group, func.count(GroupMember.id).label("mc")).join(
-        GroupMember, (GroupMember.group_id == Group.id) & GroupMember.is_active.is_(True), isouter=True
-    ).group_by(Group.id).order_by(Group.created_at.desc()).limit(limit).offset(offset)
+    query = (
+        select(Group, func.count(GroupMember.id).label("mc"))
+        .join(GroupMember, (GroupMember.group_id == Group.id) & GroupMember.is_active.is_(True), isouter=True)
+        .group_by(Group.id)
+        .order_by(Group.created_at.desc())
+        .limit(limit).offset(offset)
+    )
+    count_q = select(func.count(Group.id))
     if search:
         query = query.where(Group.name.ilike(f"%{search}%"))
+        count_q = count_q.where(Group.name.ilike(f"%{search}%"))
     result = await db.execute(query)
+    total = (await db.execute(count_q)).scalar()
     items = [
         {
             "id": str(g.id), "name": g.name, "currency_code": g.currency_code,
@@ -129,10 +172,6 @@ async def list_groups(
         }
         for g, mc in result.all()
     ]
-    count_q = select(func.count(Group.id))
-    if search:
-        count_q = count_q.where(Group.name.ilike(f"%{search}%"))
-    total = (await db.execute(count_q)).scalar()
     return {"items": items, "total": total}
 
 
@@ -143,7 +182,10 @@ async def get_group_detail(group_id: uuid.UUID, db: AsyncSession = Depends(get_d
     if not group:
         raise NotFound("Group not found")
     members = await db.execute(
-        select(GroupMember).where(GroupMember.group_id == group_id).order_by(GroupMember.joined_at)
+        select(GroupMember, User)
+        .outerjoin(User, User.id == GroupMember.user_id)
+        .where(GroupMember.group_id == group_id)
+        .order_by(GroupMember.joined_at)
     )
     currencies = await db.execute(
         select(GroupCurrency).where(GroupCurrency.group_id == group_id)
@@ -158,9 +200,12 @@ async def get_group_detail(group_id: uuid.UUID, db: AsyncSession = Depends(get_d
         "allow_log_on_behalf": group.allow_log_on_behalf,
         "created_at": group.created_at.isoformat() if group.created_at else None,
         "members": [
-            {"id": str(m.id), "display_name": m.display_name, "role": m.role.value,
-             "user_id": str(m.user_id) if m.user_id else None, "is_active": m.is_active}
-            for m in members.scalars().all()
+            {
+                "id": str(m.id), "display_name": m.display_name, "role": m.role.value,
+                "user_id": str(m.user_id) if m.user_id else None,
+                "email": u.email if u else None, "is_active": m.is_active,
+            }
+            for m, u in members.all()
         ],
         "currencies": [
             {"id": str(c.id), "currency_code": c.currency_code, "exchange_rate": float(c.exchange_rate)}
@@ -168,6 +213,39 @@ async def get_group_detail(group_id: uuid.UUID, db: AsyncSession = Depends(get_d
         ],
         "expenses_count": expenses_count,
     }
+
+
+class AddMemberToGroupRequest(BaseModel):
+    display_name: str
+    user_id: uuid.UUID | None = None
+    role: str = "member"
+
+
+@router.post("/groups/{group_id}/members")
+async def add_member_to_group(group_id: uuid.UUID, data: AddMemberToGroupRequest, db: AsyncSession = Depends(get_db)):
+    group = (await db.execute(select(Group).where(Group.id == group_id))).scalars().first()
+    if not group:
+        raise NotFound("Group not found")
+    if data.user_id:
+        existing = (await db.execute(
+            select(GroupMember).where(
+                GroupMember.group_id == group_id,
+                GroupMember.user_id == data.user_id,
+                GroupMember.is_active.is_(True),
+            )
+        )).scalars().first()
+        if existing:
+            raise BadRequest("User is already a member of this group")
+    member = GroupMember(
+        group_id=group_id,
+        user_id=data.user_id,
+        display_name=data.display_name,
+        role=MemberRole(data.role),
+        claimed_at=func.now() if data.user_id else None,
+    )
+    db.add(member)
+    await db.commit()
+    return {"detail": f"Member '{data.display_name}' added to {group.name}"}
 
 
 @router.delete("/groups/{group_id}")
@@ -193,28 +271,28 @@ async def list_group_expenses(
     result = await db.execute(
         select(Expense)
         .where(Expense.group_id == group_id)
-        .options(
-            selectinload(Expense.splits).selectinload(ExpenseSplit.member),
-            selectinload(Expense.payer),
-        )
+        .options(selectinload(Expense.payer))
         .order_by(Expense.date.desc())
         .limit(limit).offset(offset)
     )
+    total = (await db.execute(
+        select(func.count(Expense.id)).where(Expense.group_id == group_id)
+    )).scalar()
     expenses = result.scalars().all()
-    return [
-        {
-            "id": str(e.id), "description": e.description,
-            "amount": float(e.amount), "currency_code": e.currency_code,
-            "exchange_rate": float(e.exchange_rate), "converted_amount": float(e.converted_amount),
-            "date": e.date.isoformat(), "payer_name": e.payer.display_name if e.payer else None,
-            "splits": [
-                {"member_name": s.member.display_name if s.member else None,
-                 "resolved_amount": float(s.resolved_amount)}
-                for s in e.splits
-            ],
-        }
-        for e in expenses
-    ]
+    return {
+        "items": [
+            {
+                "id": str(e.id), "description": e.description,
+                "amount": float(e.amount), "currency_code": e.currency_code,
+                "exchange_rate": float(e.exchange_rate), "converted_amount": float(e.converted_amount),
+                "date": e.date.isoformat(),
+                "payer_name": e.payer.display_name if e.payer else None,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+            }
+            for e in expenses
+        ],
+        "total": total,
+    }
 
 
 @router.delete("/expenses/{expense_id}")
