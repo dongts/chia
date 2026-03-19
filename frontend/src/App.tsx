@@ -21,9 +21,11 @@ import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
 function RedirectIfAuth({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthStore();
-  if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  const { isAuthenticated } = useAuthStore();
+  // Also check localStorage as a fast path — covers cases where
+  // initialize() hasn't completed or getMe() is still in flight
+  const hasToken = !!localStorage.getItem("access_token");
+  if (isAuthenticated || hasToken) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
