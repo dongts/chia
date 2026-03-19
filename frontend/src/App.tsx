@@ -16,6 +16,7 @@ import GroupView from "@/pages/GroupView";
 import AddExpense from "@/pages/AddExpense";
 import EditExpense from "@/pages/EditExpense";
 import GroupSettings from "@/pages/GroupSettings";
+import GroupReports from "./pages/GroupReports";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
@@ -95,6 +96,7 @@ export default function App() {
               element={<EditExpense />}
             />
             <Route path="/groups/:groupId/settings" element={<GroupSettings />} />
+            <Route path="/groups/:groupId/reports" element={<GroupReports />} />
             <Route path="/profile" element={<Profile />} />
             <Route
               path="/admin"

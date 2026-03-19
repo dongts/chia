@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Copy, Settings, ArrowLeft, Check } from "lucide-react";
+import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
@@ -137,12 +137,22 @@ export default function GroupView() {
             </div>
           </div>
         </div>
-        <Link
-          to={`/groups/${groupId}/settings`}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-        >
-          <Settings size={20} />
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            to={`/groups/${groupId}/reports`}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+            title="Reports"
+          >
+            <BarChart3 size={20} />
+          </Link>
+          <Link
+            to={`/groups/${groupId}/settings`}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+            title="Settings"
+          >
+            <Settings size={20} />
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
