@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from collections import defaultdict
+from decimal import Decimal
+
 from app.core.exceptions import BadRequest, Forbidden, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Group, GroupMember, MemberRole, User
+from app.models import Expense, ExpenseSplit, Group, GroupMember, MemberRole, Settlement, User
 from app.schemas.group import GroupCreate, GroupListItem, GroupRead, GroupUpdate
 from app.services.member_log import log_member_event
 from app.utils.invite_code import generate_invite_code
@@ -84,13 +87,73 @@ async def list_groups(
         )
         .group_by(Group.id)
     )
+    groups_data = result.all()
+    group_ids = [g.id for g, _ in groups_data]
+
+    # Compute my_balance for each group
+    balances: dict[uuid.UUID, float] = {gid: 0.0 for gid in group_ids}
+
+    if group_ids:
+        # Get my member IDs per group
+        my_members_result = await db.execute(
+            select(GroupMember.id, GroupMember.group_id).where(
+                GroupMember.user_id == current_user.id,
+                GroupMember.group_id.in_(group_ids),
+                GroupMember.is_active.is_(True),
+            )
+        )
+        my_member_map: dict[uuid.UUID, uuid.UUID] = {}  # group_id -> member_id
+        for mid, gid in my_members_result.all():
+            my_member_map[gid] = mid
+
+        if my_member_map:
+            all_member_ids = list(my_member_map.values())
+
+            # What I paid
+            paid_result = await db.execute(
+                select(Expense.group_id, func.coalesce(func.sum(Expense.converted_amount), 0))
+                .where(Expense.paid_by.in_(all_member_ids))
+                .group_by(Expense.group_id)
+            )
+            for gid, total in paid_result.all():
+                balances[gid] = float(total)
+
+            # What I owe
+            owed_result = await db.execute(
+                select(Expense.group_id, func.coalesce(func.sum(ExpenseSplit.resolved_amount), 0))
+                .join(Expense, Expense.id == ExpenseSplit.expense_id)
+                .where(ExpenseSplit.group_member_id.in_(all_member_ids))
+                .group_by(Expense.group_id)
+            )
+            for gid, total in owed_result.all():
+                balances[gid] -= float(total)
+
+            # Settlements I made (paid out)
+            sent_result = await db.execute(
+                select(Settlement.group_id, func.coalesce(func.sum(Settlement.amount), 0))
+                .where(Settlement.from_member.in_(all_member_ids))
+                .group_by(Settlement.group_id)
+            )
+            for gid, total in sent_result.all():
+                balances[gid] += float(total)
+
+            # Settlements I received
+            recv_result = await db.execute(
+                select(Settlement.group_id, func.coalesce(func.sum(Settlement.amount), 0))
+                .where(Settlement.to_member.in_(all_member_ids))
+                .group_by(Settlement.group_id)
+            )
+            for gid, total in recv_result.all():
+                balances[gid] -= float(total)
+
     items = []
-    for group, member_count in result.all():
+    for group, member_count in groups_data:
         items.append(GroupListItem(
             id=group.id,
             name=group.name,
             currency_code=group.currency_code,
             member_count=member_count,
+            my_balance=round(balances.get(group.id, 0.0), 2),
         ))
     return items
 
@@ -166,6 +229,15 @@ async def join_group(
     )
     if existing.scalars().first():
         raise BadRequest("Already a member of this group")
+
+    # Limit 100 members per group
+    count = (await db.execute(
+        select(func.count(GroupMember.id)).where(
+            GroupMember.group_id == group.id, GroupMember.is_active.is_(True)
+        )
+    )).scalar()
+    if count >= 100:
+        raise BadRequest("This group has reached the maximum of 100 members")
 
     member = GroupMember(
         group_id=group.id,

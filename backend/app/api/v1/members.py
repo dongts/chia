@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -44,6 +44,14 @@ async def add_member(
     await get_group_or_404(db, group_id)
     current = await get_current_member(db, group_id, current_user.id)
     require_role(current, MemberRole.owner, MemberRole.admin)
+    # Limit 100 members per group
+    count = (await db.execute(
+        select(func.count(GroupMember.id)).where(
+            GroupMember.group_id == group_id, GroupMember.is_active.is_(True)
+        )
+    )).scalar()
+    if count >= 100:
+        raise BadRequest("Maximum 100 members per group")
     member = GroupMember(
         group_id=group_id,
         display_name=data.display_name,

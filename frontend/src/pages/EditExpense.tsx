@@ -7,6 +7,7 @@ import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
 import type { GroupMember, Category, SplitType, SplitInput, Expense } from "@/types";
 import { cn } from "@/lib/utils";
+import MemberSplitList from "@/components/expense/MemberSplitList";
 
 export default function EditExpense() {
   const { groupId, expenseId } = useParams<{ groupId: string; expenseId: string }>();
@@ -27,7 +28,6 @@ export default function EditExpense() {
   const [splitType, setSplitType] = useState<SplitType>("equal");
 
   // Split-specific state
-  const [equalSearch, setEqualSearch] = useState("");
   const [equalChecked, setEqualChecked] = useState<Record<string, boolean>>({});
   const [exactValues, setExactValues] = useState<Record<string, string>>({});
   const [percentValues, setPercentValues] = useState<Record<string, string>>({});
@@ -260,142 +260,21 @@ export default function EditExpense() {
             ))}
           </div>
 
-          {/* Equal — tappable member chips */}
-          {splitType === "equal" && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  value={equalSearch}
-                  onChange={(e) => setEqualSearch(e.target.value)}
-                  placeholder="Search members..."
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updated: Record<string, boolean> = { ...equalChecked };
-                    members.forEach((m) => { updated[m.id] = true; });
-                    setEqualChecked(updated);
-                  }}
-                  className="text-xs text-green-700 font-medium px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors whitespace-nowrap"
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updated: Record<string, boolean> = { ...equalChecked };
-                    members.forEach((m) => { updated[m.id] = false; });
-                    setEqualChecked(updated);
-                  }}
-                  className="text-xs text-gray-600 font-medium px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 transition-colors whitespace-nowrap"
-                >
-                  None
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mb-2">Tap to include/exclude</p>
-              <div className="flex flex-wrap gap-2">
-                {members
-                  .filter((m) => m.display_name.toLowerCase().includes(equalSearch.toLowerCase()))
-                  .map((m) => {
-                    const checked = equalChecked[m.id] ?? true;
-                    return (
-                      <button key={m.id} type="button"
-                        onClick={() => setEqualChecked((prev) => ({ ...prev, [m.id]: !checked }))}
-                        className={cn(
-                          "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                          checked
-                            ? "bg-green-50 border-green-300 text-green-800 shadow-sm"
-                            : "bg-gray-50 border-gray-200 text-gray-400"
-                        )}
-                      >
-                        <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                          checked ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-500"
-                        )}>{m.display_name[0]?.toUpperCase()}</div>
-                        {m.display_name}
-                      </button>
-                    );
-                  })}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {members.filter((m) => equalChecked[m.id] ?? true).length} of {members.length} selected
-              </p>
-            </div>
-          )}
-
-          {/* Exact */}
-          {splitType === "exact" && (
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                    {m.display_name[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
-                  <input type="number" min="0" step="0.01"
-                    value={exactValues[m.id] ?? ""}
-                    onChange={(e) => setExactValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                    placeholder="0.00"
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Percentage */}
-          {splitType === "percentage" && (
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                    {m.display_name[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
-                  <div className="flex-1 flex items-center gap-1">
-                    <input type="number" min="0" max="100" step="0.01"
-                      value={percentValues[m.id] ?? ""}
-                      onChange={(e) => setPercentValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                      placeholder="0"
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
-                    <span className="text-xs text-gray-400 w-4">%</span>
-                  </div>
-                </div>
-              ))}
-              <p className={cn("text-xs mt-1",
-                Math.abs(Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - 100) < 0.1
-                  ? "text-green-600" : "text-amber-500"
-              )}>
-                Sum: {Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(1)}% / 100%
-              </p>
-            </div>
-          )}
-
-          {/* Shares */}
-          {splitType === "shares" && (
-            <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                    {m.display_name[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
-                  <div className="flex items-center gap-1">
-                    <button type="button"
-                      onClick={() => setShareValues((prev) => ({ ...prev, [m.id]: String(Math.max(0, parseFloat(prev[m.id] || "1") - 1)) }))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">−</button>
-                    <input type="number" min="0" step="1"
-                      value={shareValues[m.id] ?? "1"}
-                      onChange={(e) => setShareValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                      className="w-12 text-center border border-gray-200 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
-                    <button type="button"
-                      onClick={() => setShareValues((prev) => ({ ...prev, [m.id]: String(parseFloat(prev[m.id] || "1") + 1) }))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">+</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <MemberSplitList
+            members={members}
+            splitType={splitType}
+            equalChecked={equalChecked}
+            onEqualToggle={(id) => setEqualChecked((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }))}
+            onSelectAll={() => { const u = { ...equalChecked }; members.forEach((m) => { u[m.id] = true; }); setEqualChecked(u); }}
+            onSelectNone={() => { const u = { ...equalChecked }; members.forEach((m) => { u[m.id] = false; }); setEqualChecked(u); }}
+            exactValues={exactValues}
+            onExactChange={(id, v) => setExactValues((prev) => ({ ...prev, [id]: v }))}
+            totalAmount={amount}
+            percentValues={percentValues}
+            onPercentChange={(id, v) => setPercentValues((prev) => ({ ...prev, [id]: v }))}
+            shareValues={shareValues}
+            onShareChange={(id, v) => setShareValues((prev) => ({ ...prev, [id]: v }))}
+          />
         </div>
 
         {/* Submit */}
