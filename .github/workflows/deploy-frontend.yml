@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
 permissions:
@@ -36,7 +37,8 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || '/' }}
+          # GitHub Pages serves from /<repo-name>/ — set base path automatically
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: |
           npm run build
           cp dist/index.html dist/404.html
