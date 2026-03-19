@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-chia}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-chia}
+      POSTGRES_DB: ${DB_NAME:-chia}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chia}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      CHIA_DATABASE_URL: postgresql+asyncpg://${DB_USER:-chia}:${DB_PASSWORD:-chia}@db:5432/${DB_NAME:-chia}
+      CHIA_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CHIA_CORS_ORIGINS: '["${DOMAIN:-http://localhost}"]'
+      CHIA_UPLOAD_DIR: /data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/data/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:
