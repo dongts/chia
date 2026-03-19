@@ -312,44 +312,61 @@ export default function AddExpense() {
             ))}
           </div>
 
-          {/* Equal */}
+          {/* Equal — tappable member chips */}
           {splitType === "equal" && (
-            <div className="space-y-2">
-              {members.map((m) => (
-                <label key={m.id} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={equalChecked[m.id] ?? true}
-                    onChange={(e) =>
-                      setEqualChecked((prev) => ({ ...prev, [m.id]: e.target.checked }))
-                    }
-                    className="w-4 h-4 accent-green-600"
-                  />
-                  <span className="text-sm text-gray-700">{m.display_name}</span>
-                </label>
-              ))}
+            <div>
+              <p className="text-xs text-gray-400 mb-2">Tap to include/exclude</p>
+              <div className="flex flex-wrap gap-2">
+                {members.map((m) => {
+                  const checked = equalChecked[m.id] ?? true;
+                  return (
+                    <button key={m.id} type="button"
+                      onClick={() => setEqualChecked((prev) => ({ ...prev, [m.id]: !checked }))}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                        checked
+                          ? "bg-green-50 border-green-300 text-green-800 shadow-sm"
+                          : "bg-gray-50 border-gray-200 text-gray-400"
+                      )}
+                    >
+                      <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                        checked ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-500"
+                      )}>{m.display_name[0]?.toUpperCase()}</div>
+                      {m.display_name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {members.filter((m) => equalChecked[m.id] ?? true).length} of {members.length} selected
+              </p>
             </div>
           )}
 
-          {/* Exact */}
+          {/* Exact — member row with avatar + input */}
           {splitType === "exact" && (
             <div className="space-y-2">
               {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700 w-32 truncate">{m.display_name}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                <div key={m.id} className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                    {m.display_name[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
+                  <input type="number" min="0" step="0.01"
                     value={exactValues[m.id] ?? ""}
-                    onChange={(e) =>
-                      setExactValues((prev) => ({ ...prev, [m.id]: e.target.value }))
-                    }
+                    onChange={(e) => setExactValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
                     placeholder="0.00"
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
                 </div>
               ))}
+              {amount && (
+                <p className={cn("text-xs mt-1",
+                  Math.abs(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - parseFloat(amount)) < 0.02
+                    ? "text-green-600" : "text-amber-500"
+                )}>
+                  Sum: {Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(2)} / {parseFloat(amount || "0").toFixed(2)}
+                </p>
+              )}
             </div>
           )}
 
@@ -357,31 +374,26 @@ export default function AddExpense() {
           {splitType === "percentage" && (
             <div className="space-y-2">
               {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700 w-32 truncate">{m.display_name}</span>
-                  <div className="flex-1 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
+                <div key={m.id} className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                    {m.display_name[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
+                  <div className="flex-1 flex items-center gap-1">
+                    <input type="number" min="0" max="100" step="0.01"
                       value={percentValues[m.id] ?? ""}
-                      onChange={(e) =>
-                        setPercentValues((prev) => ({ ...prev, [m.id]: e.target.value }))
-                      }
+                      onChange={(e) => setPercentValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
                       placeholder="0"
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                    <span className="text-sm text-gray-500">%</span>
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                    <span className="text-xs text-gray-400 w-4">%</span>
                   </div>
                 </div>
               ))}
-              <p className="text-xs text-gray-400">
-                Sum:{" "}
-                {Object.values(percentValues)
-                  .reduce((a, v) => a + parseFloat(v || "0"), 0)
-                  .toFixed(1)}
-                % (must be 100)
+              <p className={cn("text-xs mt-1",
+                Math.abs(Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - 100) < 0.1
+                  ? "text-green-600" : "text-amber-500"
+              )}>
+                Sum: {Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(1)}% / 100%
               </p>
             </div>
           )}
@@ -390,20 +402,23 @@ export default function AddExpense() {
           {splitType === "shares" && (
             <div className="space-y-2">
               {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-700 w-32 truncate">{m.display_name}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={shareValues[m.id] ?? "1"}
-                    onChange={(e) =>
-                      setShareValues((prev) => ({ ...prev, [m.id]: e.target.value }))
-                    }
-                    placeholder="1"
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                  <span className="text-sm text-gray-500">share(s)</span>
+                <div key={m.id} className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                    {m.display_name[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm text-gray-700 w-24 sm:w-32 truncate flex-shrink-0">{m.display_name}</span>
+                  <div className="flex items-center gap-1">
+                    <button type="button"
+                      onClick={() => setShareValues((prev) => ({ ...prev, [m.id]: String(Math.max(0, parseFloat(prev[m.id] || "1") - 1)) }))}
+                      className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">−</button>
+                    <input type="number" min="0" step="1"
+                      value={shareValues[m.id] ?? "1"}
+                      onChange={(e) => setShareValues((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                      className="w-12 text-center border border-gray-200 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                    <button type="button"
+                      onClick={() => setShareValues((prev) => ({ ...prev, [m.id]: String(parseFloat(prev[m.id] || "1") + 1) }))}
+                      className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">+</button>
+                  </div>
                 </div>
               ))}
             </div>
