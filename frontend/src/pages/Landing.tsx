@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Wallet, Users, Receipt, ArrowRight } from "lucide-react";
+import { Sprout, Users, Receipt, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Landing() {
@@ -21,7 +21,7 @@ export default function Landing() {
       {/* Logo */}
       <div className="flex justify-center mb-6">
         <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-          <Wallet size={32} className="text-white" />
+          <Sprout size={32} className="text-white" />
         </div>
       </div>
 
@@ -73,7 +73,7 @@ export default function Landing() {
         </div>
         <div className="flex flex-col items-center gap-2">
           <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-            <Wallet size={20} className="text-green-600" />
+            <Sprout size={20} className="text-green-600" />
           </div>
           <p className="text-xs text-gray-500 font-medium">Settle up easily</p>
         </div>

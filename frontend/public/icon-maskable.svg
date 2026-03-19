@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Maskable icon needs safe zone: 80% center area -->
+  <!-- Maskable: no rounded corners, content in safe 80% center -->
   <rect width="512" height="512" fill="#16a34a"/>
-  <text x="256" y="320" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="800" font-size="260" fill="white">C</text>
+  <g transform="translate(256,270) scale(0.8)">
+    <path d="M0,80 Q0,-20 0,-20" stroke="white" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <path d="M-4,-20 Q-90,-120 -30,-180 Q30,-140 -4,-20Z" fill="white" opacity="0.95"/>
+    <path d="M4,-40 Q90,-140 30,-200 Q-30,-160 4,-40Z" fill="white" opacity="0.85"/>
+  </g>
 </svg>
