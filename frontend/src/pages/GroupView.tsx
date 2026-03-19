@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3 } from "lucide-react";
+import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
@@ -228,16 +228,17 @@ export default function GroupView() {
                     <div className="flex gap-1">
                       <Link
                         to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                        className="text-xs text-blue-500 hover:underline"
+                        className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Edit"
                       >
-                        Edit
+                        <Pencil size={15} />
                       </Link>
-                      <span className="text-gray-300">·</span>
                       <button
                         onClick={() => handleDeleteExpense(expense.id)}
-                        className="text-xs text-red-400 hover:underline"
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Delete"
                       >
-                        Delete
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
