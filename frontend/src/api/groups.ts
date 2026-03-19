@@ -43,9 +43,10 @@ export async function previewGroup(inviteCode: string): Promise<GroupPreview> {
   return response.data;
 }
 
-export async function joinGroup(inviteCode: string, claimMemberId?: string): Promise<Group> {
+export async function joinGroup(inviteCode: string, claimMemberId?: string, displayName?: string): Promise<Group> {
   const response = await client.post<Group>(`/groups/join/${inviteCode}`, {
     claim_member_id: claimMemberId || null,
+    display_name: displayName || null,
   });
   return response.data;
 }

@@ -244,6 +244,7 @@ async def preview_group(invite_code: str, db: AsyncSession = Depends(get_db)):
 
 class JoinGroupRequest(BaseModel):
     claim_member_id: uuid.UUID | None = None
+    display_name: str | None = None
 
 
 @router.post("/join/{invite_code}", response_model=GroupRead)
@@ -271,6 +272,7 @@ async def join_group(
         raise BadRequest("Already a member of this group")
 
     claim_id = data.claim_member_id if data else None
+    custom_name = data.display_name if data and data.display_name else None
 
     if claim_id:
         # Claim an existing placeholder member
@@ -287,6 +289,10 @@ async def join_group(
             raise BadRequest("This member slot is no longer available")
         member.user_id = current_user.id
         member.claimed_at = func.now()
+        old_name = member.display_name
+        if custom_name and custom_name != old_name:
+            member.display_name = custom_name
+            await log_member_event(db, group.id, member.id, "renamed", f'"{old_name}" → "{custom_name}" (on claim)')
         await log_member_event(db, group.id, member.id, "claimed", f"Claimed by {current_user.display_name} via invite link")
     else:
         # Create new member
@@ -298,10 +304,11 @@ async def join_group(
         if count >= 100:
             raise BadRequest("This group has reached the maximum of 100 members")
 
+        name = custom_name or current_user.display_name
         member = GroupMember(
             group_id=group.id,
             user_id=current_user.id,
-            display_name=current_user.display_name,
+            display_name=name,
             role=MemberRole.member,
             claimed_at=func.now(),
         )
