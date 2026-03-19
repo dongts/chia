@@ -20,6 +20,13 @@ import GroupReports from "./pages/GroupReports";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
+function RedirectIfAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuthStore();
+  if (isLoading) return null;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
 
@@ -61,8 +68,8 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppInitializer>
         <Routes>
-          {/* Public routes */}
-          <Route element={<PublicLayout />}>
+          {/* Public routes — redirect to dashboard if already logged in */}
+          <Route element={<RedirectIfAuth><PublicLayout /></RedirectIfAuth>}>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
