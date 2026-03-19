@@ -7,6 +7,16 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISSED_KEY = "chia_install_dismissed";
 
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isInStandaloneMode(): boolean {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    ("standalone" in navigator && (navigator as unknown as { standalone: boolean }).standalone === true);
+}
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -14,9 +24,10 @@ export function useInstallPrompt() {
     return localStorage.getItem(DISMISSED_KEY) === "true";
   });
 
+  const isiOS = isIOS();
+
   useEffect(() => {
-    // Check if already installed (standalone mode)
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (isInStandaloneMode()) {
       setIsInstalled(true);
       return;
     }
@@ -53,8 +64,9 @@ export function useInstallPrompt() {
     localStorage.setItem(DISMISSED_KEY, "true");
   }
 
-  const canInstall = !!deferredPrompt && !isInstalled;
+  const canInstall = (!!deferredPrompt || isiOS) && !isInstalled;
   const showBanner = canInstall && !bannerDismissed;
+  const showIOSInstructions = isiOS && !isInstalled;
 
-  return { canInstall, showBanner, isInstalled, install, dismissBanner };
+  return { canInstall, showBanner, showIOSInstructions, isInstalled, install, dismissBanner };
 }

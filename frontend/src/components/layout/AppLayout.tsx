@@ -13,7 +13,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { unreadCount, markAllRead } = useNotifications();
-  const { canInstall, showBanner, install, dismissBanner } = useInstallPrompt();
+  const { canInstall, showBanner, showIOSInstructions, install, dismissBanner } = useInstallPrompt();
   const [groups, setGroups] = useState<GroupListItem[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -34,20 +34,32 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Install banner — shown at top of page, dismissable */}
+      {/* Install banner — Android: install button, iOS: instructions */}
       {showBanner && (
         <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between gap-3 z-50">
           <div className="flex items-center gap-3 min-w-0">
             <Sprout size={20} className="flex-shrink-0" />
-            <p className="text-sm font-medium truncate">Install Chia for a better experience</p>
+            {showIOSInstructions ? (
+              <p className="text-sm font-medium">
+                Install Chia: tap{" "}
+                <span className="inline-flex items-center justify-center w-6 h-6 border border-white/50 rounded align-middle mx-0.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                </span>
+                {" "}then <strong>"Add to Home Screen"</strong>
+              </p>
+            ) : (
+              <p className="text-sm font-medium truncate">Install Chia for a better experience</p>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={async () => { await install(); }}
-              className="bg-white text-green-700 font-semibold text-sm px-4 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
-            >
-              Install
-            </button>
+            {!showIOSInstructions && (
+              <button
+                onClick={async () => { await install(); }}
+                className="bg-white text-green-700 font-semibold text-sm px-4 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+              >
+                Install
+              </button>
+            )}
             <button onClick={dismissBanner} className="text-white/70 hover:text-white p-1">
               <X size={18} />
             </button>
@@ -135,13 +147,24 @@ export default function AppLayout() {
           <div className="p-4 border-t border-gray-200 space-y-1">
             {/* Install app button — always visible in sidebar if install is possible */}
             {canInstall && (
-              <button
-                onClick={async () => { await install(); }}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-green-700 bg-green-50 hover:bg-green-100 w-full font-medium transition-colors"
-              >
-                <Download size={16} />
-                Install App
-              </button>
+              showIOSInstructions ? (
+                <div className="px-3 py-2 rounded-lg text-xs text-green-700 bg-green-50 w-full">
+                  <p className="font-medium flex items-center gap-1.5 mb-0.5">
+                    <Download size={14} /> Install App
+                  </p>
+                  <p className="text-green-600">
+                    Tap the share button then "Add to Home Screen"
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => { await install(); }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-green-700 bg-green-50 hover:bg-green-100 w-full font-medium transition-colors"
+                >
+                  <Download size={16} />
+                  Install App
+                </button>
+              )
             )}
             <Link
               to="/profile"
