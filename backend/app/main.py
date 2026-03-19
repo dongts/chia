@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +10,15 @@ from app.api.v1.router import api_router
 from app.config import settings
 from app.database import async_session
 from app.utils.seed import seed_categories
+
+# Initialize Sentry
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        send_default_pii=True,
+        environment=os.environ.get("CHIA_ENV", "production"),
+    )
 
 
 @asynccontextmanager

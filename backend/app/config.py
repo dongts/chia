@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     use_connection_pooler: bool = False
     port: int = 8000
+    sentry_dsn: str = ""
+    sentry_traces_sample_rate: float = 0.2
 
     model_config = {"env_prefix": "CHIA_"}
 
