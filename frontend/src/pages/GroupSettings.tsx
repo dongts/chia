@@ -97,7 +97,7 @@ export default function GroupSettings() {
 
   function copyInviteLink() {
     if (!group) return;
-    const link = `${window.location.origin}/join/${group.invite_code}`;
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${group.invite_code}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -318,7 +318,7 @@ export default function GroupSettings() {
           <h2 className="text-base font-semibold text-gray-900 mb-3">Invite Link</h2>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 font-mono truncate text-gray-600">
-              {window.location.origin}/join/{group.invite_code}
+              {window.location.origin}{import.meta.env.BASE_URL}join/{group.invite_code}
             </code>
             <button
               onClick={copyInviteLink}

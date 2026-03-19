@@ -58,7 +58,7 @@ export default function GroupView() {
 
   function copyInviteCode() {
     if (!group) return;
-    const link = `${window.location.origin}/join/${group.invite_code}`;
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${group.invite_code}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
