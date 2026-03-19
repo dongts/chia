@@ -27,6 +27,7 @@ export default function EditExpense() {
   const [splitType, setSplitType] = useState<SplitType>("equal");
 
   // Split-specific state
+  const [equalSearch, setEqualSearch] = useState("");
   const [equalChecked, setEqualChecked] = useState<Record<string, boolean>>({});
   const [exactValues, setExactValues] = useState<Record<string, string>>({});
   const [percentValues, setPercentValues] = useState<Record<string, string>>({});
@@ -262,27 +263,60 @@ export default function EditExpense() {
           {/* Equal — tappable member chips */}
           {splitType === "equal" && (
             <div>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={equalSearch}
+                  onChange={(e) => setEqualSearch(e.target.value)}
+                  placeholder="Search members..."
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated: Record<string, boolean> = { ...equalChecked };
+                    members.forEach((m) => { updated[m.id] = true; });
+                    setEqualChecked(updated);
+                  }}
+                  className="text-xs text-green-700 font-medium px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors whitespace-nowrap"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated: Record<string, boolean> = { ...equalChecked };
+                    members.forEach((m) => { updated[m.id] = false; });
+                    setEqualChecked(updated);
+                  }}
+                  className="text-xs text-gray-600 font-medium px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                >
+                  None
+                </button>
+              </div>
               <p className="text-xs text-gray-400 mb-2">Tap to include/exclude</p>
               <div className="flex flex-wrap gap-2">
-                {members.map((m) => {
-                  const checked = equalChecked[m.id] ?? true;
-                  return (
-                    <button key={m.id} type="button"
-                      onClick={() => setEqualChecked((prev) => ({ ...prev, [m.id]: !checked }))}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
-                        checked
-                          ? "bg-green-50 border-green-300 text-green-800 shadow-sm"
-                          : "bg-gray-50 border-gray-200 text-gray-400"
-                      )}
-                    >
-                      <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                        checked ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-500"
-                      )}>{m.display_name[0]?.toUpperCase()}</div>
-                      {m.display_name}
-                    </button>
-                  );
-                })}
+                {members
+                  .filter((m) => m.display_name.toLowerCase().includes(equalSearch.toLowerCase()))
+                  .map((m) => {
+                    const checked = equalChecked[m.id] ?? true;
+                    return (
+                      <button key={m.id} type="button"
+                        onClick={() => setEqualChecked((prev) => ({ ...prev, [m.id]: !checked }))}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                          checked
+                            ? "bg-green-50 border-green-300 text-green-800 shadow-sm"
+                            : "bg-gray-50 border-gray-200 text-gray-400"
+                        )}
+                      >
+                        <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                          checked ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-500"
+                        )}>{m.display_name[0]?.toUpperCase()}</div>
+                        {m.display_name}
+                      </button>
+                    );
+                  })}
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 {members.filter((m) => equalChecked[m.id] ?? true).length} of {members.length} selected

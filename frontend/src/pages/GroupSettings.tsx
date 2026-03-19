@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link } from "lucide-react";
+import client from "@/api/client";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
 import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
 import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
@@ -10,6 +11,17 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
 import { getCurrencyName } from "@/utils/currencies";
+
+type MemberLogAction = "joined" | "left" | "removed" | "role_changed" | "renamed" | "claimed";
+
+interface MemberLogEntry {
+  id: string;
+  member_name: string;
+  action: MemberLogAction;
+  detail: string;
+  performer_name: string | null;
+  created_at: string;
+}
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   owner: "Owner",
@@ -43,6 +55,8 @@ export default function GroupSettings() {
   const [renamingMemberId, setRenamingMemberId] = useState<string | null>(null);
   const [renamingValue, setRenamingValue] = useState("");
   const [savingRename, setSavingRename] = useState(false);
+  const [activityLog, setActivityLog] = useState<MemberLogEntry[]>([]);
+  const [logLimit, setLogLimit] = useState(20);
 
   // Form state
   const [name, setName] = useState("");
@@ -58,10 +72,16 @@ export default function GroupSettings() {
   async function loadData() {
     if (!groupId) return;
     try {
-      const [g, m, c] = await Promise.all([getGroup(groupId), listMembers(groupId), listGroupCurrencies(groupId)]);
+      const [g, m, c, logRes] = await Promise.all([
+        getGroup(groupId),
+        listMembers(groupId),
+        listGroupCurrencies(groupId),
+        client.get<MemberLogEntry[]>(`/groups/${groupId}/members/log`),
+      ]);
       setGroup(g);
       setMembers(m);
       setCurrencies(c);
+      setActivityLog(logRes.data);
       setName(g.name);
       setDescription(g.description ?? "");
       setRequireVerified(g.require_verified_users);
@@ -221,6 +241,38 @@ export default function GroupSettings() {
       window.alert("Failed to delete group");
       setDeleting(false);
     }
+  }
+
+  function relativeTime(isoString: string): string {
+    const now = Date.now();
+    const then = new Date(isoString).getTime();
+    const diffMs = now - then;
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return "just now";
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+    return new Date(isoString).toLocaleDateString();
+  }
+
+  function ActionIcon({ action }: { action: MemberLogAction }) {
+    const cls = "w-4 h-4 flex-shrink-0";
+    if (action === "joined" || action === "claimed") return <UserPlus className={cls} />;
+    if (action === "left" || action === "removed") return <UserMinus className={cls} />;
+    if (action === "role_changed") return <Shield className={cls} />;
+    if (action === "renamed") return <Pencil className={cls} />;
+    return <Link className={cls} />;
+  }
+
+  function actionColor(action: MemberLogAction): string {
+    if (action === "joined" || action === "claimed") return "text-green-600 bg-green-50";
+    if (action === "left") return "text-gray-500 bg-gray-100";
+    if (action === "removed") return "text-red-500 bg-red-50";
+    if (action === "role_changed") return "text-blue-600 bg-blue-50";
+    if (action === "renamed") return "text-amber-600 bg-amber-50";
+    return "text-purple-600 bg-purple-50";
   }
 
   if (loading) return <div className="animate-pulse h-8 bg-gray-200 rounded w-1/3" />;
@@ -515,6 +567,38 @@ export default function GroupSettings() {
             ))}
           </div>
         </section>
+
+        {/* Activity Log */}
+        {activityLog.length > 0 && (
+          <section className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Activity Log</h2>
+            <div className="space-y-3">
+              {activityLog.slice(0, logLimit).map((entry) => (
+                <div key={entry.id} className="flex items-start gap-3">
+                  <div className={cn("w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0", actionColor(entry.action))}>
+                    <ActionIcon action={entry.action} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-800">
+                      <span className="font-semibold">{entry.member_name}</span>{" "}
+                      <span className="text-gray-600">{entry.detail}</span>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{relativeTime(entry.created_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {activityLog.length > logLimit && (
+              <button
+                type="button"
+                onClick={() => setLogLimit((prev) => prev + 20)}
+                className="mt-4 text-sm text-green-600 hover:text-green-700 font-medium"
+              >
+                Show more
+              </button>
+            )}
+          </section>
+        )}
 
         {/* Danger zone */}
         {isOwner && (

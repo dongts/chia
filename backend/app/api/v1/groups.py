@@ -10,6 +10,7 @@ from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Group, GroupMember, MemberRole, User
 from app.schemas.group import GroupCreate, GroupListItem, GroupRead, GroupUpdate
+from app.services.member_log import log_member_event
 from app.utils.invite_code import generate_invite_code
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -174,6 +175,8 @@ async def join_group(
         claimed_at=func.now(),
     )
     db.add(member)
+    await db.flush()
+    await log_member_event(db, group.id, member.id, "joined", "Joined via invite link")
     await db.commit()
     await db.refresh(group)
     return group

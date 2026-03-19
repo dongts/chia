@@ -6,9 +6,10 @@ from app.models.expense import Expense, ExpenseSplit, SplitType
 from app.models.settlement import Settlement
 from app.models.notification import Notification
 from app.models.group_currency import GroupCurrency
+from app.models.group_member_log import GroupMemberLog
 
 __all__ = [
     "User", "UserOAuth", "Group", "GroupMember", "MemberRole",
     "Category", "Expense", "ExpenseSplit", "SplitType",
-    "Settlement", "Notification", "GroupCurrency",
+    "Settlement", "Notification", "GroupCurrency", "GroupMemberLog",
 ]
