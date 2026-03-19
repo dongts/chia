@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -207,9 +208,48 @@ async def delete_group(
     return {"detail": "Group deleted"}
 
 
+@router.get("/preview/{invite_code}")
+async def preview_group(invite_code: str, db: AsyncSession = Depends(get_db)):
+    """Preview a group from invite code — no auth required. Returns group name and unclaimed members."""
+    result = await db.execute(select(Group).where(Group.invite_code == invite_code))
+    group = result.scalars().first()
+    if not group:
+        raise NotFound("Invalid invite code")
+    # Get unclaimed (placeholder) members
+    unclaimed_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group.id,
+            GroupMember.user_id.is_(None),
+            GroupMember.is_active.is_(True),
+        ).order_by(GroupMember.display_name)
+    )
+    unclaimed = unclaimed_result.scalars().all()
+    member_count_result = await db.execute(
+        select(func.count(GroupMember.id)).where(
+            GroupMember.group_id == group.id, GroupMember.is_active.is_(True)
+        )
+    )
+    return {
+        "id": str(group.id),
+        "name": group.name,
+        "currency_code": group.currency_code,
+        "member_count": member_count_result.scalar(),
+        "require_verified_users": group.require_verified_users,
+        "unclaimed_members": [
+            {"id": str(m.id), "display_name": m.display_name}
+            for m in unclaimed
+        ],
+    }
+
+
+class JoinGroupRequest(BaseModel):
+    claim_member_id: uuid.UUID | None = None
+
+
 @router.post("/join/{invite_code}", response_model=GroupRead)
 async def join_group(
     invite_code: str,
+    data: JoinGroupRequest | None = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -230,25 +270,45 @@ async def join_group(
     if existing.scalars().first():
         raise BadRequest("Already a member of this group")
 
-    # Limit 100 members per group
-    count = (await db.execute(
-        select(func.count(GroupMember.id)).where(
-            GroupMember.group_id == group.id, GroupMember.is_active.is_(True)
-        )
-    )).scalar()
-    if count >= 100:
-        raise BadRequest("This group has reached the maximum of 100 members")
+    claim_id = data.claim_member_id if data else None
 
-    member = GroupMember(
-        group_id=group.id,
-        user_id=current_user.id,
-        display_name=current_user.display_name,
-        role=MemberRole.member,
-        claimed_at=func.now(),
-    )
-    db.add(member)
-    await db.flush()
-    await log_member_event(db, group.id, member.id, "joined", "Joined via invite link")
+    if claim_id:
+        # Claim an existing placeholder member
+        claim_result = await db.execute(
+            select(GroupMember).where(
+                GroupMember.id == claim_id,
+                GroupMember.group_id == group.id,
+                GroupMember.user_id.is_(None),
+                GroupMember.is_active.is_(True),
+            )
+        )
+        member = claim_result.scalars().first()
+        if not member:
+            raise BadRequest("This member slot is no longer available")
+        member.user_id = current_user.id
+        member.claimed_at = func.now()
+        await log_member_event(db, group.id, member.id, "claimed", f"Claimed by {current_user.display_name} via invite link")
+    else:
+        # Create new member
+        count = (await db.execute(
+            select(func.count(GroupMember.id)).where(
+                GroupMember.group_id == group.id, GroupMember.is_active.is_(True)
+            )
+        )).scalar()
+        if count >= 100:
+            raise BadRequest("This group has reached the maximum of 100 members")
+
+        member = GroupMember(
+            group_id=group.id,
+            user_id=current_user.id,
+            display_name=current_user.display_name,
+            role=MemberRole.member,
+            claimed_at=func.now(),
+        )
+        db.add(member)
+        await db.flush()
+        await log_member_event(db, group.id, member.id, "joined", "Joined via invite link")
+
     await db.commit()
     await db.refresh(group)
     return group
