@@ -1,6 +1,6 @@
 services:
   # -------------------------------------------------------------------------
-  # PostgreSQL — comment out this entire service if using an external database
+  # PostgreSQL — comment out if using an external database
   # -------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
@@ -24,9 +24,9 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
     environment:
-      # If DATABASE_URL is set in .env, it takes priority.
-      # Otherwise, entrypoint.sh builds it from DB_* vars.
       CHIA_DATABASE_URL: ${DATABASE_URL:-}
       DB_USER: ${DB_USER:-chia}
       DB_PASSWORD: ${DB_PASSWORD:-chia}
@@ -35,26 +35,13 @@ services:
       DB_NAME: ${DB_NAME:-chia}
       USE_CONNECTION_POOLER: ${USE_CONNECTION_POOLER:-false}
       CHIA_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
-      CHIA_CORS_ORIGINS: '["${DOMAIN:-http://localhost}"]'
+      CHIA_CORS_ORIGINS: '["${FRONTEND_URL:-http://localhost:5173}"]'
       CHIA_UPLOAD_DIR: /data/uploads
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - uploads:/data/uploads
-
-  # -------------------------------------------------------------------------
-  # Frontend (Nginx serves static + reverse proxies API)
-  # -------------------------------------------------------------------------
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-    restart: unless-stopped
-    ports:
-      - "${PORT:-80}:80"
-    depends_on:
-      - backend
 
 volumes:
   pgdata:
