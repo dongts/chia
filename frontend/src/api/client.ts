@@ -31,57 +31,70 @@ function onTokenRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
+function clearAuthAndRedirect() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  window.location.href = import.meta.env.BASE_URL + "login";
+}
+
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem("refresh_token");
-
-      if (!refreshToken) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        window.location.href = import.meta.env.BASE_URL + "login";
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(client(originalRequest));
-          });
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const response = await axios.post(`${API_BASE}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
-
-        const { access_token, refresh_token: newRefreshToken } = response.data;
-        localStorage.setItem("access_token", access_token);
-        localStorage.setItem("refresh_token", newRefreshToken);
-
-        onTokenRefreshed(access_token);
-        isRefreshing = false;
-
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return client(originalRequest);
-      } catch {
-        isRefreshing = false;
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        window.location.href = import.meta.env.BASE_URL + "login";
-        return Promise.reject(error);
-      }
+    // Only handle 401 from the server — not network errors
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    // Don't retry auth endpoints themselves
+    const url = originalRequest.url || "";
+    if (url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/refresh")) {
+      return Promise.reject(error);
+    }
+
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!refreshToken) {
+      clearAuthAndRedirect();
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((token: string) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          resolve(client(originalRequest));
+        });
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      const response = await axios.post(`${API_BASE}/auth/refresh`, {
+        refresh_token: refreshToken,
+      });
+
+      const { access_token, refresh_token: newRefreshToken } = response.data;
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", newRefreshToken);
+
+      onTokenRefreshed(access_token);
+      isRefreshing = false;
+
+      originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      return client(originalRequest);
+    } catch (refreshError) {
+      isRefreshing = false;
+      // Only clear credentials if the refresh was explicitly rejected (401/403)
+      // Network errors should not log the user out
+      const status = (refreshError as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
+        clearAuthAndRedirect();
+      }
+      return Promise.reject(error);
+    }
   }
 );
 
