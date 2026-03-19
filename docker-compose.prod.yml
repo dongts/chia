@@ -1,4 +1,7 @@
 services:
+  # -------------------------------------------------------------------------
+  # PostgreSQL — comment out this entire service if using an external database
+  # -------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -8,17 +11,29 @@ services:
       POSTGRES_DB: ${DB_NAME:-chia}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chia}"]
       interval: 2s
       timeout: 5s
       retries: 10
 
+  # -------------------------------------------------------------------------
+  # Backend API
+  # -------------------------------------------------------------------------
   backend:
     build: ./backend
     restart: unless-stopped
     environment:
-      CHIA_DATABASE_URL: postgresql+asyncpg://${DB_USER:-chia}:${DB_PASSWORD:-chia}@db:5432/${DB_NAME:-chia}
+      # If DATABASE_URL is set in .env, it takes priority.
+      # Otherwise, entrypoint.sh builds it from DB_* vars.
+      CHIA_DATABASE_URL: ${DATABASE_URL:-}
+      DB_USER: ${DB_USER:-chia}
+      DB_PASSWORD: ${DB_PASSWORD:-chia}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-chia}
+      USE_CONNECTION_POOLER: ${USE_CONNECTION_POOLER:-false}
       CHIA_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       CHIA_CORS_ORIGINS: '["${DOMAIN:-http://localhost}"]'
       CHIA_UPLOAD_DIR: /data/uploads
@@ -28,6 +43,9 @@ services:
     volumes:
       - uploads:/data/uploads
 
+  # -------------------------------------------------------------------------
+  # Frontend (Nginx serves static + reverse proxies API)
+  # -------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend

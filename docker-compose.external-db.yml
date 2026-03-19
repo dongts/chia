@@ -1,0 +1,29 @@
+# Use this when connecting to an external database (Supabase, RDS, etc.)
+# Set DATABASE_URL in .env and run:
+#   docker compose -f docker-compose.external-db.yml up -d
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      CHIA_DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      USE_CONNECTION_POOLER: ${USE_CONNECTION_POOLER:-false}
+      CHIA_JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      CHIA_CORS_ORIGINS: '["${DOMAIN:-http://localhost}"]'
+      CHIA_UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  uploads:

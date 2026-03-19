@@ -1,3 +1,4 @@
+# Development docker-compose — hot reload, exposed ports
 services:
   db:
     image: postgres:16-alpine
@@ -9,15 +10,28 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chia"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     environment:
-      CHIA_DATABASE_URL: postgresql+asyncpg://chia:chia@db:5432/chia
+      DB_USER: chia
+      DB_PASSWORD: chia
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: chia
+      CHIA_JWT_SECRET: dev-secret
+      CHIA_CORS_ORIGINS: '["http://localhost:5173"]'
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./backend:/app
       - uploads:/app/uploads
