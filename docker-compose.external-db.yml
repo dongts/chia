@@ -3,11 +3,25 @@
 #   docker compose -f docker-compose.external-db.yml up -d
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
   backend:
     build: ./backend
     restart: unless-stopped
-    ports:
-      - "${PORT:-8000}:8000"
     environment:
       CHIA_DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       USE_CONNECTION_POOLER: ${USE_CONNECTION_POOLER:-false}
@@ -19,3 +33,5 @@ services:
 
 volumes:
   uploads:
+  caddy_data:
+  caddy_config:

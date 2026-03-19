@@ -1,0 +1,8 @@
+{$API_DOMAIN} {
+	reverse_proxy backend:8000
+
+	# File upload size limit
+	request_body {
+		max_size 10MB
+	}
+}

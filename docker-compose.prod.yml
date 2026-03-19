@@ -1,5 +1,24 @@
 services:
   # -------------------------------------------------------------------------
+  # Caddy — reverse proxy with automatic HTTPS via Let's Encrypt
+  # -------------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+  # -------------------------------------------------------------------------
   # PostgreSQL — comment out if using an external database
   # -------------------------------------------------------------------------
   db:
@@ -24,8 +43,7 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    ports:
-      - "${PORT:-8000}:8000"
+    # No ports exposed — Caddy proxies to backend:8000 internally
     environment:
       CHIA_DATABASE_URL: ${DATABASE_URL:-}
       DB_USER: ${DB_USER:-chia}
@@ -46,3 +64,5 @@ services:
 volumes:
   pgdata:
   uploads:
+  caddy_data:
+  caddy_config:
