@@ -46,7 +46,7 @@ def _create_mcp() -> FastMCP:
 
         kwargs["auth"] = AuthSettings(
             issuer_url=mcp_base_url,
-            resource_server_url=mcp_base_url,
+            resource_server_url=f"{mcp_base_url}/mcp",
             client_registration_options=ClientRegistrationOptions(enabled=True),
         )
         kwargs["auth_server_provider"] = ChiaOAuthProvider()
@@ -56,10 +56,21 @@ def _create_mcp() -> FastMCP:
 
 mcp = _create_mcp()
 
+# Register login page routes directly on the MCP app (HTTP mode only)
+if _transport == "streamable-http":
+    _provider = mcp._auth_server_provider
 
-def _get_oauth_provider():
-    """Get the OAuth provider instance (only in HTTP mode)."""
-    return mcp._auth_server_provider
+    @mcp.custom_route("/oauth/login", methods=["GET"])
+    async def _login_page(request):
+        return await _provider.handle_login_page(request)
+
+    @mcp.custom_route("/oauth/login", methods=["POST"])
+    async def _login_submit(request):
+        return await _provider.handle_login_submit(request)
+
+    @mcp.custom_route("/oauth/google-callback", methods=["POST"])
+    async def _google_callback(request):
+        return await _provider.handle_google_callback(request)
 
 
 def _serialize(obj: object) -> str:
