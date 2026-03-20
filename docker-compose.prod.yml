@@ -11,12 +11,15 @@ services:
       - "443:443/udp"
     environment:
       API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+      APP_DOMAIN: ${APP_DOMAIN:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - frontend_dist:/srv/frontend:ro
     depends_on:
       - backend
+      - frontend
 
   # -------------------------------------------------------------------------
   # PostgreSQL — comment out if using an external database
@@ -43,7 +46,6 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    # No ports exposed — Caddy proxies to backend:8000 internally
     environment:
       CHIA_DATABASE_URL: ${DATABASE_URL:-}
       DB_USER: ${DB_USER:-chia}
@@ -64,8 +66,23 @@ services:
     volumes:
       - uploads:/data/uploads
 
+  # -------------------------------------------------------------------------
+  # Frontend — build static files, served by Caddy
+  # -------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: https://${API_DOMAIN:?Set API_DOMAIN}/api/v1
+    volumes:
+      - frontend_dist:/output
+    # Copy built files to shared volume, then exit
+    entrypoint: ["/bin/sh", "-c", "cp -r /usr/share/nginx/html/* /output/ && echo 'Frontend built' && tail -f /dev/null"]
+
 volumes:
   pgdata:
   uploads:
   caddy_data:
   caddy_config:
+  frontend_dist:

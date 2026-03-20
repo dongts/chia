@@ -1,8 +1,15 @@
+# API backend
 {$API_DOMAIN} {
 	reverse_proxy backend:8000
 
-	# File upload size limit
 	request_body {
 		max_size 10MB
 	}
+}
+
+# Frontend (optional — only used if frontend container is running)
+{$APP_DOMAIN:} {
+	root * /srv/frontend
+	file_server
+	try_files {path} /index.html
 }
