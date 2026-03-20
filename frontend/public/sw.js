@@ -1,4 +1,4 @@
-const CACHE_NAME = "chia-v1";
+const CACHE_NAME = "chia-v2";
 const STATIC_ASSETS = [
   "./",
   "./manifest.json",
@@ -25,14 +25,17 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static assets
+// Fetch handler
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // API requests: always network, no cache
-  if (url.pathname.includes("/api/")) {
-    event.respondWith(fetch(request));
+  // Only handle same-origin requests — don't touch cross-origin API calls
+  if (new URL(request.url).origin !== self.location.origin) {
+    return;
+  }
+
+  // Don't cache API requests (they're proxied in dev, cross-origin in prod)
+  if (request.url.includes("/api/")) {
     return;
   }
 
@@ -41,7 +44,6 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        // Cache successful GET responses
         if (response.ok && request.method === "GET") {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
