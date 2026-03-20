@@ -3,6 +3,7 @@ import {
   login as apiLogin,
   register as apiRegister,
   guestAuth as apiGuestAuth,
+  googleAuth as apiGoogleAuth,
   getMe,
 } from "@/api/auth";
 import { getDeviceId } from "@/utils/deviceId";
@@ -39,6 +40,14 @@ export function useAuth() {
     setUser(userData);
   }
 
+  async function googleLogin(credential: string): Promise<void> {
+    const tokens = await apiGoogleAuth(credential);
+    localStorage.setItem("access_token", tokens.access_token);
+    localStorage.setItem("refresh_token", tokens.refresh_token);
+    const userData = await getMe();
+    setUser(userData);
+  }
+
   function logout(): void {
     storeLogout();
   }
@@ -50,6 +59,7 @@ export function useAuth() {
     login,
     register,
     guestLogin,
+    googleLogin,
     logout,
   };
 }

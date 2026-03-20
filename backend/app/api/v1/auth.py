@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import User
 from app.schemas.auth import (
+    GoogleAuthRequest,
     GuestAuthRequest,
     LoginRequest,
     RefreshRequest,
@@ -16,13 +18,23 @@ from app.services.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_or_create_google_user,
     get_user_by_device_id,
     get_user_by_email,
     hash_password,
+    verify_google_id_token,
     verify_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/config")
+async def auth_config():
+    """Public endpoint returning auth configuration (Google client ID, etc.)."""
+    return {
+        "google_client_id": settings.google_client_id or None,
+    }
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -88,6 +100,19 @@ async def upgrade_guest(
     return TokenResponse(
         access_token=create_access_token(str(current_user.id)),
         refresh_token=create_refresh_token(str(current_user.id)),
+    )
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        claims = await verify_google_id_token(data.credential)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Google credential")
+    user = await get_or_create_google_user(db, claims)
+    return TokenResponse(
+        access_token=create_access_token(str(user.id)),
+        refresh_token=create_refresh_token(str(user.id)),
     )
 
 

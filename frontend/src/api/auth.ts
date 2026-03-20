@@ -43,6 +43,16 @@ export async function upgrade(data: UpgradeData): Promise<TokenResponse> {
   return response.data;
 }
 
+export async function googleAuth(credential: string): Promise<TokenResponse> {
+  const response = await client.post<TokenResponse>("/auth/google", { credential });
+  return response.data;
+}
+
+export async function getAuthConfig(): Promise<{ google_client_id: string | null }> {
+  const response = await client.get<{ google_client_id: string | null }>("/auth/config");
+  return response.data;
+}
+
 export async function refreshToken(refreshToken: string): Promise<TokenResponse> {
   const response = await client.post<TokenResponse>("/auth/refresh", {
     refresh_token: refreshToken,

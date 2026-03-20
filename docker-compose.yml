@@ -46,6 +46,21 @@ services:
     depends_on:
       - backend
 
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.mcp
+    ports:
+      - "8001:8001"
+    environment:
+      MCP_TRANSPORT: streamable-http
+      MCP_PORT: "8001"
+      CHIA_API_URL: http://backend:8000
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
   uploads:

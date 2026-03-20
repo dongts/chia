@@ -7,6 +7,11 @@
 	}
 }
 
+# MCP server (Streamable HTTP)
+{$MCP_DOMAIN:} {
+	reverse_proxy mcp:8001
+}
+
 # Frontend (optional — only used if frontend container is running)
 {$APP_DOMAIN:} {
 	root * /srv/frontend

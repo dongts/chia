@@ -3,12 +3,13 @@ import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Sprout } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
-  const { login, guestLogin } = useAuth();
+  const { login, guestLogin, googleLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,17 @@ export default function Login() {
       navigate(redirect);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Login failed.";
+      window.alert(msg);
+    } finally { setLoading(false); }
+  }
+
+  async function handleGoogleCredential(credential: string) {
+    setLoading(true);
+    try {
+      await googleLogin(credential);
+      navigate(redirect);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Google sign-in failed.";
       window.alert(msg);
     } finally { setLoading(false); }
   }
@@ -46,6 +58,19 @@ export default function Login() {
 
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Welcome back</h1>
       <p className="text-sm text-gray-500 text-center mb-8">Sign in to your Chia account</p>
+
+      <div className="mb-4">
+        <GoogleSignIn onCredential={handleGoogleCredential} disabled={loading} />
+      </div>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-white px-4 text-gray-400">or</span>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

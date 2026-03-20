@@ -12,12 +12,14 @@ services:
       - "443:443/udp"
     environment:
       API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+      MCP_DOMAIN: ${MCP_DOMAIN:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - backend
+      - mcp
 
   backend:
     build: ./backend
@@ -30,6 +32,18 @@ services:
       CHIA_UPLOAD_DIR: /data/uploads
     volumes:
       - uploads:/data/uploads
+
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.mcp
+    restart: unless-stopped
+    environment:
+      MCP_TRANSPORT: streamable-http
+      MCP_PORT: "8001"
+      CHIA_API_URL: http://backend:8000
+    depends_on:
+      - backend
 
 volumes:
   uploads:

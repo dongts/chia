@@ -3,12 +3,13 @@ import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Sprout } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 export default function Register() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +27,17 @@ export default function Register() {
     } finally { setLoading(false); }
   }
 
+  async function handleGoogleCredential(credential: string) {
+    setLoading(true);
+    try {
+      await googleLogin(credential);
+      navigate(redirect);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Google sign-in failed.";
+      window.alert(msg);
+    } finally { setLoading(false); }
+  }
+
   return (
     <div className="w-full max-w-sm">
       <div className="flex justify-center mb-6">
@@ -36,6 +48,19 @@ export default function Register() {
 
       <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">Create account</h1>
       <p className="text-sm text-gray-500 text-center mb-8">Start splitting expenses with Chia</p>
+
+      <div className="mb-4">
+        <GoogleSignIn onCredential={handleGoogleCredential} disabled={loading} />
+      </div>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="bg-white px-4 text-gray-400">or</span>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
