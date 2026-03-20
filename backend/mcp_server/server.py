@@ -40,7 +40,7 @@ def _create_mcp() -> FastMCP:
 
         mcp_base_url = os.environ.get(
             "MCP_BASE_URL", f"http://localhost:{kwargs['port']}"
-        )
+        ).rstrip("/")
 
         from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 
@@ -71,6 +71,13 @@ if _transport == "streamable-http":
     @mcp.custom_route("/oauth/google-callback", methods=["POST"])
     async def _google_callback(request):
         return await _provider.handle_google_callback(request)
+
+    # Some clients look for auth metadata at the path-appended well-known URL
+    @mcp.custom_route("/.well-known/oauth-authorization-server/mcp", methods=["GET", "OPTIONS"])
+    async def _auth_metadata_alias(request):
+        from starlette.responses import RedirectResponse
+
+        return RedirectResponse("/.well-known/oauth-authorization-server", status_code=307)
 
 
 def _serialize(obj: object) -> str:

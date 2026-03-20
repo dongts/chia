@@ -27,6 +27,8 @@ from mcp.server.auth.provider import (
 )
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
+from mcp.shared.auth import InvalidRedirectUriError
+
 CHIA_API_URL = os.environ.get("CHIA_API_URL", "http://localhost:8000").rstrip("/")
 MCP_BASE_URL = os.environ.get("MCP_BASE_URL", "http://localhost:8001").rstrip("/")
 
@@ -168,6 +170,19 @@ def _render_login(session_id: str, error: str = "") -> str:
 # ── OAuth Provider ───────────────────────────────────────────────────────
 
 
+MCP_OAUTH_CLIENT_ID = os.environ.get("MCP_OAUTH_CLIENT_ID", "")
+MCP_OAUTH_CLIENT_SECRET = os.environ.get("MCP_OAUTH_CLIENT_SECRET", "")
+
+
+class _OpenRedirectClient(OAuthClientInformationFull):
+    """Client that accepts any redirect_uri (for pre-registered clients)."""
+
+    def validate_redirect_uri(self, redirect_uri):
+        if redirect_uri is not None:
+            return redirect_uri
+        raise InvalidRedirectUriError("redirect_uri is required")
+
+
 class ChiaOAuthProvider(OAuthAuthorizationServerProvider):
     def __init__(self):
         self._clients: dict[str, OAuthClientInformationFull] = {}
@@ -175,10 +190,27 @@ class ChiaOAuthProvider(OAuthAuthorizationServerProvider):
         self._codes: dict[str, StoredAuthCode] = {}
         self._access_tokens: dict[str, AccessToken] = {}
 
+        self._pre_registered_id = MCP_OAUTH_CLIENT_ID if MCP_OAUTH_CLIENT_ID and MCP_OAUTH_CLIENT_SECRET else None
+
     # -- Client management --
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
-        return self._clients.get(client_id)
+        client = self._clients.get(client_id)
+        if client:
+            return client
+        # For the pre-registered client, return an open-redirect client
+        # that accepts any redirect_uri (since we don't know Claude.ai's URI ahead of time).
+        if client_id == self._pre_registered_id:
+            return _OpenRedirectClient(
+                client_id=MCP_OAUTH_CLIENT_ID,
+                client_secret=MCP_OAUTH_CLIENT_SECRET,
+                redirect_uris=["https://placeholder.invalid"],
+                grant_types=["authorization_code", "refresh_token"],
+                response_types=["code"],
+                token_endpoint_auth_method="client_secret_post",
+                client_name="chia-mcp",
+            )
+        return None
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
         self._clients[client_info.client_id] = client_info
