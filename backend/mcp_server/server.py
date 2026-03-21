@@ -72,12 +72,9 @@ if _transport == "streamable-http":
     async def _google_callback(request):
         return await _provider.handle_google_callback(request)
 
-    # Some clients look for auth metadata at the path-appended well-known URL
-    @mcp.custom_route("/.well-known/oauth-authorization-server/mcp", methods=["GET", "OPTIONS"])
-    async def _auth_metadata_alias(request):
-        from starlette.responses import RedirectResponse
-
-        return RedirectResponse("/.well-known/oauth-authorization-server", status_code=307)
+    # NOTE: The MCP SDK natively serves all well-known endpoints including
+    # path-appended variants (/.well-known/oauth-protected-resource/mcp and
+    # /.well-known/oauth-authorization-server). No custom routes needed.
 
 
 def _serialize(obj: object) -> str:
