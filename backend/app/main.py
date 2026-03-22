@@ -44,9 +44,10 @@ app.add_middleware(
 
 app.include_router(api_router)
 
-# Serve uploaded files
-os.makedirs(settings.upload_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
+# Serve uploaded files locally when R2 is not configured
+if not settings.r2_bucket_name:
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/health")

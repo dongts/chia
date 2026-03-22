@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     superadmin_emails: list[str] = []
     upload_dir: str = "./uploads"
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+    r2_bucket_name: str = ""
+    r2_public_url: str = ""
     cors_origins: list[str] = ["http://localhost:5173"]
     use_connection_pooler: bool = False
     port: int = 8000
