@@ -31,9 +31,9 @@ const ROLE_LABELS: Record<MemberRole, string> = {
 };
 
 const ROLE_COLORS: Record<MemberRole, string> = {
-  owner: "bg-yellow-100 text-yellow-700",
-  admin: "bg-blue-100 text-blue-700",
-  member: "bg-gray-100 text-gray-600",
+  owner: "bg-surface-container-high text-on-surface-variant",
+  admin: "bg-tertiary-container/30 text-tertiary",
+  member: "bg-surface-container text-on-surface-variant",
 };
 
 export default function GroupSettings() {
@@ -293,15 +293,15 @@ export default function GroupSettings() {
   }
 
   function actionColor(action: MemberLogAction): string {
-    if (action === "joined" || action === "claimed") return "text-green-600 bg-green-50";
-    if (action === "left") return "text-gray-500 bg-gray-100";
-    if (action === "removed") return "text-red-500 bg-red-50";
-    if (action === "role_changed") return "text-blue-600 bg-blue-50";
-    if (action === "renamed") return "text-amber-600 bg-amber-50";
-    return "text-purple-600 bg-purple-50";
+    if (action === "joined" || action === "claimed") return "text-primary bg-primary-container/20";
+    if (action === "left") return "text-on-surface-variant bg-surface-container";
+    if (action === "removed") return "text-error bg-error-container/20";
+    if (action === "role_changed") return "text-tertiary bg-tertiary-container/20";
+    if (action === "renamed") return "text-on-tertiary-container bg-tertiary-container/20";
+    return "text-secondary bg-secondary-container/20";
   }
 
-  if (loading) return <div className="animate-pulse h-8 bg-gray-200 rounded w-1/3" />;
+  if (loading) return <div className="animate-pulse h-8 bg-surface-container-high rounded w-1/3" />;
   if (!group) return null;
 
   return (
@@ -309,59 +309,59 @@ export default function GroupSettings() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(`/groups/${groupId}`)}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-outline hover:text-on-surface-variant"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Group Settings</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Group Settings</h1>
       </div>
 
       <div className="max-w-lg space-y-8">
         {/* Basic settings */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">General</h2>
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+          <h2 className="text-base font-semibold text-on-surface mb-4">General</h2>
           <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Group name</label>
+              <label className="block text-sm font-medium text-on-surface mb-1">Group name</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-on-surface mb-1">Description</label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-              <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2.5">
+              <label className="block text-sm font-medium text-on-surface mb-1">Currency</label>
+              <p className="text-sm text-on-surface-variant bg-surface rounded-lg px-3 py-2.5">
                 {group.currency_code}{" "}
-                <span className="text-gray-400 text-xs">(cannot be changed after creation)</span>
+                <span className="text-outline text-xs">(cannot be changed after creation)</span>
               </p>
             </div>
 
             {/* Toggles */}
-            <div className="space-y-3 pt-2 border-t border-gray-100">
+            <div className="space-y-3 pt-2 border-t border-outline-variant/10">
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Require verified users</p>
-                  <p className="text-xs text-gray-400">Only email-verified users can join</p>
+                  <p className="text-sm font-medium text-on-surface">Require verified users</p>
+                  <p className="text-xs text-outline">Only email-verified users can join</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRequireVerified((v) => !v)}
                   className={cn(
                     "w-10 h-6 rounded-full transition-colors relative hover:opacity-80",
-                    requireVerified ? "bg-green-600" : "bg-gray-200"
+                    requireVerified ? "bg-primary" : "bg-surface-container-high"
                   )}
                 >
                   <span
@@ -374,8 +374,8 @@ export default function GroupSettings() {
               </label>
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Allow log on behalf</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-on-surface">Allow log on behalf</p>
+                  <p className="text-xs text-outline">
                     Members can add expenses on behalf of others
                   </p>
                 </div>
@@ -384,7 +384,7 @@ export default function GroupSettings() {
                   onClick={() => setAllowLogOnBehalf((v) => !v)}
                   className={cn(
                     "w-10 h-6 rounded-full transition-colors relative hover:opacity-80",
-                    allowLogOnBehalf ? "bg-green-600" : "bg-gray-200"
+                    allowLogOnBehalf ? "bg-primary" : "bg-surface-container-high"
                   )}
                 >
                   <span
@@ -400,7 +400,7 @@ export default function GroupSettings() {
             <button
               type="submit"
               disabled={saving || !isOwner}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
             >
               {saving ? "Saving..." : "Save Settings"}
             </button>
@@ -408,15 +408,15 @@ export default function GroupSettings() {
         </section>
 
         {/* Invite link */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Invite Link</h2>
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+          <h2 className="text-base font-semibold text-on-surface mb-3">Invite Link</h2>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 font-mono truncate text-gray-600">
+            <code className="flex-1 text-xs bg-surface border border-outline-variant/15 rounded-lg px-3 py-2.5 font-mono truncate text-on-surface-variant">
               {window.location.origin}{import.meta.env.BASE_URL}join/{group.invite_code}
             </code>
             <button
               onClick={copyInviteLink}
-              className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-700 font-medium px-3 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-primary hover:text-primary font-medium px-3 py-2.5 border border-outline-variant/15 rounded-lg hover:bg-surface-container transition-colors"
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {copied ? "Copied" : "Copy"}
@@ -425,10 +425,10 @@ export default function GroupSettings() {
         </section>
 
         {/* Allowed Currencies */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-1">Allowed Currencies</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            Main currency: <span className="font-medium text-gray-600">{group.currency_code}</span>.
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+          <h2 className="text-base font-semibold text-on-surface mb-1">Allowed Currencies</h2>
+          <p className="text-xs text-outline mb-4">
+            Main currency: <span className="font-medium text-on-surface-variant">{group.currency_code}</span>.
             Add other currencies with default exchange rates for expenses.
           </p>
 
@@ -436,10 +436,10 @@ export default function GroupSettings() {
           {currencies.length > 0 && (
             <div className="space-y-2 mb-4">
               {currencies.map((gc) => (
-                <div key={gc.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium text-gray-800 w-12">{gc.currency_code}</span>
-                  <span className="text-xs text-gray-400 truncate max-w-[100px]">{getCurrencyName(gc.currency_code)}</span>
-                  <span className="text-xs text-gray-400">1 {gc.currency_code} =</span>
+                <div key={gc.id} className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2">
+                  <span className="text-sm font-medium text-on-surface w-12">{gc.currency_code}</span>
+                  <span className="text-xs text-outline truncate max-w-[100px]">{getCurrencyName(gc.currency_code)}</span>
+                  <span className="text-xs text-outline">1 {gc.currency_code} =</span>
                   <input
                     type="number"
                     min="0.000001"
@@ -447,13 +447,13 @@ export default function GroupSettings() {
                     defaultValue={gc.exchange_rate}
                     onBlur={(e) => handleUpdateCurrencyRate(gc.id, e.target.value)}
                     disabled={!isAdminOrOwner}
-                    className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-60"
+                    className="w-24 border border-outline-variant/15 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-60"
                   />
-                  <span className="text-xs text-gray-400">{group.currency_code}</span>
+                  <span className="text-xs text-outline">{group.currency_code}</span>
                   {isAdminOrOwner && (
                     <button
                       onClick={() => handleDeleteCurrency(gc.id, gc.currency_code)}
-                      className="ml-auto text-gray-300 hover:text-red-400 transition-colors"
+                      className="ml-auto text-outline-variant hover:text-error transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -468,14 +468,14 @@ export default function GroupSettings() {
             <form onSubmit={handleAddCurrency} className="space-y-2">
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-gray-500 mb-1">Currency</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">Currency</label>
                   <CurrencySelect
                     value={newCurrencyCode}
                     onChange={setNewCurrencyCode}
                   />
                 </div>
                 <div className="w-28">
-                  <label className="block text-xs text-gray-500 mb-1">Rate → {group.currency_code}</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">Rate → {group.currency_code}</label>
                   <input
                     type="number"
                     min="0.000001"
@@ -484,13 +484,13 @@ export default function GroupSettings() {
                     value={newCurrencyRate}
                     onChange={(e) => setNewCurrencyRate(e.target.value)}
                     placeholder="1.00"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={addingCurrency || !newCurrencyCode.trim() || !newCurrencyRate}
-                  className="flex items-center gap-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-3 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
+                  className="flex items-center gap-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium px-3 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
                 >
                   <Plus size={14} />
                   Add
@@ -502,14 +502,14 @@ export default function GroupSettings() {
 
         {/* My Payment Methods — only for linked members */}
         {myMember?.user_id && (
-          <section className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-1">My Payment Methods</h2>
-            <p className="text-xs text-gray-400 mb-4">Choose which payment methods are visible to this group</p>
+          <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+            <h2 className="text-base font-semibold text-on-surface mb-1">My Payment Methods</h2>
+            <p className="text-xs text-outline mb-4">Choose which payment methods are visible to this group</p>
 
             {myGroupPMs.length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-on-surface-variant">
                 No payment methods saved yet.{" "}
-                <Link to="/profile" className="text-green-600 hover:underline">
+                <Link to="/profile" className="text-primary hover:underline">
                   Add one in your profile
                 </Link>
               </p>
@@ -518,9 +518,9 @@ export default function GroupSettings() {
                 {myGroupPMs.map(({ payment_method: pm, enabled }) => (
                   <div key={pm.id} className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">{pm.label}</p>
+                      <p className="text-sm font-medium text-on-surface">{pm.label}</p>
                       {pm.bank_name && (
-                        <p className="text-xs text-gray-400">{pm.bank_name}</p>
+                        <p className="text-xs text-outline">{pm.bank_name}</p>
                       )}
                     </div>
                     <button
@@ -529,7 +529,7 @@ export default function GroupSettings() {
                       onClick={() => handleTogglePaymentMethod(pm.id, enabled)}
                       className={cn(
                         "w-10 h-6 rounded-full transition-colors relative hover:opacity-80 disabled:opacity-50",
-                        enabled ? "bg-green-600" : "bg-gray-200"
+                        enabled ? "bg-primary" : "bg-surface-container-high"
                       )}
                     >
                       <span
@@ -547,8 +547,8 @@ export default function GroupSettings() {
         )}
 
         {/* Members */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Members</h2>
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+          <h2 className="text-base font-semibold text-on-surface mb-4">Members</h2>
 
           {/* Add member form — owner/admin only */}
           {isAdminOrOwner && (
@@ -559,12 +559,12 @@ export default function GroupSettings() {
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
                 placeholder="New member name"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <button
                 type="submit"
                 disabled={addingMember || !newMemberName.trim()}
-                className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                className="bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
               >
                 {addingMember ? "Adding..." : "Add Member"}
               </button>
@@ -575,7 +575,7 @@ export default function GroupSettings() {
             {members.map((m) => (
               <div key={m.id} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                     {m.display_name[0]?.toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -584,25 +584,25 @@ export default function GroupSettings() {
                         <input type="text" value={renamingValue} onChange={(e) => setRenamingValue(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
                           autoFocus
-                          className="border border-gray-200 rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                          className="border border-outline-variant/15 rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-primary" />
                         <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"><Check size={14} /></button>
+                          className="p-1 text-primary hover:bg-primary-container/20 rounded disabled:opacity-50"><Check size={14} /></button>
                         <button onClick={() => setRenamingMemberId(null)}
-                          className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X size={14} /></button>
+                          className="p-1 text-outline hover:bg-surface-container rounded"><X size={14} /></button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
-                        <p className="text-sm font-medium text-gray-800 truncate">{m.display_name}</p>
+                        <p className="text-sm font-medium text-on-surface truncate">{m.display_name}</p>
                         {isAdminOrOwner && (
                           <button onClick={() => { setRenamingMemberId(m.id); setRenamingValue(m.display_name); }}
-                            className="p-0.5 text-gray-300 hover:text-gray-500" title="Rename"><Pencil size={12} /></button>
+                            className="p-0.5 text-outline-variant hover:text-on-surface-variant" title="Rename"><Pencil size={12} /></button>
                         )}
                       </div>
                     )}
                     {m.user_id ? (
-                      <p className="text-xs text-gray-400">Linked account</p>
+                      <p className="text-xs text-outline">Linked account</p>
                     ) : (
-                      <p className="text-xs text-gray-400">Guest slot</p>
+                      <p className="text-xs text-outline">Guest slot</p>
                     )}
                   </div>
                 </div>
@@ -611,7 +611,7 @@ export default function GroupSettings() {
                     <select
                       value={m.role}
                       onChange={(e) => handleRoleChange(m.id, e.target.value as MemberRole)}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="text-xs border border-outline-variant/15 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="admin">Admin</option>
                       <option value="member">Member</option>
@@ -629,7 +629,7 @@ export default function GroupSettings() {
                   {isAdminOrOwner && m.role !== "owner" && m.id !== myMember?.id && (
                     <button
                       onClick={() => handleRemoveMember(m.id, m.display_name)}
-                      className="text-gray-300 hover:text-red-400 transition-colors"
+                      className="text-outline-variant hover:text-error transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -642,8 +642,8 @@ export default function GroupSettings() {
 
         {/* Activity Log */}
         {activityLog.length > 0 && (
-          <section className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Activity Log</h2>
+          <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+            <h2 className="text-base font-semibold text-on-surface mb-4">Activity Log</h2>
             <div className="space-y-3">
               {activityLog.slice(0, logLimit).map((entry) => (
                 <div key={entry.id} className="flex items-start gap-3">
@@ -651,11 +651,11 @@ export default function GroupSettings() {
                     <ActionIcon action={entry.action} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-800">
+                    <p className="text-sm text-on-surface">
                       <span className="font-semibold">{entry.member_name}</span>{" "}
-                      <span className="text-gray-600">{entry.detail}</span>
+                      <span className="text-on-surface-variant">{entry.detail}</span>
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{relativeTime(entry.created_at)}</p>
+                    <p className="text-xs text-outline mt-0.5">{relativeTime(entry.created_at)}</p>
                   </div>
                 </div>
               ))}
@@ -664,7 +664,7 @@ export default function GroupSettings() {
               <button
                 type="button"
                 onClick={() => setLogLimit((prev) => prev + 20)}
-                className="mt-4 text-sm text-green-600 hover:text-green-700 font-medium"
+                className="mt-4 text-sm text-primary hover:text-primary font-medium"
               >
                 Show more
               </button>
@@ -674,15 +674,15 @@ export default function GroupSettings() {
 
         {/* Danger zone */}
         {isOwner && (
-          <section className="bg-red-50 rounded-2xl border border-red-100 p-6">
-            <h2 className="text-base font-semibold text-red-700 mb-2">Danger Zone</h2>
-            <p className="text-sm text-red-600 mb-4">
+          <section className="bg-error-container/20 rounded-2xl border border-error-container/30 p-6">
+            <h2 className="text-base font-semibold text-error-dim mb-2">Danger Zone</h2>
+            <p className="text-sm text-error mb-4">
               Deleting this group will permanently remove all expenses, members, and settlements.
             </p>
             <button
               onClick={handleDeleteGroup}
               disabled={deleting}
-              className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:bg-red-100 font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+              className="flex items-center gap-2 text-sm text-error hover:text-error-dim border border-error-container/40 hover:bg-error-container/30 font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
             >
               <Trash2 size={14} />
               {deleting ? "Deleting..." : "Delete Group"}

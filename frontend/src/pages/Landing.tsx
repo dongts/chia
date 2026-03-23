@@ -20,17 +20,17 @@ export default function Landing() {
     <div className="w-full max-w-lg text-center">
       {/* Logo */}
       <div className="flex justify-center mb-6">
-        <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-          <Sprout size={32} className="text-white" />
+        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-editorial-lg">
+          <Sprout size={32} className="text-on-primary" />
         </div>
       </div>
 
       {/* Headline */}
-      <h1 className="text-4xl font-bold text-gray-900 mb-3">
+      <h1 className="text-4xl font-bold text-on-surface mb-3">
         Chia
       </h1>
-      <p className="text-xl text-gray-500 mb-2">Split expenses effortlessly</p>
-      <p className="text-sm text-gray-400 mb-10">
+      <p className="text-xl text-on-surface-variant mb-2">Split expenses effortlessly</p>
+      <p className="text-sm text-outline mb-10">
         Track shared costs with friends, roommates, and travel companions — no sign-up required.
       </p>
 
@@ -38,20 +38,20 @@ export default function Landing() {
       <div className="flex flex-col gap-3 mb-12">
         <button
           onClick={handleGuestAccess}
-          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm"
+          className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold py-3 px-6 rounded-xl transition-colors shadow-editorial"
         >
           <ArrowRight size={18} />
           Try as Guest — no account needed
         </button>
         <button
           onClick={() => navigate("/register")}
-          className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 font-semibold py-3 px-6 rounded-xl border border-gray-200 transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-surface-container-lowest hover:bg-surface-container text-on-surface font-semibold py-3 px-6 rounded-xl border border-outline-variant/15 transition-colors"
         >
           Sign Up
         </button>
         <button
           onClick={() => navigate("/login")}
-          className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-800 font-medium py-3 px-6 transition-colors"
+          className="w-full flex items-center justify-center gap-2 text-on-surface-variant hover:text-on-surface font-medium py-3 px-6 transition-colors"
         >
           Already have an account? Log In
         </button>
@@ -60,22 +60,22 @@ export default function Landing() {
       {/* Feature highlights */}
       <div className="grid grid-cols-3 gap-4 text-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-            <Receipt size={20} className="text-green-600" />
+          <div className="w-10 h-10 bg-primary-container/20 rounded-xl flex items-center justify-center">
+            <Receipt size={20} className="text-primary" />
           </div>
-          <p className="text-xs text-gray-500 font-medium">Track expenses</p>
+          <p className="text-xs text-on-surface-variant font-medium">Track expenses</p>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-            <Users size={20} className="text-green-600" />
+          <div className="w-10 h-10 bg-primary-container/20 rounded-xl flex items-center justify-center">
+            <Users size={20} className="text-primary" />
           </div>
-          <p className="text-xs text-gray-500 font-medium">Split with anyone</p>
+          <p className="text-xs text-on-surface-variant font-medium">Split with anyone</p>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-            <Sprout size={20} className="text-green-600" />
+          <div className="w-10 h-10 bg-primary-container/20 rounded-xl flex items-center justify-center">
+            <Sprout size={20} className="text-primary" />
           </div>
-          <p className="text-xs text-gray-500 font-medium">Settle up easily</p>
+          <p className="text-xs text-on-surface-variant font-medium">Settle up easily</p>
         </div>
       </div>
     </div>

@@ -65,21 +65,21 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
         {methods.map((m) => {
           const qrUrl = getQrUrl(m, amount, qrMessage);
           return (
-            <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+            <div key={m.id} className="border border-outline-variant/15 rounded-lg p-3 bg-surface">
               <div className="flex items-start gap-3">
                 {getBankLogo(m.bank_bin) && (
                 <img src={getBankLogo(m.bank_bin)!} alt="" className="w-8 h-8 rounded object-contain flex-shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{m.label}</p>
-                  {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
+                  <p className="text-sm font-semibold text-on-surface">{m.label}</p>
+                  {m.bank_name && <p className="text-xs text-on-surface-variant mt-0.5">{m.bank_name}</p>}
                   {m.account_number && (
-                    <p className="text-sm text-gray-700 mt-1 font-mono">{m.account_number}</p>
+                    <p className="text-sm text-on-surface mt-1 font-mono">{m.account_number}</p>
                   )}
                   {m.account_holder && (
-                    <p className="text-xs text-gray-500 mt-0.5">{m.account_holder}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{m.account_holder}</p>
                   )}
-                  {m.note && <p className="text-xs text-gray-400 mt-1 italic">{m.note}</p>}
+                  {m.note && <p className="text-xs text-outline mt-1 italic">{m.note}</p>}
                 </div>
                 {qrUrl && (
                   <button
@@ -107,14 +107,14 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
           onClick={() => setViewingQr(null)}
         >
           <div
-            className="relative bg-white rounded-2xl p-4 shadow-2xl max-w-sm w-full mx-4"
+            className="relative bg-surface-container-lowest rounded-2xl p-4 shadow-editorial-xl max-w-sm w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-gray-900">{viewingQr.label}</p>
+              <p className="text-sm font-semibold text-on-surface">{viewingQr.label}</p>
               <button
                 onClick={() => setViewingQr(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                className="p-1 text-outline hover:text-on-surface-variant rounded-lg hover:bg-surface-container"
               >
                 <X size={18} />
               </button>
@@ -126,7 +126,7 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
             />
             <button
               onClick={() => handleDownload(viewingQr.url, viewingQr.label)}
-              className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
             >
               <Download size={16} />
               Save QR Image

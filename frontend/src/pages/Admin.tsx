@@ -60,7 +60,7 @@ function formatDate(iso: string) {
 function Badge({ children, green }: { children: React.ReactNode; green?: boolean }) {
   return (
     <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-      green ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+      green ? "bg-primary-container/30 text-primary" : "bg-surface-container text-on-surface-variant"
     )}>
       {children}
     </span>
@@ -69,11 +69,11 @@ function Badge({ children, green }: { children: React.ReactNode; green?: boolean
 
 function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: number; color: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
+    <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-5 flex items-center gap-4">
       <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", color)}><Icon size={22} /></div>
       <div>
-        <p className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</p>
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-2xl font-bold text-on-surface">{value.toLocaleString()}</p>
+        <p className="text-sm text-on-surface-variant">{label}</p>
       </div>
     </div>
   );
@@ -89,13 +89,13 @@ function DashboardTab() {
     client.get<Stats>("/admin/stats").then((r) => setStats(r.data)).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!stats) return null;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <StatCard icon={Users} label="Total Users" value={stats.users} color="bg-blue-50 text-blue-600" />
-      <StatCard icon={Layers} label="Total Groups" value={stats.groups} color="bg-green-50 text-green-600" />
+      <StatCard icon={Users} label="Total Users" value={stats.users} color="bg-tertiary-container/20 text-tertiary" />
+      <StatCard icon={Layers} label="Total Groups" value={stats.groups} color="bg-primary-container/20 text-primary" />
       <StatCard icon={Receipt} label="Total Expenses" value={stats.expenses} color="bg-amber-50 text-amber-600" />
       <StatCard icon={LayoutDashboard} label="Settlements" value={stats.settlements} color="bg-purple-50 text-purple-600" />
     </div>
@@ -215,14 +215,14 @@ function UsersTab() {
       {/* Reset password modal */}
       {resetPwUserId && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setResetPwUserId(null)}>
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Reset Password</h3>
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-on-surface mb-4">Reset Password</h3>
             <input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary" />
             <div className="flex gap-2">
-              <button onClick={() => setResetPwUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setResetPwUserId(null)} className="flex-1 border border-outline-variant/15 text-on-surface py-2 rounded-lg text-sm hover:bg-surface-container">Cancel</button>
               <button onClick={handleResetPassword} disabled={resettingPw || !newPassword}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{resettingPw ? "Resetting..." : "Reset"}</button>
+                className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary py-2 rounded-lg text-sm">{resettingPw ? "Resetting..." : "Reset"}</button>
             </div>
           </div>
         </div>
@@ -231,23 +231,23 @@ function UsersTab() {
       {/* Add to group modal */}
       {addToGroupUserId && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAddToGroupUserId(null)}>
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Add User to Group</h3>
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-on-surface mb-4">Add User to Group</h3>
             <select value={addGroupId} onChange={(e) => setAddGroupId(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+              className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="">Select group...</option>
               {allGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
             <select value={addGroupRole} onChange={(e) => setAddGroupRole(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-500">
+              className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="member">Member</option>
               <option value="admin">Admin</option>
               <option value="owner">Owner</option>
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setAddToGroupUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setAddToGroupUserId(null)} className="flex-1 border border-outline-variant/15 text-on-surface py-2 rounded-lg text-sm hover:bg-surface-container">Cancel</button>
               <button onClick={handleAddToGroup} disabled={addingToGroup || !addGroupId}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{addingToGroup ? "Adding..." : "Add to Group"}</button>
+                className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary py-2 rounded-lg text-sm">{addingToGroup ? "Adding..." : "Add to Group"}</button>
             </div>
           </div>
         </div>
@@ -255,26 +255,26 @@ function UsersTab() {
 
       {/* Search */}
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
         <input type="text" placeholder="Search by email or name..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className="w-full pl-9 pr-4 py-2 border border-outline-variant/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
         ) : users.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-10">No users found</p>
+          <p className="text-center text-outline text-sm py-10">No users found</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-3 font-medium text-gray-600 w-6" />
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Joined</th>
+              <tr className="bg-surface border-b border-outline-variant/10">
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant w-6" />
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Email</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Joined</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -298,11 +298,11 @@ function UsersTab() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center justify-between text-sm text-on-surface-variant">
           <span>{page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}</span>
           <div className="flex gap-1">
-            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"><ChevronLeft size={16} /></button>
-            <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"><ChevronRightIcon size={16} /></button>
+            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
+            <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
           </div>
         </div>
       )}
@@ -325,47 +325,47 @@ function UserRow({ user, isExpanded, isEditing, editForm, saving, deletingId, ex
 }) {
   return (
     <>
-      <tr className={cn("border-b border-gray-100 hover:bg-gray-50 cursor-pointer", isExpanded && "bg-green-50/40")} onClick={onToggleExpand}>
-        <td className="px-4 py-3 text-gray-400">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
+      <tr className={cn("border-b border-outline-variant/10 hover:bg-surface-container cursor-pointer", isExpanded && "bg-primary-container/20")} onClick={onToggleExpand}>
+        <td className="px-4 py-3 text-outline">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
         {isEditing ? (
           <>
             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-              <input className="border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500"
+              <input className="border border-outline-variant/15 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary"
                 value={editForm.email} onChange={(e) => onEditFormChange({ ...editForm, email: e.target.value })} />
             </td>
             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-              <input className="border border-gray-200 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-green-500"
+              <input className="border border-outline-variant/15 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-1 focus:ring-primary"
                 value={editForm.display_name} onChange={(e) => onEditFormChange({ ...editForm, display_name: e.target.value })} />
             </td>
             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => onEditFormChange({ ...editForm, is_verified: !editForm.is_verified })}
                 className={cn("px-2 py-0.5 rounded-full text-xs font-medium border hover:opacity-80 transition-opacity",
-                  editForm.is_verified ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-500 border-gray-200"
+                  editForm.is_verified ? "bg-primary-container/30 text-primary border-primary" : "bg-surface-container text-on-surface-variant border-outline-variant/15"
                 )}>{editForm.is_verified ? "Verified" : "Guest"}</button>
             </td>
-            <td className="px-4 py-3 text-gray-400">{formatDate(user.created_at)}</td>
+            <td className="px-4 py-3 text-outline">{formatDate(user.created_at)}</td>
           </>
         ) : (
           <>
-            <td className="px-4 py-3 text-gray-700">{user.email ?? "—"}</td>
-            <td className="px-4 py-3 font-medium text-gray-900">{user.display_name}</td>
+            <td className="px-4 py-3 text-on-surface">{user.email ?? "—"}</td>
+            <td className="px-4 py-3 font-medium text-on-surface">{user.display_name}</td>
             <td className="px-4 py-3"><Badge green={user.is_verified}>{user.is_verified ? "Verified" : "Guest"}</Badge></td>
-            <td className="px-4 py-3 text-gray-400">{formatDate(user.created_at)}</td>
+            <td className="px-4 py-3 text-outline">{formatDate(user.created_at)}</td>
           </>
         )}
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-end gap-1">
             {isEditing ? (
               <>
-                <button disabled={saving} onClick={onSaveEdit} className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 disabled:opacity-50" title="Save"><Check size={15} /></button>
-                <button onClick={onCancelEdit} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100" title="Cancel"><X size={15} /></button>
+                <button disabled={saving} onClick={onSaveEdit} className="p-1.5 rounded-lg text-primary hover:bg-primary-container/20 disabled:opacity-50" title="Save"><Check size={15} /></button>
+                <button onClick={onCancelEdit} className="p-1.5 rounded-lg text-outline hover:bg-surface-container" title="Cancel"><X size={15} /></button>
               </>
             ) : (
               <>
-                <button onClick={onStartEdit} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="Edit"><Pencil size={15} /></button>
-                <button onClick={onResetPassword} className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50" title="Reset password"><KeyRound size={15} /></button>
-                <button onClick={onAddToGroup} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="Add to group"><UserPlus size={15} /></button>
-                <button disabled={deletingId === user.id} onClick={onDelete} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
+                <button onClick={onStartEdit} className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container" title="Edit"><Pencil size={15} /></button>
+                <button onClick={onResetPassword} className="p-1.5 rounded-lg text-outline hover:text-amber-600 hover:bg-amber-50" title="Reset password"><KeyRound size={15} /></button>
+                <button onClick={onAddToGroup} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add to group"><UserPlus size={15} /></button>
+                <button disabled={deletingId === user.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
               </>
             )}
           </div>
@@ -373,21 +373,21 @@ function UserRow({ user, isExpanded, isEditing, editForm, saving, deletingId, ex
       </tr>
 
       {isExpanded && (
-        <tr className="bg-green-50/30">
+        <tr className="bg-primary-container/20">
           <td colSpan={6} className="px-6 py-4">
             {loadingDetail ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400"><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /> Loading...</div>
+              <div className="flex items-center gap-2 text-sm text-outline"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> Loading...</div>
             ) : expandedDetail ? (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">
                   Member of {expandedDetail.groups.length} group{expandedDetail.groups.length !== 1 ? "s" : ""}
                 </p>
                 {expandedDetail.groups.length === 0 ? (
-                  <p className="text-sm text-gray-400">No groups</p>
+                  <p className="text-sm text-outline">No groups</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {expandedDetail.groups.map((g) => (
-                      <span key={g.id} className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700">
+                      <span key={g.id} className="inline-flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant/15 rounded-lg px-3 py-1.5 text-sm text-on-surface">
                         <span className="font-medium">{g.name}</span>
                         <Badge>{g.currency_code}</Badge>
                         <Badge green={g.role === "owner"}>{g.role}</Badge>
@@ -397,7 +397,7 @@ function UserRow({ user, isExpanded, isEditing, editForm, saving, deletingId, ex
                 )}
               </div>
             ) : (
-              <p className="text-sm text-red-400">Failed to load details</p>
+              <p className="text-sm text-error">Failed to load details</p>
             )}
           </td>
         </tr>
@@ -428,31 +428,31 @@ function GroupExpenses({ groupId }: { groupId: string }) {
     catch { window.alert("Failed to delete expense"); } finally { setDeletingId(null); }
   }
 
-  if (loading) return <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
-  if (expenses.length === 0) return <p className="text-sm text-gray-400">No expenses</p>;
+  if (loading) return <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (expenses.length === 0) return <p className="text-sm text-outline">No expenses</p>;
 
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+    <div className="rounded-lg border border-outline-variant/15 overflow-hidden bg-surface-container-lowest">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
-            <th className="text-left px-3 py-2 font-medium text-gray-600">Description</th>
-            <th className="text-left px-3 py-2 font-medium text-gray-600">Amount</th>
-            <th className="text-left px-3 py-2 font-medium text-gray-600">Paid by</th>
-            <th className="text-left px-3 py-2 font-medium text-gray-600">Date</th>
+          <tr className="bg-surface border-b border-outline-variant/10">
+            <th className="text-left px-3 py-2 font-medium text-on-surface-variant">Description</th>
+            <th className="text-left px-3 py-2 font-medium text-on-surface-variant">Amount</th>
+            <th className="text-left px-3 py-2 font-medium text-on-surface-variant">Paid by</th>
+            <th className="text-left px-3 py-2 font-medium text-on-surface-variant">Date</th>
             <th className="px-3 py-2" />
           </tr>
         </thead>
         <tbody>
           {expenses.map((exp) => (
-            <tr key={exp.id} className="border-b border-gray-100 last:border-0">
-              <td className="px-3 py-2 text-gray-800">{exp.description}</td>
-              <td className="px-3 py-2 text-gray-700">{formatAmount(exp.amount, exp.currency_code)} {exp.currency_code}</td>
-              <td className="px-3 py-2 text-gray-500">{exp.payer_name ?? "—"}</td>
-              <td className="px-3 py-2 text-gray-400">{formatDate(exp.date)}</td>
+            <tr key={exp.id} className="border-b border-outline-variant/10 last:border-0">
+              <td className="px-3 py-2 text-on-surface">{exp.description}</td>
+              <td className="px-3 py-2 text-on-surface">{formatAmount(exp.amount, exp.currency_code)} {exp.currency_code}</td>
+              <td className="px-3 py-2 text-on-surface-variant">{exp.payer_name ?? "—"}</td>
+              <td className="px-3 py-2 text-outline">{formatDate(exp.date)}</td>
               <td className="px-3 py-2 text-right">
                 <button disabled={deletingId === exp.id} onClick={() => deleteExpense(exp.id)}
-                  className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40" title="Delete"><Trash2 size={13} /></button>
+                  className="p-1 rounded text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-40" title="Delete"><Trash2 size={13} /></button>
               </td>
             </tr>
           ))}
@@ -534,46 +534,46 @@ function GroupsTab() {
       {/* Add member modal */}
       {addMemberGroupId && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAddMemberGroupId(null)}>
-          <div className="bg-white rounded-2xl p-6 w-96 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Add Member to Group</h3>
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-on-surface mb-4">Add Member to Group</h3>
             <input type="text" placeholder="Display name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary" />
             <select value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-500">
+              className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="member">Member</option>
               <option value="admin">Admin</option>
               <option value="owner">Owner</option>
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setAddMemberGroupId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setAddMemberGroupId(null)} className="flex-1 border border-outline-variant/15 text-on-surface py-2 rounded-lg text-sm hover:bg-surface-container">Cancel</button>
               <button onClick={handleAddMember} disabled={addingMember || !newMemberName.trim()}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{addingMember ? "Adding..." : "Add Member"}</button>
+                className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary py-2 rounded-lg text-sm">{addingMember ? "Adding..." : "Add Member"}</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
         <input type="text" placeholder="Search by group name..." value={search} onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          className="w-full pl-9 pr-4 py-2 border border-outline-variant/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
         ) : groups.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-10">No groups found</p>
+          <p className="text-center text-outline text-sm py-10">No groups found</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-3 font-medium text-gray-600 w-6" />
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Currency</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Members</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Invite</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Created</th>
+              <tr className="bg-surface border-b border-outline-variant/10">
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant w-6" />
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Currency</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Members</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Invite</th>
+                <th className="text-left px-4 py-3 font-medium text-on-surface-variant">Created</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -603,11 +603,11 @@ function GroupsTab() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center justify-between text-sm text-on-surface-variant">
           <span>{page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}</span>
           <div className="flex gap-1">
-            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"><ChevronLeft size={16} /></button>
-            <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40"><ChevronRightIcon size={16} /></button>
+            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
+            <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
           </div>
         </div>
       )}
@@ -639,52 +639,52 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
   }
   return (
     <>
-      <tr className={cn("border-b border-gray-100 hover:bg-gray-50 cursor-pointer", isExpanded && "bg-green-50/40")} onClick={onToggleExpand}>
-        <td className="px-4 py-3 text-gray-400">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
-        <td className="px-4 py-3 font-medium text-gray-900">{group.name}</td>
+      <tr className={cn("border-b border-outline-variant/10 hover:bg-surface-container cursor-pointer", isExpanded && "bg-primary-container/20")} onClick={onToggleExpand}>
+        <td className="px-4 py-3 text-outline">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
+        <td className="px-4 py-3 font-medium text-on-surface">{group.name}</td>
         <td className="px-4 py-3"><Badge>{group.currency_code}</Badge></td>
-        <td className="px-4 py-3 text-gray-600">{group.member_count}</td>
-        <td className="px-4 py-3"><code className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{group.invite_code}</code></td>
-        <td className="px-4 py-3 text-gray-400">{formatDate(group.created_at)}</td>
+        <td className="px-4 py-3 text-on-surface-variant">{group.member_count}</td>
+        <td className="px-4 py-3"><code className="text-xs bg-surface-container px-2 py-0.5 rounded text-on-surface-variant">{group.invite_code}</code></td>
+        <td className="px-4 py-3 text-outline">{formatDate(group.created_at)}</td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-end gap-1">
-            <button onClick={onAddMember} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="Add member"><Plus size={15} /></button>
-            <button disabled={deletingId === group.id} onClick={onDelete} className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
+            <button onClick={onAddMember} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add member"><Plus size={15} /></button>
+            <button disabled={deletingId === group.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
           </div>
         </td>
       </tr>
 
       {isExpanded && (
-        <tr className="bg-green-50/20">
+        <tr className="bg-primary-container/20">
           <td colSpan={7} className="px-6 py-4">
             {loadingDetail ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400"><div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /> Loading...</div>
+              <div className="flex items-center gap-2 text-sm text-outline"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> Loading...</div>
             ) : expandedDetail ? (
               <div className="space-y-4">
                 {/* Members */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Members ({expandedDetail.members.length})</p>
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Members ({expandedDetail.members.length})</p>
                   <div className="flex flex-wrap gap-2">
                     {expandedDetail.members.map((m) => (
                       <span key={m.id} className={cn("inline-flex items-center gap-1.5 border rounded-lg px-3 py-1.5 text-sm",
-                        m.is_active ? "bg-white border-gray-200 text-gray-700" : "bg-gray-50 border-gray-100 text-gray-400 line-through"
+                        m.is_active ? "bg-surface-container-lowest border-outline-variant/15 text-on-surface" : "bg-surface border-outline-variant/10 text-outline line-through"
                       )}>
                         {renamingId === m.id ? (
                           <>
                             <input type="text" value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") handleRename(m.id); if (e.key === "Escape") setRenamingId(null); }}
-                              autoFocus className="border border-gray-200 rounded px-1.5 py-0.5 text-sm w-24 focus:outline-none focus:ring-1 focus:ring-green-500" />
-                            <button onClick={() => handleRename(m.id)} disabled={savingRename} className="text-green-600 hover:text-green-700"><Check size={13} /></button>
-                            <button onClick={() => setRenamingId(null)} className="text-gray-400 hover:text-gray-600"><X size={13} /></button>
+                              autoFocus className="border border-outline-variant/15 rounded px-1.5 py-0.5 text-sm w-24 focus:outline-none focus:ring-1 focus:ring-primary" />
+                            <button onClick={() => handleRename(m.id)} disabled={savingRename} className="text-primary hover:text-primary"><Check size={13} /></button>
+                            <button onClick={() => setRenamingId(null)} className="text-outline hover:text-on-surface-variant"><X size={13} /></button>
                           </>
                         ) : (
                           <>
                             <span className="font-medium">{m.display_name}</span>
                             <button onClick={() => { setRenamingId(m.id); setRenameValue(m.display_name); }}
-                              className="text-gray-300 hover:text-gray-500" title="Rename"><Pencil size={11} /></button>
+                              className="text-outline-variant hover:text-on-surface-variant" title="Rename"><Pencil size={11} /></button>
                           </>
                         )}
-                        {m.email && <span className="text-xs text-gray-400">{m.email}</span>}
+                        {m.email && <span className="text-xs text-outline">{m.email}</span>}
                         <Badge green={m.role === "owner"}>{m.role}</Badge>
                         {!m.user_id && <span className="text-xs text-amber-500">unclaimed</span>}
                       </span>
@@ -695,12 +695,12 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                 {/* Currencies */}
                 {expandedDetail.currencies.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Allowed Currencies</p>
+                    <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Allowed Currencies</p>
                     <div className="flex flex-wrap gap-2">
                       {expandedDetail.currencies.map((c) => (
-                        <span key={c.id} className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 py-1 text-sm text-gray-700">
+                        <span key={c.id} className="inline-flex items-center gap-1 bg-surface-container-lowest border border-outline-variant/15 rounded-lg px-3 py-1 text-sm text-on-surface">
                           <span className="font-medium">{c.currency_code}</span>
-                          <span className="text-xs text-gray-400">rate: {c.exchange_rate}</span>
+                          <span className="text-xs text-outline">rate: {c.exchange_rate}</span>
                         </span>
                       ))}
                     </div>
@@ -709,15 +709,15 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
 
                 {/* Expenses */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Expenses ({expandedDetail.expenses_count})</p>
-                  <button onClick={onToggleExpenses} className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-700 font-medium">
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Expenses ({expandedDetail.expenses_count})</p>
+                  <button onClick={onToggleExpenses} className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary font-medium">
                     <Receipt size={14} />{showExpenses ? "Hide expenses" : "View expenses"}
                   </button>
                   {showExpenses && <div className="mt-3"><GroupExpenses groupId={group.id} /></div>}
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-red-400">Failed to load details</p>
+              <p className="text-sm text-error">Failed to load details</p>
             )}
           </td>
         </tr>
@@ -738,12 +738,12 @@ export default function Admin() {
     client.get("/admin/me").then(() => setIsSuperadmin(true)).catch(() => setIsSuperadmin(false));
   }, []);
 
-  if (isSuperadmin === null) return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
+  if (isSuperadmin === null) return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   if (!isSuperadmin) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center"><ShieldOff size={28} className="text-red-500" /></div>
-      <div><h2 className="text-xl font-bold text-gray-900">Access Denied</h2><p className="text-gray-500 text-sm mt-1">You don't have permission to access this page.</p></div>
+      <div className="w-16 h-16 rounded-2xl bg-error-container/20 flex items-center justify-center"><ShieldOff size={28} className="text-error" /></div>
+      <div><h2 className="text-xl font-bold text-on-surface">Access Denied</h2><p className="text-on-surface-variant text-sm mt-1">You don't have permission to access this page.</p></div>
     </div>
   );
 

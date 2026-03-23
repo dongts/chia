@@ -185,17 +185,17 @@ export default function Profile() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-600">
+        <button onClick={() => navigate(-1)} className="text-outline hover:text-on-surface-variant">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Profile</h1>
       </div>
 
       <div className="max-w-lg space-y-6">
         {/* Avatar + name */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-primary-container/30 flex items-center justify-center">
               {user.avatar_url ? (
                 <img
                   src={resolveUploadUrl(user.avatar_url)!}
@@ -203,15 +203,15 @@ export default function Profile() {
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
-                <User size={28} className="text-green-600" />
+                <User size={28} className="text-primary" />
               )}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900">{user.display_name}</p>
+              <p className="text-lg font-semibold text-on-surface">{user.display_name}</p>
               {user.is_verified && user.email ? (
-                <p className="text-sm text-gray-500">{user.email}</p>
+                <p className="text-sm text-on-surface-variant">{user.email}</p>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-xs text-on-tertiary-container bg-tertiary-container/20 px-2 py-0.5 rounded-full">
                   Guest account
                 </span>
               )}
@@ -220,19 +220,19 @@ export default function Profile() {
 
           <form onSubmit={handleSaveName} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Display name</label>
+              <label className="block text-sm font-medium text-on-surface mb-1">Display name</label>
               <input
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
             {user.is_verified && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2.5">
+                <label className="block text-sm font-medium text-on-surface mb-1">Email</label>
+                <p className="text-sm text-on-surface-variant bg-surface rounded-lg px-3 py-2.5">
                   {user.email}
                 </p>
               </div>
@@ -240,7 +240,7 @@ export default function Profile() {
             <button
               type="submit"
               disabled={savingName}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
             >
               {savingName ? "Saving..." : "Save Changes"}
             </button>
@@ -249,28 +249,28 @@ export default function Profile() {
 
         {/* Upgrade section for guests */}
         {!user.is_verified && (
-          <section className="bg-white rounded-2xl border border-gray-200 p-6">
+          <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
             <div className="flex items-center gap-2 mb-1">
-              <Shield size={18} className="text-green-600" />
-              <h2 className="text-base font-semibold text-gray-900">Upgrade to Full Account</h2>
+              <Shield size={18} className="text-primary" />
+              <h2 className="text-base font-semibold text-on-surface">Upgrade to Full Account</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-on-surface-variant mb-4">
               Add an email and password to keep your data across devices and never lose access.
             </p>
             <form onSubmit={handleUpgrade} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={upgradeEmail}
                   onChange={(e) => setUpgradeEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Password</label>
                 <input
                   type="password"
                   required
@@ -278,13 +278,13 @@ export default function Profile() {
                   value={upgradePassword}
                   onChange={(e) => setUpgradePassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <button
                 type="submit"
                 disabled={upgrading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+                className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
               >
                 {upgrading ? "Upgrading..." : "Upgrade Account"}
               </button>
@@ -293,13 +293,13 @@ export default function Profile() {
         )}
 
         {/* Payment Methods */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-6">
+        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">Payment Methods</h2>
+            <h2 className="text-base font-semibold text-on-surface">Payment Methods</h2>
             {!showForm && (
               <button
                 onClick={openAddForm}
-                className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-700 font-medium"
+                className="flex items-center gap-1.5 text-sm text-primary hover:text-primary font-medium"
               >
                 <Plus size={16} />
                 Add
@@ -309,13 +309,13 @@ export default function Profile() {
 
           {/* Inline form */}
           {showForm && (
-            <form onSubmit={handleSavePaymentMethod} className="space-y-3 mb-5 p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-800">
+            <form onSubmit={handleSavePaymentMethod} className="space-y-3 mb-5 p-4 rounded-xl bg-surface border border-outline-variant/15">
+              <h3 className="text-sm font-semibold text-on-surface">
                 {editingId ? "Edit Payment Method" : "New Payment Method"}
               </h3>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Label <span className="text-red-500">*</span>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                  Label <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
@@ -323,11 +323,11 @@ export default function Profile() {
                   value={formLabel}
                   onChange={(e) => setFormLabel(e.target.value)}
                   placeholder="e.g. Kaspi, Bank Transfer"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Vietnamese Bank (VietQR)</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Vietnamese Bank (VietQR)</label>
                 <select
                   value={formBankBin}
                   onChange={(e) => {
@@ -341,71 +341,71 @@ export default function Profile() {
                       }
                     }
                   }}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
                 >
                   <option value="">Not a Vietnamese bank</option>
                   {vietBanks.map((b) => (
                     <option key={b.bin} value={b.bin}>{b.shortName} — {b.name}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-outline mt-1">
                   {formBankBin ? "QR code with amount will be auto-generated via VietQR" : "Select a bank to enable VietQR, or leave empty for other banks"}
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Bank Name</label>
                 <input
                   type="text"
                   value={formBankName}
                   onChange={(e) => setFormBankName(e.target.value)}
                   placeholder={formBankBin ? "Auto-filled from selection above" : "e.g. PayPal, Wise, etc."}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Account Number</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Account Number</label>
                 <input
                   type="text"
                   value={formAccountNumber}
                   onChange={(e) => setFormAccountNumber(e.target.value)}
                   placeholder="e.g. +7 777 123 4567"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Account Holder</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Account Holder</label>
                 <input
                   type="text"
                   value={formAccountHolder}
                   onChange={(e) => setFormAccountHolder(e.target.value)}
                   placeholder="Full name"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Note</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Note</label>
                 <input
                   type="text"
                   value={formNote}
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder="Optional instructions"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               {/* QR section: auto-generated for VietQR banks, manual upload for others */}
               {formBankBin && formAccountNumber ? (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">QR Preview (auto-generated)</label>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">QR Preview (auto-generated)</label>
                   <img
                     src={buildVietQrUrl({ bankBin: formBankBin, accountNumber: formAccountNumber })}
                     alt="VietQR preview"
-                    className="w-32 h-32 rounded-xl border border-gray-200"
+                    className="w-32 h-32 rounded-xl border border-outline-variant/15"
                   />
-                  <p className="text-xs text-green-600 mt-1">QR will be auto-generated with amount when others view it</p>
+                  <p className="text-xs text-primary mt-1">QR will be auto-generated with amount when others view it</p>
                 </div>
               ) : !formBankBin ? (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">QR Code Image</label>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">QR Code Image</label>
                   <input
                     ref={formQrInputRef}
                     type="file"
@@ -422,14 +422,14 @@ export default function Profile() {
                   />
                   <div className="flex items-center gap-3">
                     {formQrPreview ? (
-                      <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                      <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-outline-variant/15" />
                     ) : editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url ? (
-                      <img src={resolveUploadUrl(paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url)!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                      <img src={resolveUploadUrl(paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url)!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-outline-variant/15" />
                     ) : null}
                     <button
                       type="button"
                       onClick={() => formQrInputRef.current?.click()}
-                      className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-green-600 border border-gray-200 hover:border-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                      className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary border border-outline-variant/15 hover:border-primary-container px-3 py-1.5 rounded-lg transition-colors"
                     >
                       <Upload size={14} />
                       {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? "Change QR" : "Upload QR"}
@@ -441,14 +441,14 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2 rounded-lg text-sm transition-colors"
                 >
                   {saving ? "Saving..." : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-100 font-medium py-2 rounded-lg text-sm transition-colors"
+                  className="flex-1 border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container font-medium py-2 rounded-lg text-sm transition-colors"
                 >
                   Cancel
                 </button>
@@ -458,7 +458,7 @@ export default function Profile() {
 
           {/* List */}
           {paymentMethods.length === 0 && !showForm ? (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-outline text-center py-4">
               No payment methods yet. Add one so group members know how to pay you.
             </p>
           ) : (
@@ -466,7 +466,7 @@ export default function Profile() {
               {paymentMethods.map((pm) => (
                 <li
                   key={pm.id}
-                  className="rounded-xl border border-gray-200 px-4 py-3 flex gap-3 items-start"
+                  className="rounded-xl border border-outline-variant/15 px-4 py-3 flex gap-3 items-start"
                 >
                   {/* QR thumbnail — auto-generated for VietQR, uploaded for others */}
                   <div className="flex-shrink-0">
@@ -474,7 +474,7 @@ export default function Profile() {
                       <button
                         type="button"
                         onClick={() => setQrModal(buildVietQrUrl({ bankBin: pm.bank_bin!, accountNumber: pm.account_number! }))}
-                        className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+                        className="block w-14 h-14 rounded-lg overflow-hidden border border-outline-variant/15 hover:opacity-80 transition-opacity"
                         title="View VietQR"
                       >
                         <img
@@ -487,7 +487,7 @@ export default function Profile() {
                       <button
                         type="button"
                         onClick={() => setQrModal(resolveUploadUrl(pm.qr_image_url))}
-                        className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+                        className="block w-14 h-14 rounded-lg overflow-hidden border border-outline-variant/15 hover:opacity-80 transition-opacity"
                         title="View QR code"
                       >
                         <img
@@ -497,8 +497,8 @@ export default function Profile() {
                         />
                       </button>
                     ) : (
-                      <div className="w-14 h-14 rounded-lg border border-dashed border-gray-200 flex items-center justify-center bg-gray-50">
-                        <Upload size={18} className="text-gray-300" />
+                      <div className="w-14 h-14 rounded-lg border border-dashed border-outline-variant/15 flex items-center justify-center bg-surface">
+                        <Upload size={18} className="text-outline-variant" />
                       </div>
                     )}
                     {/* Upload button only for non-VietQR methods */}
@@ -518,7 +518,7 @@ export default function Profile() {
                         <button
                           type="button"
                           onClick={() => qrInputRefs.current[pm.id]?.click()}
-                          className="mt-1 w-14 text-center text-xs text-gray-400 hover:text-green-600 transition-colors"
+                          className="mt-1 w-14 text-center text-xs text-outline hover:text-primary transition-colors"
                           title="Upload QR image"
                         >
                           {pm.qr_image_url ? "Change" : "Upload"}
@@ -529,18 +529,18 @@ export default function Profile() {
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900">{pm.label}</p>
+                    <p className="text-sm font-bold text-on-surface">{pm.label}</p>
                     {pm.bank_name && (
-                      <p className="text-xs text-gray-500">{pm.bank_name}</p>
+                      <p className="text-xs text-on-surface-variant">{pm.bank_name}</p>
                     )}
                     {pm.account_number && (
-                      <p className="text-xs font-mono text-gray-700 mt-0.5">{pm.account_number}</p>
+                      <p className="text-xs font-mono text-on-surface mt-0.5">{pm.account_number}</p>
                     )}
                     {pm.account_holder && (
-                      <p className="text-xs text-gray-500">{pm.account_holder}</p>
+                      <p className="text-xs text-on-surface-variant">{pm.account_holder}</p>
                     )}
                     {pm.note && (
-                      <p className="text-xs italic text-gray-400 mt-0.5">{pm.note}</p>
+                      <p className="text-xs italic text-outline mt-0.5">{pm.note}</p>
                     )}
                   </div>
 
@@ -549,7 +549,7 @@ export default function Profile() {
                     <button
                       type="button"
                       onClick={() => openEditForm(pm)}
-                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                      className="text-outline hover:text-tertiary transition-colors"
                       title="Edit"
                     >
                       <Pencil size={15} />
@@ -557,7 +557,7 @@ export default function Profile() {
                     <button
                       type="button"
                       onClick={() => handleDeletePaymentMethod(pm.id)}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      className="text-outline hover:text-error transition-colors"
                       title="Delete"
                     >
                       <Trash2 size={15} />
@@ -579,7 +579,7 @@ export default function Profile() {
           <img
             src={qrModal}
             alt="QR code"
-            className="max-w-xs max-h-[80vh] rounded-xl shadow-2xl"
+            className="max-w-xs max-h-[80vh] rounded-xl shadow-editorial-xl"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

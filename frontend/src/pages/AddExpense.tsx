@@ -154,22 +154,22 @@ export default function AddExpense() {
     }
   }
 
-  if (loading) return <div className="animate-pulse h-8 bg-gray-200 rounded w-1/3" />;
+  if (loading) return <div className="animate-pulse h-8 bg-surface-container-high rounded w-1/3" />;
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-gray-400 hover:text-gray-600">
+        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-outline hover:text-on-surface-variant">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Add Expense</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Add Expense</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-on-surface mb-1">
+            Description <span className="text-error">*</span>
           </label>
           <input
             type="text"
@@ -177,14 +177,14 @@ export default function AddExpense() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Dinner at Roma"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-on-surface mb-1">
+            Amount <span className="text-error">*</span>
           </label>
           <input
             type="number"
@@ -194,14 +194,14 @@ export default function AddExpense() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Currency */}
         {allowedCurrencies.length > 0 && group && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label className="block text-sm font-medium text-on-surface mb-1">Currency</label>
             <CurrencySelect
               value={currencyCode}
               allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
@@ -222,11 +222,11 @@ export default function AddExpense() {
         {/* Exchange rate — only shown when currency differs */}
         {group && currencyCode && currencyCode !== group.currency_code && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-on-surface mb-1">
               Exchange rate
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">1 {currencyCode} =</span>
+              <span className="text-sm text-on-surface-variant">1 {currencyCode} =</span>
               <input
                 type="number"
                 min="0.000001"
@@ -234,16 +234,16 @@ export default function AddExpense() {
                 value={exchangeRate}
                 onChange={(e) => setExchangeRate(e.target.value)}
                 placeholder="0.00"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
-              <span className="text-sm text-gray-500">{group.currency_code}</span>
+              <span className="text-sm text-on-surface-variant">{group.currency_code}</span>
             </div>
             {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-on-surface-variant mt-1">
                 ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)} {group.currency_code}
               </p>
             )}
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-outline mt-1">
               Pre-filled from default rate. Edit if needed.
             </p>
           </div>
@@ -251,23 +251,23 @@ export default function AddExpense() {
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Date</label>
           <input
             type="date"
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Paid by */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Paid by</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Paid by</label>
           <select
             value={paidBy}
             onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -279,11 +279,11 @@ export default function AddExpense() {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Category</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -295,8 +295,8 @@ export default function AddExpense() {
 
         {/* Split type tabs */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Split type</label>
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Split type</label>
+          <div className="flex gap-1 bg-surface-container rounded-xl p-1 mb-4">
             {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
               <button
                 key={t}
@@ -305,8 +305,8 @@ export default function AddExpense() {
                 className={cn(
                   "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
                   splitType === t
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-surface-container-lowest text-on-surface shadow-editorial"
+                    : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
                 {t}
@@ -337,14 +337,14 @@ export default function AddExpense() {
           <button
             type="button"
             onClick={() => navigate(`/groups/${groupId}`)}
-            className="flex-1 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-outline-variant/15 text-on-surface font-medium py-2.5 rounded-lg text-sm hover:bg-surface-container transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+            className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
           >
             {submitting ? "Adding..." : "Add Expense"}
           </button>

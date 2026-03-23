@@ -154,36 +154,36 @@ export default function EditExpense() {
     }
   }
 
-  if (loading || !expense) return <div className="animate-pulse h-8 bg-gray-200 rounded w-1/3" />;
+  if (loading || !expense) return <div className="animate-pulse h-8 bg-surface-container-high rounded w-1/3" />;
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-gray-400 hover:text-gray-600">
+        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-outline hover:text-on-surface-variant">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Expense</h1>
+        <h1 className="text-2xl font-bold text-on-surface">Edit Expense</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-on-surface mb-1">
+            Description <span className="text-error">*</span>
           </label>
           <input
             type="text"
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-on-surface mb-1">
+            Amount <span className="text-error">*</span>
           </label>
           <input
             type="number"
@@ -192,29 +192,29 @@ export default function EditExpense() {
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Date</label>
           <input
             type="date"
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
 
         {/* Paid by */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Paid by</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Paid by</label>
           <select
             value={paidBy}
             onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -226,11 +226,11 @@ export default function EditExpense() {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <label className="block text-sm font-medium text-on-surface mb-1">Category</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -242,8 +242,8 @@ export default function EditExpense() {
 
         {/* Split type tabs */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Split type</label>
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
+          <label className="block text-sm font-medium text-on-surface mb-2">Split type</label>
+          <div className="flex gap-1 bg-surface-container rounded-xl p-1 mb-4">
             {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
               <button
                 key={t}
@@ -252,8 +252,8 @@ export default function EditExpense() {
                 className={cn(
                   "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
                   splitType === t
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-surface-container-lowest text-on-surface shadow-editorial"
+                    : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
                 {t}
@@ -284,14 +284,14 @@ export default function EditExpense() {
           <button
             type="button"
             onClick={() => navigate(`/groups/${groupId}`)}
-            className="flex-1 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-outline-variant/15 text-on-surface font-medium py-2.5 rounded-lg text-sm hover:bg-surface-container transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+            className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
           >
             {submitting ? "Saving..." : "Save Changes"}
           </button>

@@ -76,23 +76,23 @@ export default function CurrencySelect({
             setTimeout(() => inputRef.current?.focus(), 50);
           }
         }}
-        className="w-full flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-60 bg-white"
+        className="w-full flex items-center justify-between border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-60 bg-surface-container-lowest"
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{displayText}</span>
-        <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
+        <span className={value ? "text-on-surface" : "text-outline"}>{displayText}</span>
+        <ChevronDown size={14} className="text-outline flex-shrink-0" />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full bg-surface-container-lowest border border-outline-variant/15 rounded-lg shadow-editorial-lg max-h-64 overflow-hidden">
           {/* Search input */}
-          <div className="p-2 border-b border-gray-100">
+          <div className="p-2 border-b border-outline-variant/10">
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search currency..."
-              className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full border border-outline-variant/15 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
 
@@ -108,15 +108,15 @@ export default function CurrencySelect({
                   setOpen(false);
                   setSearch("");
                 }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors ${
-                  value === opt.code ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-primary-container/20 transition-colors ${
+                  value === opt.code ? "bg-primary-container/20 text-primary font-medium" : "text-on-surface"
                 }`}
               >
                 {opt.label}
               </button>
             ))}
             {extraOptions && extraOptions.length > 0 && filtered.length > 0 && (
-              <div className="border-t border-gray-100" />
+              <div className="border-t border-outline-variant/10" />
             )}
 
             {filtered.map((c) => (
@@ -128,18 +128,18 @@ export default function CurrencySelect({
                   setOpen(false);
                   setSearch("");
                 }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors flex items-center gap-2 ${
-                  value === c.code ? "bg-green-50 text-green-700 font-medium" : "text-gray-700"
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-primary-container/20 transition-colors flex items-center gap-2 ${
+                  value === c.code ? "bg-primary-container/20 text-primary font-medium" : "text-on-surface"
                 }`}
               >
                 <span className="w-10 font-mono text-xs">{c.code}</span>
                 <span className="flex-1 truncate">{c.name}</span>
-                <span className="text-gray-400 text-xs">{c.symbol}</span>
+                <span className="text-outline text-xs">{c.symbol}</span>
               </button>
             ))}
 
             {filtered.length === 0 && (
-              <p className="px-3 py-4 text-sm text-gray-400 text-center">No currencies found</p>
+              <p className="px-3 py-4 text-sm text-outline text-center">No currencies found</p>
             )}
           </div>
         </div>

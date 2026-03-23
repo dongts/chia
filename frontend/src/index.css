@@ -1,16 +1,81 @@
 @import "tailwindcss";
 
+@theme {
+  /* Primary */
+  --color-primary: #006b23;
+  --color-primary-dim: #005d1e;
+  --color-primary-container: #6cfc7f;
+  --color-on-primary: #d0ffcb;
+  --color-on-primary-container: #005d1e;
+  --color-primary-fixed: #6cfc7f;
+  --color-primary-fixed-dim: #5ced72;
+
+  /* Secondary */
+  --color-secondary: #006a3c;
+  --color-secondary-dim: #005c34;
+  --color-secondary-container: #7ef7ad;
+  --color-on-secondary: #cbffd8;
+  --color-on-secondary-container: #005d34;
+
+  /* Tertiary */
+  --color-tertiary: #006571;
+  --color-tertiary-dim: #005862;
+  --color-tertiary-container: #06e6ff;
+  --color-on-tertiary: #d7f9ff;
+  --color-on-tertiary-container: #004f59;
+
+  /* Error */
+  --color-error: #b02500;
+  --color-error-dim: #b92902;
+  --color-error-container: #f95630;
+  --color-on-error: #ffefec;
+  --color-on-error-container: #520c00;
+
+  /* Surface */
+  --color-surface: #f5faf7;
+  --color-surface-dim: #9ee4b4;
+  --color-surface-bright: #ddffe4;
+  --color-surface-container: #bcf6cc;
+  --color-surface-container-high: #b3f1c5;
+  --color-surface-container-highest: #aaecbd;
+  --color-surface-container-low: #c8fdd6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-tint: #006b23;
+  --color-surface-variant: #aaecbd;
+
+  /* On Surface */
+  --color-on-surface: #08361e;
+  --color-on-surface-variant: #3a6449;
+
+  /* Outline */
+  --color-outline: #558063;
+  --color-outline-variant: #8ab897;
+
+  /* Inverse */
+  --color-inverse-surface: #001206;
+  --color-inverse-on-surface: #7aa787;
+  --color-inverse-primary: #6cfc7f;
+
+  /* Shadows */
+  --shadow-editorial: 0 4px 24px -4px rgba(41, 53, 50, 0.06);
+  --shadow-editorial-lg: 0 12px 40px -8px rgba(41, 53, 50, 0.08);
+  --shadow-editorial-xl: 0 32px 64px -16px rgba(41, 53, 50, 0.1);
+
+  /* Font */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
   /* iOS safe areas for notch/home indicator */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -30,4 +95,34 @@ button, a, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
+}
+
+/* Glass effects */
+.glass-blur {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(41, 53, 50, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 179, 65, 0.2);
 }

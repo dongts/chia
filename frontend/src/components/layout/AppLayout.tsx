@@ -34,10 +34,10 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Install banner — Android: install button, iOS: instructions */}
+    <div className="min-h-screen bg-surface flex flex-col">
+      {/* Install banner — gradient from primary to secondary */}
       {showBanner && (
-        <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between gap-3 z-50">
+        <div className="bg-gradient-to-r from-primary to-secondary text-on-primary px-4 py-3 flex items-center justify-between gap-3 z-50">
           <div className="flex items-center gap-3 min-w-0">
             <Sprout size={20} className="flex-shrink-0" />
             {showIOSInstructions ? (
@@ -56,7 +56,7 @@ export default function AppLayout() {
             {!showIOSInstructions && (
               <button
                 onClick={async () => { await install(); }}
-                className="bg-white text-green-700 font-semibold text-sm px-4 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                className="bg-white text-primary font-semibold text-sm px-4 py-1.5 rounded-full hover:bg-primary-container/30 transition-colors"
               >
                 Install
               </button>
@@ -80,18 +80,19 @@ export default function AppLayout() {
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-30 flex flex-col transition-transform duration-200",
-            "md:translate-x-0 md:static md:z-auto",
+            "fixed top-0 left-0 h-full w-64 bg-surface-container-lowest z-30 flex flex-col transition-transform duration-200",
+            "shadow-editorial-xl",
+            "md:translate-x-0 md:static md:z-auto md:shadow-editorial",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <Link to="/dashboard" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-bold text-xl">
+          <div className="flex items-center justify-between p-4">
+            <Link to="/dashboard" className="flex items-center gap-2 text-primary hover:text-primary-dim font-bold text-xl">
               <Sprout size={22} />
               Chia
             </Link>
-            <button className="md:hidden hover:text-gray-700" onClick={() => setSidebarOpen(false)}>
-              <X size={20} className="text-gray-500" />
+            <button className="md:hidden hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
+              <X size={20} className="text-on-surface-variant" />
             </button>
           </div>
 
@@ -102,8 +103,8 @@ export default function AppLayout() {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-4",
                 location.pathname === "/dashboard"
-                  ? "bg-green-50 text-green-700"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-primary-container/20 text-primary"
+                  : "text-on-surface-variant hover:bg-surface-container"
               )}
             >
               Dashboard
@@ -111,7 +112,7 @@ export default function AppLayout() {
 
             {groups.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 mb-2">
+                <p className="text-xs font-semibold text-outline uppercase tracking-wide px-3 mb-2">
                   Groups
                 </p>
                 <ul className="space-y-1">
@@ -123,15 +124,15 @@ export default function AppLayout() {
                         className={cn(
                           "flex items-center justify-between px-3 py-2 rounded-lg text-sm",
                           location.pathname.startsWith(`/groups/${g.id}`)
-                            ? "bg-green-50 text-green-700 font-medium"
-                            : "text-gray-600 hover:bg-gray-100"
+                            ? "bg-primary-container/20 text-primary font-medium"
+                            : "text-on-surface-variant hover:bg-surface-container"
                         )}
                       >
                         <span className="truncate">{g.name}</span>
                         <span
                           className={cn(
                             "text-xs font-medium ml-2",
-                            g.my_balance >= 0 ? "text-green-600" : "text-red-500"
+                            g.my_balance >= 0 ? "text-primary" : "text-error"
                           )}
                         >
                           {g.my_balance >= 0 ? "+" : ""}
@@ -145,22 +146,22 @@ export default function AppLayout() {
             )}
           </nav>
 
-          <div className="p-4 border-t border-gray-200 space-y-1">
-            {/* Install app button — always visible in sidebar if install is possible */}
+          <div className="p-4 space-y-1">
+            {/* Install app button */}
             {canInstall && (
               showIOSInstructions ? (
-                <div className="px-3 py-2 rounded-lg text-xs text-green-700 bg-green-50 w-full">
+                <div className="px-3 py-2 rounded-lg text-xs text-primary bg-primary-container/20 w-full">
                   <p className="font-medium flex items-center gap-1.5 mb-0.5">
                     <Download size={14} /> Install App
                   </p>
-                  <p className="text-green-600">
+                  <p className="text-on-surface-variant">
                     Tap the share button then "Add to Home Screen"
                   </p>
                 </div>
               ) : (
                 <button
                   onClick={async () => { await install(); }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-green-700 bg-green-50 hover:bg-green-100 w-full font-medium transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-primary bg-primary-container/20 hover:bg-primary-container/30 w-full font-medium transition-colors"
                 >
                   <Download size={16} />
                   Install App
@@ -170,14 +171,14 @@ export default function AppLayout() {
             <Link
               to="/profile"
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container"
             >
               <User size={16} />
               {user?.display_name ?? "Profile"}
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 w-full"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container w-full"
             >
               <LogOut size={16} />
               Sign out
@@ -187,28 +188,28 @@ export default function AppLayout() {
 
         {/* Main area */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          {/* Header — glass effect */}
+          <header className="bg-surface-container-lowest/80 glass-blur sticky top-0 z-10 shadow-editorial">
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <button
-                  className="md:hidden text-gray-500 hover:text-gray-700"
+                  className="md:hidden text-on-surface-variant hover:text-on-surface"
                   onClick={() => setSidebarOpen(true)}
                 >
                   <Menu size={22} />
                 </button>
-                <Link to="/dashboard" className="md:hidden flex items-center gap-1 text-green-600 font-bold text-lg">
+                <Link to="/dashboard" className="md:hidden flex items-center gap-1 text-primary font-bold text-lg">
                   <Sprout size={18} />
                   Chia
                 </Link>
               </div>
 
               <div className="flex items-center gap-2 ml-auto">
-                {/* Install button in header — mobile only, shown if banner was dismissed */}
+                {/* Install button in header — mobile only */}
                 {canInstall && !showBanner && (
                   <button
                     onClick={async () => { await install(); }}
-                    className="md:hidden p-2 rounded-lg text-green-600 hover:bg-green-50"
+                    className="md:hidden p-2 rounded-lg text-primary hover:bg-primary-container/20"
                     title="Install Chia"
                   >
                     <Download size={20} />
@@ -219,28 +220,28 @@ export default function AppLayout() {
                 <div className="relative">
                   <button
                     onClick={handleNotifClick}
-                    className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                    className="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
                   >
                     <Bell size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">
+                      <span className="absolute top-1 right-1 w-4 h-4 bg-error rounded-full text-on-error text-xs flex items-center justify-center leading-none">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
                   </button>
                   {notifOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-                      <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">Notifications</span>
+                    <div className="absolute right-0 top-full mt-1 w-72 bg-surface-container-lowest rounded-xl shadow-editorial-lg z-50 overflow-hidden">
+                      <div className="px-4 py-2 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-on-surface">Notifications</span>
                         <button
                           onClick={() => setNotifOpen(false)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-outline hover:text-on-surface-variant"
                         >
                           <X size={14} />
                         </button>
                       </div>
                       <div className="max-h-64 overflow-y-auto">
-                        <p className="px-4 py-6 text-sm text-gray-400 text-center">
+                        <p className="px-4 py-6 text-sm text-outline text-center">
                           You're all caught up!
                         </p>
                       </div>
@@ -251,13 +252,13 @@ export default function AppLayout() {
                 {/* Profile */}
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container"
                 >
-                  <div className="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
+                  <div className="w-7 h-7 rounded-full bg-primary-container/30 text-primary flex items-center justify-center text-xs font-bold">
                     {user?.display_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
                   <span className="hidden sm:inline">{user?.display_name}</span>
-                  <ChevronDown size={14} className="hidden sm:inline text-gray-400" />
+                  <ChevronDown size={14} className="hidden sm:inline text-outline" />
                 </Link>
               </div>
             </div>

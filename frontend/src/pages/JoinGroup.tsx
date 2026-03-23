@@ -96,25 +96,25 @@ export default function JoinGroup() {
   const canJoin = joinAsNew ? displayName.trim().length > 0 : true;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface flex items-center justify-center px-4">
       <div className="text-center max-w-sm w-full">
-        <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Sprout size={26} className="text-white" />
+        <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Sprout size={26} className="text-on-primary" />
         </div>
 
         {/* Group name */}
         {preview && status !== "error" && (
           <>
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">You're invited to</p>
-            <h1 className="text-xl font-bold text-gray-900 mb-1">{preview.name}</h1>
-            <p className="text-xs text-gray-400 mb-6">{preview.member_count} members · {preview.currency_code}</p>
+            <p className="text-xs text-outline uppercase tracking-wide mb-1">You're invited to</p>
+            <h1 className="text-xl font-bold text-on-surface mb-1">{preview.name}</h1>
+            <p className="text-xs text-outline mb-6">{preview.member_count} members · {preview.currency_code}</p>
           </>
         )}
 
         {/* Loading */}
         {status === "loading" && (
           <div className="mt-4 flex justify-center">
-            <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
@@ -124,23 +124,23 @@ export default function JoinGroup() {
             {/* Unclaimed members */}
             {hasUnclaimed && (
               <>
-                <p className="text-sm font-medium text-gray-700 mb-2">Are you one of these people?</p>
-                <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 mb-3">
+                <p className="text-sm font-medium text-on-surface mb-2">Are you one of these people?</p>
+                <div className="border border-outline-variant/15 rounded-xl overflow-hidden divide-y divide-outline-variant/10 mb-3">
                   {preview.unclaimed_members.map((m) => {
                     const isSelected = selectedClaimId === m.id && !joinAsNew;
                     return (
                       <button key={m.id} type="button"
                         onClick={() => { setSelectedClaimId(m.id); setJoinAsNew(false); setEditingName(false); }}
                         className={cn("w-full flex items-center gap-3 px-4 py-3 transition-colors",
-                          isSelected ? "bg-green-50" : "hover:bg-gray-50"
+                          isSelected ? "bg-primary-container/20" : "hover:bg-surface-container"
                         )}>
                         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
-                          isSelected ? "bg-green-200 text-green-800" : "bg-gray-100 text-gray-600"
+                          isSelected ? "bg-primary-container/50 text-on-primary-container" : "bg-surface-container text-on-surface-variant"
                         )}>{m.display_name[0]?.toUpperCase()}</div>
-                        <span className={cn("text-sm font-medium flex-1 text-left", isSelected ? "text-green-800" : "text-gray-700")}>
+                        <span className={cn("text-sm font-medium flex-1 text-left", isSelected ? "text-on-primary-container" : "text-on-surface")}>
                           {m.display_name}
                         </span>
-                        {isSelected && <UserCheck size={18} className="text-green-600 flex-shrink-0" />}
+                        {isSelected && <UserCheck size={18} className="text-primary flex-shrink-0" />}
                       </button>
                     );
                   })}
@@ -152,12 +152,12 @@ export default function JoinGroup() {
             <button type="button"
               onClick={() => { setJoinAsNew(true); setSelectedClaimId(null); setDisplayName(""); }}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors mb-4",
-                joinAsNew ? "bg-blue-50 border-blue-300" : "border-gray-200 hover:bg-gray-50"
+                joinAsNew ? "bg-tertiary-container/20 border-tertiary-container" : "border-outline-variant/15 hover:bg-surface-container"
               )}>
               <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
-                joinAsNew ? "bg-blue-200 text-blue-800" : "bg-gray-100 text-gray-600"
+                joinAsNew ? "bg-tertiary-container/50 text-on-tertiary-container" : "bg-surface-container text-on-surface-variant"
               )}><UserPlus size={16} /></div>
-              <span className={cn("text-sm font-medium", joinAsNew ? "text-blue-800" : "text-gray-700")}>
+              <span className={cn("text-sm font-medium", joinAsNew ? "text-on-tertiary-container" : "text-on-surface")}>
                 {hasUnclaimed ? "I'm not on the list — join as someone new" : "Join this group"}
               </span>
             </button>
@@ -165,24 +165,24 @@ export default function JoinGroup() {
             {/* Name input — for new member or editing claimed name */}
             {joinAsNew && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Your name</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Your name</label>
                 <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Enter your name"
                   autoFocus
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
               </div>
             )}
 
             {/* Show editable name for claimed member */}
             {selectedClaimId && !joinAsNew && selectedMember && (
-              <div className="mb-4 bg-green-50 rounded-xl px-4 py-3">
+              <div className="mb-4 bg-primary-container/20 rounded-xl px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-green-800">
+                  <p className="text-sm text-on-primary-container">
                     Joining as <strong>{editingName ? "" : displayName}</strong>
                   </p>
                   {!editingName && (
                     <button onClick={() => setEditingName(true)}
-                      className="text-xs text-green-600 hover:text-green-700 flex items-center gap-1">
+                      className="text-xs text-primary hover:text-primary flex items-center gap-1">
                       <Pencil size={12} /> Change name
                     </button>
                   )}
@@ -192,14 +192,14 @@ export default function JoinGroup() {
                     autoFocus
                     onBlur={() => { if (!displayName.trim()) setDisplayName(selectedMember.display_name); setEditingName(false); }}
                     onKeyDown={(e) => { if (e.key === "Enter") setEditingName(false); }}
-                    className="mt-2 w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                    className="mt-2 w-full border border-primary-container rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                 )}
               </div>
             )}
 
             {/* Join button */}
             <button onClick={handleJoin} disabled={!canJoin}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 px-6 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 px-6 rounded-xl transition-colors">
               <ArrowRight size={18} />
               {!isAuthenticated ? "Join (as guest)" : "Join group"}
             </button>
@@ -207,14 +207,14 @@ export default function JoinGroup() {
             {/* Auth options for unauthenticated users */}
             {!isAuthenticated && !authLoading && (
               <div className="mt-4 flex flex-col gap-2">
-                <p className="text-xs text-gray-400">Or sign in for a permanent account:</p>
+                <p className="text-xs text-outline">Or sign in for a permanent account:</p>
                 <div className="flex gap-2">
                   <Link to={`/login?redirect=/join/${inviteCode}`}
-                    className="flex-1 text-center text-sm text-green-600 hover:text-green-700 font-medium py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    className="flex-1 text-center text-sm text-primary hover:text-primary font-medium py-2 border border-outline-variant/15 rounded-lg hover:bg-surface-container">
                     Log In
                   </Link>
                   <Link to={`/register?redirect=/join/${inviteCode}`}
-                    className="flex-1 text-center text-sm text-green-600 hover:text-green-700 font-medium py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    className="flex-1 text-center text-sm text-primary hover:text-primary font-medium py-2 border border-outline-variant/15 rounded-lg hover:bg-surface-container">
                     Sign Up
                   </Link>
                 </div>
@@ -226,9 +226,9 @@ export default function JoinGroup() {
         {/* Joining */}
         {status === "joining" && (
           <>
-            <p className="text-sm text-gray-500">Joining the group...</p>
+            <p className="text-sm text-on-surface-variant">Joining the group...</p>
             <div className="mt-4 flex justify-center">
-              <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           </>
         )}
@@ -236,10 +236,10 @@ export default function JoinGroup() {
         {/* Success */}
         {status === "success" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">You're in!</h1>
-            <p className="text-sm text-gray-500">Redirecting to the group...</p>
+            <h1 className="text-xl font-bold text-on-surface mb-2">You're in!</h1>
+            <p className="text-sm text-on-surface-variant">Redirecting to the group...</p>
             {groupId && (
-              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-green-600 underline hover:text-green-700">Go now</button>
+              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-primary underline hover:text-primary">Go now</button>
             )}
           </>
         )}
@@ -247,9 +247,9 @@ export default function JoinGroup() {
         {/* Error */}
         {status === "error" && (
           <>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Couldn't join</h1>
-            <p className="text-sm text-red-500 mb-4">{errorMsg}</p>
-            <button onClick={() => navigate("/dashboard")} className="text-sm text-green-600 hover:underline hover:text-green-700 font-medium">
+            <h1 className="text-xl font-bold text-on-surface mb-2">Couldn't join</h1>
+            <p className="text-sm text-error mb-4">{errorMsg}</p>
+            <button onClick={() => navigate("/dashboard")} className="text-sm text-primary hover:underline hover:text-primary font-medium">
               Go to Dashboard
             </button>
           </>

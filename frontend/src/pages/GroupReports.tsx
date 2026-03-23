@@ -42,7 +42,7 @@ function formatDate(iso: string) {
 }
 
 function LoadingSpinner() {
-  return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
+  return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 }
 
 function CategoryBar({ category, maxAmount, currencyCode }: { category: CategorySummary; maxAmount: number; currencyCode?: string }) {
@@ -52,16 +52,16 @@ function CategoryBar({ category, maxAmount, currencyCode }: { category: Category
       <div className="text-lg sm:text-xl w-6 sm:w-7 text-center flex-shrink-0">{category.category_icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1 gap-1">
-          <span className="text-xs sm:text-sm font-medium text-gray-800 truncate">{category.category_name}</span>
+          <span className="text-xs sm:text-sm font-medium text-on-surface truncate">{category.category_name}</span>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <span className="text-[10px] sm:text-xs text-gray-500">{category.percentage.toFixed(0)}%</span>
-            <span className="text-xs sm:text-sm font-semibold text-gray-900">
+            <span className="text-[10px] sm:text-xs text-on-surface-variant">{category.percentage.toFixed(0)}%</span>
+            <span className="text-xs sm:text-sm font-semibold text-on-surface">
               {formatAmount(category.total_amount, currencyCode)}
             </span>
           </div>
         </div>
-        <div className="h-1.5 sm:h-2 rounded-full bg-green-100 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500" style={{ width: `${widthPct}%` }} />
+        <div className="h-1.5 sm:h-2 rounded-full bg-primary-container/30 overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-primary-fixed-dim to-primary transition-all duration-500" style={{ width: `${widthPct}%` }} />
         </div>
       </div>
     </div>
@@ -85,68 +85,68 @@ function MemberDetailPanel({ groupId, memberId, memberName, currencyCode, onClos
   const currency = detail?.currency_code ?? currencyCode;
 
   return (
-    <div className="mt-4 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="mt-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between px-4 sm:px-5 py-4 border-b border-gray-100">
+      <div className="flex items-start justify-between px-4 sm:px-5 py-4 border-b border-outline-variant/10">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700">
+            <div className="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center text-sm font-bold text-primary">
               {memberName[0]?.toUpperCase()}
             </div>
-            <h3 className="text-base font-semibold text-gray-900">{memberName}</h3>
+            <h3 className="text-base font-semibold text-on-surface">{memberName}</h3>
           </div>
           {detail && (
             <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-3">
               <div>
-                <p className="text-[10px] sm:text-xs text-gray-400 uppercase">Paid</p>
-                <p className="text-sm font-semibold text-gray-800">{formatCurrency(detail.total_paid, currency)}</p>
+                <p className="text-[10px] sm:text-xs text-outline uppercase">Paid</p>
+                <p className="text-sm font-semibold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
               </div>
               <div>
-                <p className="text-[10px] sm:text-xs text-gray-400 uppercase">Owed</p>
-                <p className="text-sm font-semibold text-gray-800">{formatCurrency(detail.total_owed, currency)}</p>
+                <p className="text-[10px] sm:text-xs text-outline uppercase">Owed</p>
+                <p className="text-sm font-semibold text-on-surface">{formatCurrency(detail.total_owed, currency)}</p>
               </div>
               <div>
-                <p className="text-[10px] sm:text-xs text-gray-400 uppercase">Net</p>
-                <p className={cn("text-sm font-semibold", net >= 0 ? "text-green-600" : "text-red-500")}>
+                <p className="text-[10px] sm:text-xs text-outline uppercase">Net</p>
+                <p className={cn("text-sm font-semibold", net >= 0 ? "text-primary" : "text-error")}>
                   {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
                 </p>
               </div>
             </div>
           )}
         </div>
-        <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex-shrink-0"><X size={18} /></button>
+        <button onClick={onClose} className="p-1.5 text-outline hover:text-on-surface-variant hover:bg-surface-container-container rounded-lg flex-shrink-0"><X size={18} /></button>
       </div>
 
       {loading && <LoadingSpinner />}
-      {error && <p className="px-5 py-8 text-center text-sm text-gray-500">Failed to load details.</p>}
+      {error && <p className="px-5 py-8 text-center text-sm text-on-surface-variant">Failed to load details.</p>}
 
       {detail && !loading && (
         <div className="p-4 sm:p-5 space-y-6">
           {/* Category breakdown */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Paid by Category</h4>
-              {detail.paid_by_category.length === 0 ? <p className="text-sm text-gray-400">No data</p> : (
+              <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Paid by Category</h4>
+              {detail.paid_by_category.length === 0 ? <p className="text-sm text-outline">No data</p> : (
                 <div className="space-y-2">
                   {detail.paid_by_category.map((cat) => (
                     <div key={cat.category_name} className="flex items-center gap-2">
                       <span className="text-base">{cat.category_icon}</span>
-                      <span className="flex-1 text-sm text-gray-700 truncate">{cat.category_name}</span>
-                      <span className="text-sm font-medium text-gray-900 flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
+                      <span className="flex-1 text-sm text-on-surface truncate">{cat.category_name}</span>
+                      <span className="text-sm font-medium text-on-surface flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Owed by Category</h4>
-              {detail.owed_by_category.length === 0 ? <p className="text-sm text-gray-400">No data</p> : (
+              <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Owed by Category</h4>
+              {detail.owed_by_category.length === 0 ? <p className="text-sm text-outline">No data</p> : (
                 <div className="space-y-2">
                   {detail.owed_by_category.map((cat) => (
                     <div key={cat.category_name} className="flex items-center gap-2">
                       <span className="text-base">{cat.category_icon}</span>
-                      <span className="flex-1 text-sm text-gray-700 truncate">{cat.category_name}</span>
-                      <span className="text-sm font-medium text-gray-900 flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
+                      <span className="flex-1 text-sm text-on-surface truncate">{cat.category_name}</span>
+                      <span className="text-sm font-medium text-on-surface flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -156,17 +156,17 @@ function MemberDetailPanel({ groupId, memberId, memberName, currencyCode, onClos
 
           {/* Recent paid — card layout on mobile, table on desktop */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Recent Expenses Paid</h4>
-            {detail.recent_paid.length === 0 ? <p className="text-sm text-gray-400">No recent expenses</p> : (
+            <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Recent Expenses Paid</h4>
+            {detail.recent_paid.length === 0 ? <p className="text-sm text-outline">No recent expenses</p> : (
               <div className="space-y-2">
                 {detail.recent_paid.map((exp) => (
-                  <div key={exp.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <div key={exp.id} className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2">
                     <span className="text-base flex-shrink-0">{exp.category_icon}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{exp.description}</p>
-                      <p className="text-xs text-gray-400">{exp.category_name} · {formatDate(exp.date)}</p>
+                      <p className="text-sm font-medium text-on-surface truncate">{exp.description}</p>
+                      <p className="text-xs text-outline">{exp.category_name} · {formatDate(exp.date)}</p>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 flex-shrink-0">{formatCurrency(exp.amount, exp.currency_code)}</span>
+                    <span className="text-sm font-semibold text-on-surface flex-shrink-0">{formatCurrency(exp.amount, exp.currency_code)}</span>
                   </div>
                 ))}
               </div>
@@ -175,19 +175,19 @@ function MemberDetailPanel({ groupId, memberId, memberName, currencyCode, onClos
 
           {/* Recent owed */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Recent Expenses Owed</h4>
-            {detail.recent_owed.length === 0 ? <p className="text-sm text-gray-400">No recent expenses</p> : (
+            <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Recent Expenses Owed</h4>
+            {detail.recent_owed.length === 0 ? <p className="text-sm text-outline">No recent expenses</p> : (
               <div className="space-y-2">
                 {detail.recent_owed.map((exp) => (
-                  <div key={exp.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <div key={exp.id} className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2">
                     <span className="text-base flex-shrink-0">{exp.category_icon}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{exp.description}</p>
-                      <p className="text-xs text-gray-400">{exp.category_name} · {formatDate(exp.date)}</p>
+                      <p className="text-sm font-medium text-on-surface truncate">{exp.description}</p>
+                      <p className="text-xs text-outline">{exp.category_name} · {formatDate(exp.date)}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-red-500">{formatCurrency(exp.owed_amount, exp.currency_code)}</p>
-                      <p className="text-[10px] text-gray-400">of {formatCurrency(exp.total_amount, exp.currency_code)}</p>
+                      <p className="text-sm font-semibold text-error">{formatCurrency(exp.owed_amount, exp.currency_code)}</p>
+                      <p className="text-[10px] text-outline">of {formatCurrency(exp.total_amount, exp.currency_code)}</p>
                     </div>
                   </div>
                 ))}
@@ -224,15 +224,15 @@ export default function GroupReports() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></button>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
+        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-outline hover:text-on-surface-variant"><ArrowLeft size={20} /></button>
+        <h1 className="text-xl sm:text-2xl font-bold text-on-surface">Reports</h1>
       </div>
 
       {loading && <LoadingSpinner />}
       {error && (
         <div className="text-center py-16">
           <p className="text-4xl mb-3">📊</p>
-          <p className="font-medium text-gray-700">Failed to load reports</p>
+          <p className="font-medium text-on-surface">Failed to load reports</p>
         </div>
       )}
 
@@ -241,28 +241,28 @@ export default function GroupReports() {
           {summary.expense_count === 0 ? (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">📊</p>
-              <p className="font-medium text-gray-700">No expenses yet</p>
-              <p className="text-sm text-gray-500 mt-1">Add some expenses to see reports.</p>
+              <p className="font-medium text-on-surface">No expenses yet</p>
+              <p className="text-sm text-on-surface-variant mt-1">Add some expenses to see reports.</p>
             </div>
           ) : (
             <>
               {/* Summary cards */}
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5">
-                  <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Spent</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
+                <div className="bg-surface-container-lowest rounded-xl sm:rounded-2xl border border-outline-variant/15 p-4 sm:p-5">
+                  <p className="text-[10px] sm:text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-1">Total Spent</p>
+                  <p className="text-lg sm:text-2xl font-bold text-on-surface leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
                 </div>
-                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5">
-                  <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Expenses</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight">{summary.expense_count}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-1">total</p>
+                <div className="bg-surface-container-lowest rounded-xl sm:rounded-2xl border border-outline-variant/15 p-4 sm:p-5">
+                  <p className="text-[10px] sm:text-xs font-medium text-on-surface-variant uppercase tracking-wide mb-1">Expenses</p>
+                  <p className="text-lg sm:text-2xl font-bold text-on-surface leading-tight">{summary.expense_count}</p>
+                  <p className="text-[10px] sm:text-xs text-outline mt-1">total</p>
                 </div>
               </div>
 
               {/* Category breakdown */}
               {sortedCategories.length > 0 && (
-                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-5">
-                  <h2 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 sm:mb-4">By Category</h2>
+                <div className="bg-surface-container-lowest rounded-xl sm:rounded-2xl border border-outline-variant/15 p-4 sm:p-5">
+                  <h2 className="text-xs sm:text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-3 sm:mb-4">By Category</h2>
                   <div className="space-y-3">
                     {sortedCategories.map((cat) => (
                       <CategoryBar key={cat.category_id} category={cat} maxAmount={maxCategoryAmount} currencyCode={summary.currency_code} />
@@ -273,14 +273,14 @@ export default function GroupReports() {
 
               {/* Per-member — card layout on mobile */}
               {summary.per_member.length > 0 && (
-                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden">
-                  <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
-                    <h2 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Members</h2>
-                    <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">Tap to see details</p>
+                <div className="bg-surface-container-lowest rounded-xl sm:rounded-2xl border border-outline-variant/15 overflow-hidden">
+                  <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-outline-variant/10">
+                    <h2 className="text-xs sm:text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Members</h2>
+                    <p className="text-[10px] sm:text-xs text-outline mt-0.5">Tap to see details</p>
                   </div>
 
                   {/* Mobile: card layout */}
-                  <div className="sm:hidden divide-y divide-gray-100">
+                  <div className="sm:hidden divide-y divide-outline-variant/10">
                     {summary.per_member.map((member) => {
                       const net = member.total_paid - member.total_owed;
                       const isSelected = selectedMember?.member_id === member.member_id;
@@ -288,31 +288,31 @@ export default function GroupReports() {
                         <div key={member.member_id}>
                           <button
                             onClick={() => setSelectedMember(isSelected ? null : member)}
-                            className={cn("w-full text-left px-4 py-3", isSelected ? "bg-green-50" : "hover:bg-gray-50")}
+                            className={cn("w-full text-left px-4 py-3", isSelected ? "bg-primary-container/20" : "hover:bg-surface-container")}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                                  isSelected ? "bg-green-200 text-green-800" : "bg-gray-100 text-gray-600"
+                                  isSelected ? "bg-primary-container/50 text-on-primary-container" : "bg-surface-container text-on-surface-variant"
                                 )}>{member.member_name[0]?.toUpperCase()}</div>
-                                <span className="text-sm font-medium text-gray-800">{member.member_name}</span>
+                                <span className="text-sm font-medium text-on-surface">{member.member_name}</span>
                               </div>
-                              <span className={cn("text-sm font-semibold", net > 0 ? "text-green-600" : net < 0 ? "text-red-500" : "text-gray-400")}>
+                              <span className={cn("text-sm font-semibold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
                                 {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
                               </span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 mt-2 ml-9">
                               <div>
-                                <p className="text-[10px] text-gray-400">Paid</p>
-                                <p className="text-xs font-medium text-gray-700">{formatCurrency(member.total_paid, summary.currency_code)}</p>
+                                <p className="text-[10px] text-outline">Paid</p>
+                                <p className="text-xs font-medium text-on-surface">{formatCurrency(member.total_paid, summary.currency_code)}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-gray-400">Owed</p>
-                                <p className="text-xs font-medium text-gray-700">{formatCurrency(member.total_owed, summary.currency_code)}</p>
+                                <p className="text-[10px] text-outline">Owed</p>
+                                <p className="text-xs font-medium text-on-surface">{formatCurrency(member.total_owed, summary.currency_code)}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-gray-400">Expenses</p>
-                                <p className="text-xs font-medium text-gray-700">{member.expense_count}</p>
+                                <p className="text-[10px] text-outline">Expenses</p>
+                                <p className="text-xs font-medium text-on-surface">{member.expense_count}</p>
                               </div>
                             </div>
                           </button>
@@ -325,35 +325,35 @@ export default function GroupReports() {
                   <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-50 text-left">
-                          <th className="px-5 py-3 text-xs font-medium text-gray-500">Name</th>
-                          <th className="px-3 py-3 text-xs font-medium text-gray-500 text-right">Paid</th>
-                          <th className="px-3 py-3 text-xs font-medium text-gray-500 text-right">Owed</th>
-                          <th className="px-3 py-3 text-xs font-medium text-gray-500 text-right">Net</th>
-                          <th className="px-3 py-3 text-xs font-medium text-gray-500 text-right">Expenses</th>
+                        <tr className="bg-surface text-left">
+                          <th className="px-5 py-3 text-xs font-medium text-on-surface-variant">Name</th>
+                          <th className="px-3 py-3 text-xs font-medium text-on-surface-variant text-right">Paid</th>
+                          <th className="px-3 py-3 text-xs font-medium text-on-surface-variant text-right">Owed</th>
+                          <th className="px-3 py-3 text-xs font-medium text-on-surface-variant text-right">Net</th>
+                          <th className="px-3 py-3 text-xs font-medium text-on-surface-variant text-right">Expenses</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-outline-variant/10">
                         {summary.per_member.map((member) => {
                           const net = member.total_paid - member.total_owed;
                           const isSelected = selectedMember?.member_id === member.member_id;
                           return (
                             <tr key={member.member_id} onClick={() => setSelectedMember(isSelected ? null : member)}
-                              className={cn("cursor-pointer", isSelected ? "bg-green-50" : "hover:bg-gray-50")}>
+                              className={cn("cursor-pointer", isSelected ? "bg-primary-container/20" : "hover:bg-surface-container")}>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-2">
                                   <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                                    isSelected ? "bg-green-200 text-green-800" : "bg-gray-100 text-gray-600"
+                                    isSelected ? "bg-primary-container/50 text-on-primary-container" : "bg-surface-container text-on-surface-variant"
                                   )}>{member.member_name[0]?.toUpperCase()}</div>
-                                  <span className="font-medium text-gray-800">{member.member_name}</span>
+                                  <span className="font-medium text-on-surface">{member.member_name}</span>
                                 </div>
                               </td>
-                              <td className="px-3 py-3.5 text-right text-gray-700">{formatCurrency(member.total_paid, summary.currency_code)}</td>
-                              <td className="px-3 py-3.5 text-right text-gray-700">{formatCurrency(member.total_owed, summary.currency_code)}</td>
-                              <td className={cn("px-3 py-3.5 text-right font-semibold", net > 0 ? "text-green-600" : net < 0 ? "text-red-500" : "text-gray-400")}>
+                              <td className="px-3 py-3.5 text-right text-on-surface">{formatCurrency(member.total_paid, summary.currency_code)}</td>
+                              <td className="px-3 py-3.5 text-right text-on-surface">{formatCurrency(member.total_owed, summary.currency_code)}</td>
+                              <td className={cn("px-3 py-3.5 text-right font-semibold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
                                 {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
                               </td>
-                              <td className="px-3 py-3.5 text-right text-gray-500">{member.expense_count}</td>
+                              <td className="px-3 py-3.5 text-right text-on-surface-variant">{member.expense_count}</td>
                             </tr>
                           );
                         })}

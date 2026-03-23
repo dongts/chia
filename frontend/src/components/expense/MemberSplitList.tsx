@@ -47,34 +47,34 @@ export default function MemberSplitList({
       {/* Search + All/None */}
       <div className="flex items-center gap-2 mb-2">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search ${members.length} members...`}
-            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full pl-8 pr-3 py-2 border border-outline-variant/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
         {splitType === "equal" && (
           <div className="flex gap-1 flex-shrink-0">
             <button type="button" onClick={onSelectAll}
-              className="text-xs text-green-700 font-medium px-2.5 py-2 rounded-lg border border-green-200 hover:bg-green-50 transition-colors">All</button>
+              className="text-xs text-primary font-medium px-2.5 py-2 rounded-lg border border-primary-container hover:bg-primary-container/20 transition-colors">All</button>
             <button type="button" onClick={onSelectNone}
-              className="text-xs text-gray-600 font-medium px-2.5 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">None</button>
+              className="text-xs text-on-surface-variant font-medium px-2.5 py-2 rounded-lg border border-outline-variant/15 hover:bg-surface-container transition-colors">None</button>
           </div>
         )}
       </div>
 
       {/* Counter */}
       {splitType === "equal" && (
-        <p className="text-xs text-gray-400 mb-2">{selectedCount} of {members.length} selected</p>
+        <p className="text-xs text-outline mb-2">{selectedCount} of {members.length} selected</p>
       )}
 
       {/* Member list */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-80 overflow-y-auto">
+      <div className="border border-outline-variant/15 rounded-xl overflow-hidden divide-y divide-outline-variant/10 max-h-80 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">No members found</p>
+          <p className="text-sm text-outline text-center py-6">No members found</p>
         ) : (
           filtered.map((m) => {
             const checked = equalChecked[m.id] ?? true;
@@ -87,71 +87,71 @@ export default function MemberSplitList({
                     onClick={() => onEqualToggle(m.id)}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                      checked ? "bg-green-50/50" : "bg-white hover:bg-gray-50"
+                      checked ? "bg-primary-container/20" : "bg-surface-container-lowest hover:bg-surface-container"
                     )}
                   >
                     {checked
-                      ? <CheckCircle2 size={20} className="text-green-600 flex-shrink-0" />
-                      : <Circle size={20} className="text-gray-300 flex-shrink-0" />
+                      ? <CheckCircle2 size={20} className="text-primary flex-shrink-0" />
+                      : <Circle size={20} className="text-outline-variant flex-shrink-0" />
                     }
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                       {m.display_name[0]?.toUpperCase()}
                     </div>
-                    <span className={cn("text-sm font-medium truncate", checked ? "text-gray-900" : "text-gray-400")}>
+                    <span className={cn("text-sm font-medium truncate", checked ? "text-on-surface" : "text-outline")}>
                       {m.display_name}
                     </span>
-                    {checked && <Check size={16} className="ml-auto text-green-600 flex-shrink-0" />}
+                    {checked && <Check size={16} className="ml-auto text-primary flex-shrink-0" />}
                   </button>
                 )}
 
                 {splitType === "exact" && (
                   <div className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                       {m.display_name[0]?.toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-700 flex-1 truncate">{m.display_name}</span>
+                    <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     <input type="number" min="0" step="0.01"
                       value={exactValues[m.id] ?? ""}
                       onChange={(e) => onExactChange(m.id, e.target.value)}
                       placeholder="0.00"
-                      className="w-24 border border-gray-200 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                      className="w-24 border border-outline-variant/15 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                   </div>
                 )}
 
                 {splitType === "percentage" && (
                   <div className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                       {m.display_name[0]?.toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-700 flex-1 truncate">{m.display_name}</span>
+                    <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     <div className="flex items-center gap-1">
                       <input type="number" min="0" max="100" step="0.01"
                         value={percentValues[m.id] ?? ""}
                         onChange={(e) => onPercentChange(m.id, e.target.value)}
                         placeholder="0"
-                        className="w-20 border border-gray-200 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
-                      <span className="text-xs text-gray-400">%</span>
+                        className="w-20 border border-outline-variant/15 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
+                      <span className="text-xs text-outline">%</span>
                     </div>
                   </div>
                 )}
 
                 {splitType === "shares" && (
                   <div className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                       {m.display_name[0]?.toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-700 flex-1 truncate">{m.display_name}</span>
+                    <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     <div className="flex items-center gap-1">
                       <button type="button"
                         onClick={() => onShareChange(m.id, String(Math.max(0, parseFloat(shareValues[m.id] || "1") - 1)))}
-                        className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">−</button>
+                        className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">−</button>
                       <input type="number" min="0" step="1"
                         value={shareValues[m.id] ?? "1"}
                         onChange={(e) => onShareChange(m.id, e.target.value)}
-                        className="w-12 text-center border border-gray-200 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
+                        className="w-12 text-center border border-outline-variant/15 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                       <button type="button"
                         onClick={() => onShareChange(m.id, String(parseFloat(shareValues[m.id] || "1") + 1))}
-                        className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center text-lg font-medium">+</button>
+                        className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">+</button>
                     </div>
                   </div>
                 )}
@@ -165,7 +165,7 @@ export default function MemberSplitList({
       {splitType === "exact" && totalAmount && (
         <p className={cn("text-xs mt-2",
           Math.abs(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - parseFloat(totalAmount)) < 0.02
-            ? "text-green-600" : "text-amber-500"
+            ? "text-primary" : "text-on-tertiary-container"
         )}>
           Sum: {formatAmount(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0), currencyCode)} / {formatAmount(parseFloat(totalAmount || "0"), currencyCode)}
         </p>
@@ -174,7 +174,7 @@ export default function MemberSplitList({
       {splitType === "percentage" && (
         <p className={cn("text-xs mt-2",
           Math.abs(Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - 100) < 0.1
-            ? "text-green-600" : "text-amber-500"
+            ? "text-primary" : "text-on-tertiary-container"
         )}>
           Sum: {Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(1)}% / 100%
         </p>

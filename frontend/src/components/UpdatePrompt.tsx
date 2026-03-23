@@ -22,15 +22,15 @@ export default function UpdatePrompt() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-gray-900 text-white rounded-xl shadow-2xl p-4 flex items-center gap-3 animate-in slide-in-from-bottom">
-      <RefreshCw size={20} className="text-green-400 flex-shrink-0" />
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50 bg-on-surface text-on-primary rounded-xl shadow-editorial-xl p-4 flex items-center gap-3 animate-in slide-in-from-bottom">
+      <RefreshCw size={20} className="text-primary flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">Update available</p>
-        <p className="text-xs text-gray-400">A new version of Chia is ready.</p>
+        <p className="text-xs text-outline">A new version of Chia is ready.</p>
       </div>
       <button
         onClick={handleUpdate}
-        className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+        className="flex-shrink-0 bg-primary hover:bg-primary-dim text-on-primary text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
       >
         Update
       </button>
