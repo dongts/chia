@@ -7,6 +7,7 @@ import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
 import type { GroupMember, Category, SplitType, SplitInput, Expense } from "@/types";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/utils/currency";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 
 export default function EditExpense() {
@@ -93,7 +94,7 @@ export default function EditExpense() {
       const total = splits.reduce((a, b) => a + b.value, 0);
       const amtNum = parseFloat(amount);
       if (Math.abs(total - amtNum) > 0.01) {
-        window.alert(`Exact amounts must sum to ${amount}. Currently: ${total.toFixed(2)}`);
+        window.alert(`Exact amounts must sum to ${amount}. Currently: ${formatAmount(total, expense?.currency_code ?? undefined)}`);
         return null;
       }
       return splits;
@@ -270,6 +271,7 @@ export default function EditExpense() {
             exactValues={exactValues}
             onExactChange={(id, v) => setExactValues((prev) => ({ ...prev, [id]: v }))}
             totalAmount={amount}
+            currencyCode={expense?.currency_code ?? undefined}
             percentValues={percentValues}
             onPercentChange={(id, v) => setPercentValues((prev) => ({ ...prev, [id]: v }))}
             shareValues={shareValues}

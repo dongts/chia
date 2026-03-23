@@ -9,6 +9,7 @@ import { listGroupCategories } from "@/api/categories";
 import { listGroupCurrencies } from "@/api/groupCurrencies";
 import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput } from "@/types";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/utils/currency";
 import CurrencySelect from "@/components/CurrencySelect";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 
@@ -89,7 +90,7 @@ export default function AddExpense() {
       const total = splits.reduce((a, b) => a + b.value, 0);
       const amtNum = parseFloat(amount);
       if (Math.abs(total - amtNum) > 0.01) {
-        window.alert(`Exact amounts must sum to ${amount}. Currently: ${total.toFixed(2)}`);
+        window.alert(`Exact amounts must sum to ${amount}. Currently: ${formatAmount(total, group?.currency_code)}`);
         return null;
       }
       return splits;
@@ -239,7 +240,7 @@ export default function AddExpense() {
             </div>
             {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
               <p className="text-xs text-gray-500 mt-1">
-                ≈ {(parseFloat(amount) * parseFloat(exchangeRate)).toFixed(2)} {group.currency_code}
+                ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)} {group.currency_code}
               </p>
             )}
             <p className="text-xs text-gray-400 mt-1">
@@ -323,6 +324,7 @@ export default function AddExpense() {
             exactValues={exactValues}
             onExactChange={(id, v) => setExactValues((prev) => ({ ...prev, [id]: v }))}
             totalAmount={amount}
+            currencyCode={group?.currency_code}
             percentValues={percentValues}
             onPercentChange={(id, v) => setPercentValues((prev) => ({ ...prev, [id]: v }))}
             shareValues={shareValues}

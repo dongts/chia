@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, CheckCircle2, Circle, Check } from "lucide-react";
 import type { GroupMember, SplitType } from "@/types";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/utils/currency";
 
 interface MemberSplitListProps {
   members: GroupMember[];
@@ -15,6 +16,7 @@ interface MemberSplitListProps {
   exactValues: Record<string, string>;
   onExactChange: (memberId: string, value: string) => void;
   totalAmount?: string;
+  currencyCode?: string;
   // Percentage
   percentValues: Record<string, string>;
   onPercentChange: (memberId: string, value: string) => void;
@@ -26,7 +28,7 @@ interface MemberSplitListProps {
 export default function MemberSplitList({
   members, splitType,
   equalChecked, onEqualToggle, onSelectAll, onSelectNone,
-  exactValues, onExactChange, totalAmount,
+  exactValues, onExactChange, totalAmount, currencyCode,
   percentValues, onPercentChange,
   shareValues, onShareChange,
 }: MemberSplitListProps) {
@@ -163,7 +165,7 @@ export default function MemberSplitList({
           Math.abs(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - parseFloat(totalAmount)) < 0.02
             ? "text-green-600" : "text-amber-500"
         )}>
-          Sum: {Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(2)} / {parseFloat(totalAmount || "0").toFixed(2)}
+          Sum: {formatAmount(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0), currencyCode)} / {formatAmount(parseFloat(totalAmount || "0"), currencyCode)}
         </p>
       )}
 

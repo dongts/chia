@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import client from "@/api/client";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/utils/currency";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -446,7 +447,7 @@ function GroupExpenses({ groupId }: { groupId: string }) {
           {expenses.map((exp) => (
             <tr key={exp.id} className="border-b border-gray-100 last:border-0">
               <td className="px-3 py-2 text-gray-800">{exp.description}</td>
-              <td className="px-3 py-2 text-gray-700">{exp.amount.toFixed(2)} {exp.currency_code}</td>
+              <td className="px-3 py-2 text-gray-700">{formatAmount(exp.amount, exp.currency_code)} {exp.currency_code}</td>
               <td className="px-3 py-2 text-gray-500">{exp.payer_name ?? "—"}</td>
               <td className="px-3 py-2 text-gray-400">{formatDate(exp.date)}</td>
               <td className="px-3 py-2 text-right">

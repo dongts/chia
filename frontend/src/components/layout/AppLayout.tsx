@@ -7,6 +7,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { listGroups } from "@/api/groups";
 import type { GroupListItem } from "@/types";
 import { cn } from "@/lib/utils";
+import { formatAmount } from "@/utils/currency";
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
@@ -134,7 +135,7 @@ export default function AppLayout() {
                           )}
                         >
                           {g.my_balance >= 0 ? "+" : ""}
-                          {g.my_balance.toFixed(2)}
+                          {formatAmount(g.my_balance, g.currency_code)}
                         </span>
                       </Link>
                     </li>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, X } from "lucide-react";
 import client from "@/api/client";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatAmount } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -45,7 +45,7 @@ function LoadingSpinner() {
   return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" /></div>;
 }
 
-function CategoryBar({ category, maxAmount }: { category: CategorySummary; maxAmount: number }) {
+function CategoryBar({ category, maxAmount, currencyCode }: { category: CategorySummary; maxAmount: number; currencyCode?: string }) {
   const widthPct = maxAmount > 0 ? (category.total_amount / maxAmount) * 100 : 0;
   return (
     <div className="flex items-center gap-2 sm:gap-3">
@@ -56,7 +56,7 @@ function CategoryBar({ category, maxAmount }: { category: CategorySummary; maxAm
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <span className="text-[10px] sm:text-xs text-gray-500">{category.percentage.toFixed(0)}%</span>
             <span className="text-xs sm:text-sm font-semibold text-gray-900">
-              {category.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatAmount(category.total_amount, currencyCode)}
             </span>
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function GroupReports() {
                   <h2 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 sm:mb-4">By Category</h2>
                   <div className="space-y-3">
                     {sortedCategories.map((cat) => (
-                      <CategoryBar key={cat.category_id} category={cat} maxAmount={maxCategoryAmount} />
+                      <CategoryBar key={cat.category_id} category={cat} maxAmount={maxCategoryAmount} currencyCode={summary.currency_code} />
                     ))}
                   </div>
                 </div>
