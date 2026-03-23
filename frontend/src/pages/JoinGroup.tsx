@@ -239,7 +239,7 @@ export default function JoinGroup() {
             <h1 className="text-xl font-bold text-gray-900 mb-2">You're in!</h1>
             <p className="text-sm text-gray-500">Redirecting to the group...</p>
             {groupId && (
-              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-green-600 underline">Go now</button>
+              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-green-600 underline hover:text-green-700">Go now</button>
             )}
           </>
         )}
@@ -249,7 +249,7 @@ export default function JoinGroup() {
           <>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Couldn't join</h1>
             <p className="text-sm text-red-500 mb-4">{errorMsg}</p>
-            <button onClick={() => navigate("/dashboard")} className="text-sm text-green-600 hover:underline font-medium">
+            <button onClick={() => navigate("/dashboard")} className="text-sm text-green-600 hover:underline hover:text-green-700 font-medium">
               Go to Dashboard
             </button>
           </>

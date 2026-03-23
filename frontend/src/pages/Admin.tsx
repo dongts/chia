@@ -220,7 +220,7 @@ function UsersTab() {
             <input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-green-500" />
             <div className="flex gap-2">
-              <button onClick={() => setResetPwUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setResetPwUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
               <button onClick={handleResetPassword} disabled={resettingPw || !newPassword}
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{resettingPw ? "Resetting..." : "Reset"}</button>
             </div>
@@ -245,7 +245,7 @@ function UsersTab() {
               <option value="owner">Owner</option>
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setAddToGroupUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setAddToGroupUserId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
               <button onClick={handleAddToGroup} disabled={addingToGroup || !addGroupId}
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{addingToGroup ? "Adding..." : "Add to Group"}</button>
             </div>
@@ -339,7 +339,7 @@ function UserRow({ user, isExpanded, isEditing, editForm, saving, deletingId, ex
             </td>
             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => onEditFormChange({ ...editForm, is_verified: !editForm.is_verified })}
-                className={cn("px-2 py-0.5 rounded-full text-xs font-medium border",
+                className={cn("px-2 py-0.5 rounded-full text-xs font-medium border hover:opacity-80 transition-opacity",
                   editForm.is_verified ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-500 border-gray-200"
                 )}>{editForm.is_verified ? "Verified" : "Guest"}</button>
             </td>
@@ -545,7 +545,7 @@ function GroupsTab() {
               <option value="owner">Owner</option>
             </select>
             <div className="flex gap-2">
-              <button onClick={() => setAddMemberGroupId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setAddMemberGroupId(null)} className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
               <button onClick={handleAddMember} disabled={addingMember || !newMemberName.trim()}
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white py-2 rounded-lg text-sm">{addingMember ? "Adding..." : "Add Member"}</button>
             </div>

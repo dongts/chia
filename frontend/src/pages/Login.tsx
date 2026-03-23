@@ -92,7 +92,7 @@ export default function Login() {
       </form>
 
       <div className="mt-4 text-center">
-        <button onClick={handleGuest} disabled={loading} className="text-sm text-green-600 hover:underline">
+        <button onClick={handleGuest} disabled={loading} className="text-sm text-green-600 hover:underline hover:text-green-700">
           Continue as guest
         </button>
       </div>

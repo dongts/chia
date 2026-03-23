@@ -334,7 +334,7 @@ export default function GroupSettings() {
                   type="button"
                   onClick={() => setRequireVerified((v) => !v)}
                   className={cn(
-                    "w-10 h-6 rounded-full transition-colors relative",
+                    "w-10 h-6 rounded-full transition-colors relative hover:opacity-80",
                     requireVerified ? "bg-green-600" : "bg-gray-200"
                   )}
                 >
@@ -357,7 +357,7 @@ export default function GroupSettings() {
                   type="button"
                   onClick={() => setAllowLogOnBehalf((v) => !v)}
                   className={cn(
-                    "w-10 h-6 rounded-full transition-colors relative",
+                    "w-10 h-6 rounded-full transition-colors relative hover:opacity-80",
                     allowLogOnBehalf ? "bg-green-600" : "bg-gray-200"
                   )}
                 >

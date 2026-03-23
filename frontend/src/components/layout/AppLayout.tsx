@@ -86,11 +86,11 @@ export default function AppLayout() {
           )}
         >
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <Link to="/dashboard" className="flex items-center gap-2 text-green-600 font-bold text-xl">
+            <Link to="/dashboard" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-bold text-xl">
               <Sprout size={22} />
               Chia
             </Link>
-            <button className="md:hidden" onClick={() => setSidebarOpen(false)}>
+            <button className="md:hidden hover:text-gray-700" onClick={() => setSidebarOpen(false)}>
               <X size={20} className="text-gray-500" />
             </button>
           </div>
