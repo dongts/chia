@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, X, TrendingUp, AlertTriangle, Clock, Lightbulb, MoreVertical, Users, Receipt } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Receipt } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency, formatAmount } from "@/utils/currency";
 import { cn } from "@/lib/utils";
@@ -19,21 +19,6 @@ interface GroupReportSummary {
   currency_code: string; total_spent: number; expense_count: number;
   per_member: MemberSummary[]; per_category: CategorySummary[];
 }
-interface CategoryAmount { category_name: string; category_icon: string; total_amount: number }
-interface RecentPaid {
-  id: string; description: string; amount: number; currency_code: string;
-  category_name: string; category_icon: string; date: string;
-}
-interface RecentOwed {
-  id: string; description: string; owed_amount: number; total_amount: number;
-  currency_code: string; category_name: string; category_icon: string; date: string;
-}
-interface MemberDetail {
-  member_id: string; member_name: string; currency_code: string;
-  total_paid: number; total_owed: number;
-  paid_by_category: CategoryAmount[]; owed_by_category: CategoryAmount[];
-  recent_paid: RecentPaid[]; recent_owed: RecentOwed[];
-}
 interface SuggestedSettlement {
   from_member_id: string; from_member_name: string;
   to_member_id: string; to_member_name: string;
@@ -41,10 +26,6 @@ interface SuggestedSettlement {
 }
 
 // --- Helpers ---
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 function LoadingSpinner() {
   return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -73,138 +54,6 @@ function CategoryBar({ category, maxAmount, currencyCode }: { category: Category
   );
 }
 
-function MemberDetailPanel({ groupId, memberId, memberName, currencyCode, onClose }: {
-  groupId: string; memberId: string; memberName: string; currencyCode: string; onClose: () => void;
-}) {
-  const [detail, setDetail] = useState<MemberDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setLoading(true); setError(false);
-    client.get<MemberDetail>(`/groups/${groupId}/reports/member/${memberId}`)
-      .then((r) => setDetail(r.data)).catch(() => setError(true)).finally(() => setLoading(false));
-  }, [groupId, memberId]);
-
-  const net = detail ? detail.total_paid - detail.total_owed : 0;
-  const currency = detail?.currency_code ?? currencyCode;
-
-  return (
-    <div className="mt-4 bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-      {/* Header */}
-      <div className="flex items-start justify-between px-5 py-4 border-b border-outline-variant/10">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-primary-container/30 flex items-center justify-center text-sm font-bold text-primary">
-              {memberName[0]?.toUpperCase()}
-            </div>
-            <h3 className="text-base font-bold text-on-surface">{memberName}</h3>
-          </div>
-          {detail && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-3">
-              <div>
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Paid</p>
-                <p className="text-sm font-semibold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Owed</p>
-                <p className="text-sm font-semibold text-on-surface">{formatCurrency(detail.total_owed, currency)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Net</p>
-                <p className={cn("text-sm font-semibold", net >= 0 ? "text-primary" : "text-error")}>
-                  {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-        <button onClick={onClose} className="p-1.5 text-outline hover:text-on-surface-variant hover:bg-surface-container rounded-full flex-shrink-0"><X size={18} /></button>
-      </div>
-
-      {loading && <LoadingSpinner />}
-      {error && <p className="px-5 py-8 text-center text-sm text-on-surface-variant">Failed to load details.</p>}
-
-      {detail && !loading && (
-        <div className="p-5 space-y-6">
-          {/* Category breakdown */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Paid by Category</h4>
-              {detail.paid_by_category.length === 0 ? <p className="text-sm text-outline">No data</p> : (
-                <div className="space-y-2">
-                  {detail.paid_by_category.map((cat) => (
-                    <div key={cat.category_name} className="flex items-center gap-2 bg-surface-container-high/30 rounded-xl px-3 py-2">
-                      <span className="text-base">{cat.category_icon}</span>
-                      <span className="flex-1 text-sm text-on-surface truncate">{cat.category_name}</span>
-                      <span className="text-sm font-semibold text-on-surface flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <h4 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Owed by Category</h4>
-              {detail.owed_by_category.length === 0 ? <p className="text-sm text-outline">No data</p> : (
-                <div className="space-y-2">
-                  {detail.owed_by_category.map((cat) => (
-                    <div key={cat.category_name} className="flex items-center gap-2 bg-surface-container-high/30 rounded-xl px-3 py-2">
-                      <span className="text-base">{cat.category_icon}</span>
-                      <span className="flex-1 text-sm text-on-surface truncate">{cat.category_name}</span>
-                      <span className="text-sm font-semibold text-on-surface flex-shrink-0">{formatCurrency(cat.total_amount, currency)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Recent paid */}
-          <div>
-            <h4 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Recent Expenses Paid</h4>
-            {detail.recent_paid.length === 0 ? <p className="text-sm text-outline">No recent expenses</p> : (
-              <div className="space-y-2">
-                {detail.recent_paid.map((exp) => (
-                  <div key={exp.id} className="flex items-center gap-2 bg-surface-container-high/30 rounded-xl px-3 py-2.5">
-                    <span className="text-base flex-shrink-0">{exp.category_icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-on-surface truncate">{exp.description}</p>
-                      <p className="text-xs text-outline">{exp.category_name} · {formatDate(exp.date)}</p>
-                    </div>
-                    <span className="text-sm font-semibold text-on-surface flex-shrink-0">{formatCurrency(exp.amount, exp.currency_code)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Recent owed */}
-          <div>
-            <h4 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Recent Expenses Owed</h4>
-            {detail.recent_owed.length === 0 ? <p className="text-sm text-outline">No recent expenses</p> : (
-              <div className="space-y-2">
-                {detail.recent_owed.map((exp) => (
-                  <div key={exp.id} className="flex items-center gap-2 bg-surface-container-high/30 rounded-xl px-3 py-2.5">
-                    <span className="text-base flex-shrink-0">{exp.category_icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-on-surface truncate">{exp.description}</p>
-                      <p className="text-xs text-outline">{exp.category_name} · {formatDate(exp.date)}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-error">{formatCurrency(exp.owed_amount, exp.currency_code)}</p>
-                      <p className="text-[10px] text-outline">of {formatCurrency(exp.total_amount, exp.currency_code)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // --- Main page ---
 
 export default function GroupReports() {
@@ -214,7 +63,6 @@ export default function GroupReports() {
   const [summary, setSummary] = useState<GroupReportSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<MemberSummary | null>(null);
   const [groupName, setGroupName] = useState("");
   const [settlements, setSettlements] = useState<SuggestedSettlement[]>([]);
 
@@ -375,41 +223,27 @@ export default function GroupReports() {
                     <div className="space-y-2.5">
                       {summary.per_member.map((member) => {
                         const net = member.total_paid - member.total_owed;
-                        const isSelected = selectedMember?.member_id === member.member_id;
                         return (
-                          <div key={member.member_id}>
-                            <button
-                              onClick={() => setSelectedMember(isSelected ? null : member)}
-                              className={cn(
-                                "w-full text-left bg-surface-container-lowest rounded-2xl shadow-editorial p-4 transition-colors",
-                                isSelected && "ring-1 ring-primary/20"
-                              )}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className={cn(
-                                    "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
-                                    isSelected ? "bg-primary-container/50 text-primary" : "bg-surface-container text-on-surface-variant"
-                                  )}>{member.member_name[0]?.toUpperCase()}</div>
-                                  <div>
-                                    <p className="text-sm font-semibold text-on-surface">{member.member_name}</p>
-                                    <p className="text-xs text-on-surface-variant">Paid {formatCurrency(member.total_paid, summary.currency_code)}</p>
-                                  </div>
+                          <Link
+                            key={member.member_id}
+                            to={`/groups/${groupId}/reports/member/${member.member_id}`}
+                            className="block bg-surface-container-lowest rounded-2xl shadow-editorial p-4 hover:shadow-editorial-lg transition-all"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
+                                  {member.member_name[0]?.toUpperCase()}
                                 </div>
-                                <span className={cn("text-sm font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
-                                  {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
-                                </span>
+                                <div>
+                                  <p className="text-sm font-semibold text-on-surface">{member.member_name}</p>
+                                  <p className="text-xs text-on-surface-variant">Paid {formatCurrency(member.total_paid, summary.currency_code)}</p>
+                                </div>
                               </div>
-                            </button>
-                            {/* Inline detail panel for mobile */}
-                            {isSelected && groupId && (
-                              <MemberDetailPanel
-                                groupId={groupId} memberId={member.member_id}
-                                memberName={member.member_name} currencyCode={summary.currency_code}
-                                onClose={() => setSelectedMember(null)}
-                              />
-                            )}
-                          </div>
+                              <span className={cn("text-sm font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
+                                {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
+                              </span>
+                            </div>
+                          </Link>
                         );
                       })}
                     </div>
@@ -554,15 +388,15 @@ export default function GroupReports() {
                         <tbody className="divide-y divide-outline-variant/10">
                           {summary.per_member.map((member) => {
                             const net = member.total_paid - member.total_owed;
-                            const isSelected = selectedMember?.member_id === member.member_id;
                             return (
-                              <tr key={member.member_id} onClick={() => setSelectedMember(isSelected ? null : member)}
-                                className={cn("cursor-pointer transition-colors", isSelected ? "bg-primary-container/10" : "hover:bg-surface-container-high/30")}>
+                              <tr key={member.member_id}
+                                onClick={() => navigate(`/groups/${groupId}/reports/member/${member.member_id}`)}
+                                className="cursor-pointer transition-colors hover:bg-surface-container-high/30">
                                 <td className="px-5 py-3.5">
                                   <div className="flex items-center gap-2.5">
-                                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                                      isSelected ? "bg-primary-container/50 text-primary" : "bg-surface-container text-on-surface-variant"
-                                    )}>{member.member_name[0]?.toUpperCase()}</div>
+                                    <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-on-surface-variant flex-shrink-0">
+                                      {member.member_name[0]?.toUpperCase()}
+                                    </div>
                                     <span className="font-semibold text-on-surface">{member.member_name}</span>
                                   </div>
                                 </td>
@@ -572,7 +406,7 @@ export default function GroupReports() {
                                   {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
                                 </td>
                                 <td className="px-3 py-3.5 text-center">
-                                  <MoreVertical size={16} className="text-outline inline-block" />
+                                  <ChevronRight size={16} className="text-outline inline-block" />
                                 </td>
                               </tr>
                             );
@@ -580,15 +414,6 @@ export default function GroupReports() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Member detail panel */}
-                    {selectedMember && groupId && (
-                      <div className="px-5 pb-5">
-                        <MemberDetailPanel groupId={groupId} memberId={selectedMember.member_id}
-                          memberName={selectedMember.member_name} currencyCode={summary.currency_code}
-                          onClose={() => setSelectedMember(null)} />
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

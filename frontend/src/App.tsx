@@ -17,6 +17,7 @@ import AddExpense from "@/pages/AddExpense";
 import EditExpense from "@/pages/EditExpense";
 import GroupSettings from "@/pages/GroupSettings";
 import GroupReports from "./pages/GroupReports";
+import MemberAnalytics from "@/pages/MemberAnalytics";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import UpdatePrompt from "@/components/UpdatePrompt";
@@ -99,6 +100,7 @@ export default function App() {
             />
             <Route path="/groups/:groupId/settings" element={<GroupSettings />} />
             <Route path="/groups/:groupId/reports" element={<GroupReports />} />
+            <Route path="/groups/:groupId/reports/member/:memberId" element={<MemberAnalytics />} />
             <Route path="/profile" element={<Profile />} />
             <Route
               path="/admin"
