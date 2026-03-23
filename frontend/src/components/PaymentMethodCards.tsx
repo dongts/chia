@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { X, Download } from "lucide-react";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
 
@@ -7,34 +9,95 @@ interface PaymentMethodCardsProps {
 }
 
 export default function PaymentMethodCards({ methods, compact = false }: PaymentMethodCardsProps) {
+  const [viewingQr, setViewingQr] = useState<{ url: string; label: string } | null>(null);
+
   if (methods.length === 0) return null;
 
+  async function handleDownload(url: string, label: string) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `QR-${label}.${blob.type.split("/")[1] || "jpg"}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      // Fallback: open in new tab
+      window.open(url, "_blank");
+    }
+  }
+
   return (
-    <div className={compact ? "space-y-2" : "space-y-3"}>
-      {methods.map((m) => (
-        <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-          <div className="flex items-start gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{m.label}</p>
-              {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
-              {m.account_number && (
-                <p className="text-sm text-gray-700 mt-1 font-mono">{m.account_number}</p>
+    <>
+      <div className={compact ? "space-y-2" : "space-y-3"}>
+        {methods.map((m) => (
+          <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{m.label}</p>
+                {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
+                {m.account_number && (
+                  <p className="text-sm text-gray-700 mt-1 font-mono">{m.account_number}</p>
+                )}
+                {m.account_holder && (
+                  <p className="text-xs text-gray-500 mt-0.5">{m.account_holder}</p>
+                )}
+                {m.note && <p className="text-xs text-gray-400 mt-1 italic">{m.note}</p>}
+              </div>
+              {m.qr_image_url && (
+                <button
+                  type="button"
+                  onClick={() => setViewingQr({ url: resolveUploadUrl(m.qr_image_url)!, label: m.label })}
+                  className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                  title="View QR code"
+                >
+                  <img
+                    src={resolveUploadUrl(m.qr_image_url)!}
+                    alt={`QR for ${m.label}`}
+                    className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
+                  />
+                </button>
               )}
-              {m.account_holder && (
-                <p className="text-xs text-gray-500 mt-0.5">{m.account_holder}</p>
-              )}
-              {m.note && <p className="text-xs text-gray-400 mt-1 italic">{m.note}</p>}
             </div>
-            {m.qr_image_url && (
-              <img
-                src={resolveUploadUrl(m.qr_image_url)!}
-                alt={`QR for ${m.label}`}
-                className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
-              />
-            )}
+          </div>
+        ))}
+      </div>
+
+      {/* QR full-size modal */}
+      {viewingQr && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+          onClick={() => setViewingQr(null)}
+        >
+          <div
+            className="relative bg-white rounded-2xl p-4 shadow-2xl max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-900">{viewingQr.label}</p>
+              <button
+                onClick={() => setViewingQr(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <img
+              src={viewingQr.url}
+              alt="QR code"
+              className="w-full rounded-xl"
+            />
+            <button
+              onClick={() => handleDownload(viewingQr.url, viewingQr.label)}
+              className="mt-3 w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+            >
+              <Download size={16} />
+              Save QR Image
+            </button>
           </div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
