@@ -27,3 +27,6 @@ api_router.include_router(admin_router)
 
 from app.api.v1.reports import router as reports_router
 api_router.include_router(reports_router)
+
+from app.api.v1.payment_methods import router as payment_methods_router
+api_router.include_router(payment_methods_router)
