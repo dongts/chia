@@ -16,6 +16,7 @@ import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
 
 type Tab = "expenses" | "balances" | "settlements";
 
@@ -148,6 +149,8 @@ export default function GroupView() {
   const [copied, setCopied] = useState(false);
   const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") !== "false");
 
+  const currentUser = useAuthStore((s) => s.user);
+
   // Filters
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPaidBy, setFilterPaidBy] = useState("");
@@ -265,6 +268,15 @@ export default function GroupView() {
 
   function getCategoryIcon(categoryId: string) {
     return categories.find((c) => c.id === categoryId)?.icon ?? "📦";
+  }
+
+  // Find the current user's member ID in this group
+  const myMemberId = members.find((m) => m.user_id === currentUser?.id)?.id;
+
+  function getMyShare(expense: Expense): number | undefined {
+    if (!myMemberId) return undefined;
+    const split = expense.splits?.find((s) => s.group_member_id === myMemberId);
+    return split ? Number(split.resolved_amount) : undefined;
   }
 
   // Filter expenses
@@ -498,7 +510,7 @@ export default function GroupView() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2.5">
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
-                              <span className="font-medium text-on-surface truncate">{expense.description}</span>
+                              <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors">{expense.description}</Link>
                             </div>
                             <p className="text-xs text-outline sm:hidden mt-0.5">
                               {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
@@ -550,7 +562,7 @@ export default function GroupView() {
                 <div key={dg.date} className="space-y-3">
                   <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider px-1 pt-2">{dg.label}</p>
                   {dg.expenses.map((expense) => {
-                    const myShare = expense.splits?.[0]?.resolved_amount;
+                    const myShare = getMyShare(expense);
                     return (
                       <div
                         key={expense.id}
@@ -560,7 +572,7 @@ export default function GroupView() {
                           {getCategoryIcon(expense.category_id)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-on-surface truncate">{expense.description}</p>
+                          <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-semibold text-on-surface truncate block hover:text-primary transition-colors">{expense.description}</Link>
                           <p className="text-xs text-on-surface-variant mt-0.5">
                             {new Date(expense.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                             {" · "}
