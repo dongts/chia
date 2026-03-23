@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getExpense, updateExpense } from "@/api/expenses";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
@@ -9,6 +9,7 @@ import type { GroupMember, Category, SplitType, SplitInput, Expense } from "@/ty
 import { cn } from "@/lib/utils";
 import { formatAmount } from "@/utils/currency";
 import MemberSplitList from "@/components/expense/MemberSplitList";
+import DatePicker from "@/components/DatePicker";
 
 export default function EditExpense() {
   const { groupId, expenseId } = useParams<{ groupId: string; expenseId: string }>();
@@ -217,16 +218,7 @@ export default function EditExpense() {
           {/* Date */}
           <div>
             <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Date</label>
-            <div className="relative">
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
-              <Calendar size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none" />
-            </div>
+            <DatePicker value={date} onChange={setDate} />
           </div>
         </div>
 
