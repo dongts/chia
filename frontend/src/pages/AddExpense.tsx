@@ -57,8 +57,9 @@ export default function AddExpense() {
           const exact: Record<string, string> = {};
           const pct: Record<string, string> = {};
           const shares: Record<string, string> = {};
+          const checkAll = m.length < 10;
           m.forEach((mem) => {
-            checked[mem.id] = true;
+            checked[mem.id] = checkAll;
             exact[mem.id] = "";
             pct[mem.id] = "";
             shares[mem.id] = "1";
