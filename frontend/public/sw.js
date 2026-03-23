@@ -1,4 +1,4 @@
-const CACHE_NAME = "chia-v2";
+const CACHE_NAME = "chia-v3";
 const STATIC_ASSETS = [
   "./",
   "./manifest.json",
@@ -23,6 +23,13 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Listen for skip waiting message from the page
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Fetch handler

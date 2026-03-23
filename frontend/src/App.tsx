@@ -19,6 +19,7 @@ import GroupSettings from "@/pages/GroupSettings";
 import GroupReports from "./pages/GroupReports";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
+import UpdatePrompt from "@/components/UpdatePrompt";
 
 function RedirectIfAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -68,6 +69,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <UpdatePrompt />
       <AppInitializer>
         <Routes>
           {/* Public routes — redirect to dashboard if already logged in */}
