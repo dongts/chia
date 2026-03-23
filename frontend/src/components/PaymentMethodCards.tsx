@@ -1,4 +1,5 @@
 import type { PaymentMethod } from "@/types";
+import { resolveUploadUrl } from "@/utils/uploads";
 
 interface PaymentMethodCardsProps {
   methods: PaymentMethod[];
@@ -26,7 +27,7 @@ export default function PaymentMethodCards({ methods, compact = false }: Payment
             </div>
             {m.qr_image_url && (
               <img
-                src={m.qr_image_url}
+                src={resolveUploadUrl(m.qr_image_url)!}
                 alt={`QR for ${m.label}`}
                 className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
               />

@@ -15,6 +15,7 @@ import {
   uploadQrImage,
 } from "@/api/paymentMethods";
 import type { PaymentMethod } from "@/types";
+import { resolveUploadUrl } from "@/utils/uploads";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export default function Profile() {
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
               {user.avatar_url ? (
                 <img
-                  src={user.avatar_url}
+                  src={resolveUploadUrl(user.avatar_url)!}
                   alt={user.display_name}
                   className="w-16 h-16 rounded-full object-cover"
                 />
@@ -376,7 +377,7 @@ export default function Profile() {
                   {formQrPreview ? (
                     <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
                   ) : editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url ? (
-                    <img src={paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                    <img src={resolveUploadUrl(paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url)!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
                   ) : null}
                   <button
                     type="button"
@@ -424,12 +425,12 @@ export default function Profile() {
                     {pm.qr_image_url ? (
                       <button
                         type="button"
-                        onClick={() => setQrModal(pm.qr_image_url)}
+                        onClick={() => setQrModal(resolveUploadUrl(pm.qr_image_url))}
                         className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
                         title="View QR code"
                       >
                         <img
-                          src={pm.qr_image_url}
+                          src={resolveUploadUrl(pm.qr_image_url)!}
                           alt="QR"
                           className="w-full h-full object-cover"
                         />
