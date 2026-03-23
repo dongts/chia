@@ -289,10 +289,11 @@ export default function GroupView() {
   const visibleExpenses = filteredExpenses.slice(0, visibleCount);
   const hasMore = visibleCount < filteredExpenses.length;
 
-  // Computed balance summaries
-  const totalGroupBalance = balances.reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0) / 2;
-  const youAreOwed = balances.filter((b) => Number(b.balance) > 0).reduce((sum, b) => sum + Number(b.balance), 0);
-  const youOwe = balances.filter((b) => Number(b.balance) < 0).reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0);
+  // Computed balance summaries — relative to current user
+  const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
+  const totalGroupSpent = balances.reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0) / 2;
+  const youAreOwed = myBalance > 0 ? myBalance : 0;
+  const youOwe = myBalance < 0 ? Math.abs(myBalance) : 0;
 
   if (loading) {
     return (
@@ -356,9 +357,9 @@ export default function GroupView() {
       {/* ── Balance Summary Cards ── */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">Total Balance</p>
+          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">Total Group Spend</p>
           <p className="text-lg font-bold text-on-surface">
-            {formatCurrency(totalGroupBalance, group.currency_code)}
+            {formatCurrency(totalGroupSpent, group.currency_code)}
           </p>
         </div>
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
@@ -388,7 +389,7 @@ export default function GroupView() {
                 : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50"
             )}
           >
-            {t}
+            {t === "settlements" ? "Transfers" : t}
           </button>
         ))}
       </div>
@@ -650,14 +651,14 @@ export default function GroupView() {
          ══════════════════════════════════════════════════════════ */}
       {tab === "balances" && (
         <div className="space-y-6">
-          {/* Member balances */}
+          {/* Member balances — sorted alphabetically */}
           <div className="space-y-3">
             {balances.length === 0 ? (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-12 text-center">
                 <p className="text-on-surface-variant text-sm">No balances yet</p>
               </div>
             ) : (
-              balances.map((b) => {
+              [...balances].sort((a, b) => a.member_name.localeCompare(b.member_name)).map((b) => {
                 const bal = Number(b.balance);
                 const isPositive = bal > 0;
                 const isNegative = bal < 0;
