@@ -173,12 +173,30 @@ export default function MemberAnalytics() {
 
   const monthlyAvg = detail ? detail.total_paid / monthsSinceJoin : 0;
 
-  // Merge recent_paid and recent_owed for mobile activity feed
-  const recentActivity = useMemo(() => {
+  // Merge recent_paid and recent_owed for full activity history
+  const allActivity = useMemo(() => {
     if (!detail) return [];
-    const paid = detail.recent_paid.map((e) => ({ ...e, type: "paid" as const, sortDate: e.date }));
-    const owed = detail.recent_owed.map((e) => ({ ...e, type: "owed" as const, sortDate: e.date, amount: e.owed_amount }));
-    return [...paid, ...owed].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
+    const paid = detail.recent_paid.map((e) => ({
+      id: e.id,
+      type: "paid" as const,
+      description: e.description,
+      category: e.category_name,
+      icon: e.category_icon,
+      amount: e.amount,
+      currency: e.currency_code,
+      date: e.date,
+    }));
+    const owed = detail.recent_owed.map((e) => ({
+      id: e.id + "-owed",
+      type: "owed" as const,
+      description: e.description,
+      category: e.category_name,
+      icon: e.category_icon,
+      amount: e.owed_amount,
+      currency: e.currency_code,
+      date: e.date,
+    }));
+    return [...paid, ...owed].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [detail]);
 
   return (
@@ -266,25 +284,31 @@ export default function MemberAnalytics() {
               </div>
             )}
 
-            {/* Recent Activity */}
-            {recentActivity.length > 0 && (
+            {/* Activity History */}
+            {allActivity.length > 0 && (
               <div>
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">Recent Activity</h2>
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">Activity History</h2>
                 <div className="space-y-2">
-                  {recentActivity.map((item) => (
-                    <div key={item.id + item.type} className="bg-surface-container-high/30 rounded-xl px-4 py-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-base flex-shrink-0">
-                        {item.category_icon}
+                  {allActivity.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+                      <div className={cn(
+                        "w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0",
+                        item.type === "paid" ? "bg-primary-container/20" : "bg-error-container/20"
+                      )}>
+                        {item.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
-                        <p className="text-xs text-outline">
-                          {item.type === "paid" ? "Paid" : "Owed"} · {formatDate(item.sortDate)}
+                        <p className="text-xs text-outline">{item.category} · {formatDate(item.date)}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={cn("text-sm font-bold", item.type === "paid" ? "text-primary" : "text-error")}>
+                          {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
+                        </p>
+                        <p className="text-[10px] text-outline uppercase font-semibold">
+                          {item.type === "paid" ? "Paid" : "Owed"}
                         </p>
                       </div>
-                      <span className={cn("text-sm font-semibold flex-shrink-0", item.type === "owed" ? "text-error" : "text-on-surface")}>
-                        {item.type === "owed" ? "-" : ""}{formatCurrency(item.amount, item.currency_code)}
-                      </span>
                     </div>
                   ))}
                 </div>
@@ -371,46 +395,35 @@ export default function MemberAnalytics() {
               </div>
             </div>
 
-            {/* Settlement History */}
-            {detail.recent_owed.length > 0 && (
+            {/* Activity History */}
+            {allActivity.length > 0 && (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
                 <div className="px-5 py-4">
-                  <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Settlement History</h2>
+                  <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Activity History</h2>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-surface-container-high/30">
-                        <th className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left">Description</th>
-                        <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left">Category</th>
-                        <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left">Date</th>
-                        <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right">Owed</th>
-                        <th className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant/10">
-                      {detail.recent_owed.map((exp) => (
-                        <tr key={exp.id} className="hover:bg-surface-container-high/30 transition-colors">
-                          <td className="px-5 py-3.5">
-                            <p className="font-medium text-on-surface">{exp.description}</p>
-                          </td>
-                          <td className="px-3 py-3.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-base">{exp.category_icon}</span>
-                              <span className="text-on-surface-variant">{exp.category_name}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3.5 text-on-surface-variant">{formatDate(exp.date)}</td>
-                          <td className="px-3 py-3.5 text-right font-semibold text-error">
-                            {formatCurrency(exp.owed_amount, exp.currency_code)}
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-on-surface-variant">
-                            {formatCurrency(exp.total_amount, exp.currency_code)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="px-2 pb-3 space-y-1">
+                  {allActivity.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+                      <div className={cn(
+                        "w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0",
+                        item.type === "paid" ? "bg-primary-container/20" : "bg-error-container/20"
+                      )}>
+                        {item.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
+                        <p className="text-xs text-outline">{item.category} · {formatDate(item.date)}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={cn("text-sm font-bold", item.type === "paid" ? "text-primary" : "text-error")}>
+                          {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
+                        </p>
+                        <p className="text-[10px] text-outline uppercase font-semibold">
+                          {item.type === "paid" ? "Paid" : "Owed"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

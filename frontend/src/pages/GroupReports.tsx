@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Receipt } from "lucide-react";
+import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Search, ChevronUp, ChevronDown } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency, formatAmount } from "@/utils/currency";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,11 @@ export default function GroupReports() {
   const [groupName, setGroupName] = useState("");
   const [settlements, setSettlements] = useState<SuggestedSettlement[]>([]);
 
+  // Sort & search state for member table
+  const [sortColumn, setSortColumn] = useState<"name" | "paid" | "owed" | "net" | "expenses">("net");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [memberSearch, setMemberSearch] = useState("");
+
   useEffect(() => {
     if (!groupId) return;
     setLoading(true); setError(false);
@@ -92,6 +97,50 @@ export default function GroupReports() {
 
   const highestSpender = summary?.per_member.reduce((max, m) => m.total_paid > max.total_paid ? m : max, summary.per_member[0]);
 
+  // Computed sorted/filtered members
+  const sortedMembers = useMemo(() => {
+    if (!summary) return [];
+    let list = [...summary.per_member];
+
+    // Filter by search
+    if (memberSearch) {
+      const q = memberSearch.toLowerCase();
+      list = list.filter(m => m.member_name.toLowerCase().includes(q));
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      let va: number, vb: number;
+      switch (sortColumn) {
+        case "name": return sortDir === "asc"
+          ? a.member_name.localeCompare(b.member_name)
+          : b.member_name.localeCompare(a.member_name);
+        case "paid": va = a.total_paid; vb = b.total_paid; break;
+        case "owed": va = a.total_owed; vb = b.total_owed; break;
+        case "net": va = a.total_paid - a.total_owed; vb = b.total_paid - b.total_owed; break;
+        case "expenses": va = a.expense_count; vb = b.expense_count; break;
+        default: va = 0; vb = 0;
+      }
+      return sortDir === "asc" ? va - vb : vb - va;
+    });
+
+    return list;
+  }, [summary, sortColumn, sortDir, memberSearch]);
+
+  const visibleMembers = sortedMembers.slice(0, 20);
+
+  function handleSort(col: typeof sortColumn) {
+    if (sortColumn === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortColumn(col); setSortDir("desc"); }
+  }
+
+  function SortIndicator({ col }: { col: typeof sortColumn }) {
+    if (sortColumn !== col) return null;
+    return sortDir === "asc"
+      ? <ChevronUp size={12} className="inline-block ml-0.5" />
+      : <ChevronDown size={12} className="inline-block ml-0.5" />;
+  }
+
   return (
     <div>
       {/* ============ DESKTOP HEADER (hidden on mobile) ============ */}
@@ -108,16 +157,6 @@ export default function GroupReports() {
               <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Analytics Report</p>
               <h1 className="text-2xl font-bold text-on-surface">{groupName || "Group Report"}</h1>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface-variant">
-              <Clock size={13} />
-              Last 30 Days
-            </span>
-            <button className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-colors">
-              <Receipt size={13} />
-              Export PDF
-            </button>
           </div>
         </div>
       </div>
@@ -213,15 +252,27 @@ export default function GroupReports() {
                   </div>
                 )}
 
-                {/* Member Balance */}
+                {/* Member Balance (mobile) */}
                 {summary.per_member.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3 px-1">
                       <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Member Balance</h2>
-                      <button className="text-xs font-medium text-primary">View Split Details</button>
                     </div>
+
+                    {/* Search input (mobile) */}
+                    <div className="relative mb-3 px-1">
+                      <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                      <input
+                        type="text"
+                        placeholder="Search members..."
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 text-xs bg-surface-container-high/50 border-0 rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      />
+                    </div>
+
                     <div className="space-y-2.5">
-                      {summary.per_member.map((member) => {
+                      {visibleMembers.map((member) => {
                         const net = member.total_paid - member.total_owed;
                         return (
                           <Link
@@ -247,6 +298,12 @@ export default function GroupReports() {
                         );
                       })}
                     </div>
+
+                    {sortedMembers.length > 20 && (
+                      <p className="text-xs text-on-surface-variant text-center mt-3">
+                        Showing 20 of {sortedMembers.length} members
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -368,9 +425,22 @@ export default function GroupReports() {
                         <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Member Breakdown</h2>
                         <p className="text-xs text-outline mt-0.5">Click a member to see details</p>
                       </div>
-                      <div className="flex items-center gap-1 text-on-surface-variant">
-                        <Users size={15} />
-                        <span className="text-xs font-medium">{summary.per_member.length}</span>
+                      <div className="flex items-center gap-3">
+                        {/* Search input */}
+                        <div className="relative">
+                          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                          <input
+                            type="text"
+                            placeholder="Search members..."
+                            value={memberSearch}
+                            onChange={(e) => setMemberSearch(e.target.value)}
+                            className="pl-8 pr-3 py-1.5 text-xs bg-surface-container-high/50 border-0 rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-44"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 text-on-surface-variant">
+                          <Users size={15} />
+                          <span className="text-xs font-medium">{summary.per_member.length}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -378,15 +448,35 @@ export default function GroupReports() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-surface-container-high/30">
-                            <th className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left">Name</th>
-                            <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right">Paid</th>
-                            <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right">Owed</th>
-                            <th className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right">Net Balance</th>
+                            <th
+                              onClick={() => handleSort("name")}
+                              className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left cursor-pointer hover:text-on-surface transition-colors select-none"
+                            >
+                              Name<SortIndicator col="name" />
+                            </th>
+                            <th
+                              onClick={() => handleSort("paid")}
+                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
+                            >
+                              Paid<SortIndicator col="paid" />
+                            </th>
+                            <th
+                              onClick={() => handleSort("owed")}
+                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
+                            >
+                              Owed<SortIndicator col="owed" />
+                            </th>
+                            <th
+                              onClick={() => handleSort("net")}
+                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
+                            >
+                              Net Balance<SortIndicator col="net" />
+                            </th>
                             <th className="px-3 py-3 w-10"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/10">
-                          {summary.per_member.map((member) => {
+                          {visibleMembers.map((member) => {
                             const net = member.total_paid - member.total_owed;
                             return (
                               <tr key={member.member_id}
@@ -414,6 +504,12 @@ export default function GroupReports() {
                         </tbody>
                       </table>
                     </div>
+
+                    {sortedMembers.length > 20 && (
+                      <div className="px-5 py-3 text-xs text-on-surface-variant text-center border-t border-outline-variant/10">
+                        Showing 20 of {sortedMembers.length} members
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
