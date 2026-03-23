@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
+import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2, ArrowLeftRight, List, LayoutGrid } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
@@ -35,6 +35,7 @@ export default function GroupView() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") === "true");
 
   useEffect(() => {
     if (!groupId) return;
@@ -210,6 +211,22 @@ export default function GroupView() {
         <div>
           <div className="flex justify-end gap-2 mb-4">
             <button
+              onClick={() => {
+                const next = !compactView;
+                setCompactView(next);
+                localStorage.setItem("chia-compact-view", String(next));
+              }}
+              className={cn(
+                "p-2 rounded-lg border transition-colors",
+                compactView
+                  ? "border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+                  : "border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+              )}
+              title={compactView ? "Card view" : "Compact view"}
+            >
+              {compactView ? <LayoutGrid size={16} /> : <List size={16} />}
+            </button>
+            <button
               onClick={() => setShowTransfer(true)}
               className="flex items-center gap-2 border border-green-600 text-green-700 hover:bg-green-50 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
             >
@@ -229,6 +246,59 @@ export default function GroupView() {
               <p className="text-4xl mb-3">🧾</p>
               <p className="font-medium text-gray-700">No expenses yet</p>
               <p className="text-sm mt-1">Add the first expense for this group</p>
+            </div>
+          ) : compactView ? (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-3 py-2.5 font-medium">Expense</th>
+                    <th className="px-3 py-2.5 font-medium hidden sm:table-cell">Paid by</th>
+                    <th className="px-3 py-2.5 font-medium hidden sm:table-cell">Date</th>
+                    <th className="px-3 py-2.5 font-medium text-right">Amount</th>
+                    <th className="px-3 py-2.5 w-20"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map((expense) => (
+                    <tr key={expense.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
+                          <span className="font-medium text-gray-900 truncate">{expense.description}</span>
+                        </div>
+                        <p className="text-xs text-gray-400 sm:hidden mt-0.5">
+                          {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
+                        </p>
+                      </td>
+                      <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">{expense.payer_name ?? "Unknown"}</td>
+                      <td className="px-3 py-2 text-gray-400 hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-gray-900 whitespace-nowrap">
+                        {expense.currency_code !== group.currency_code ? (
+                          <div>
+                            <span>{formatCurrency(Number(expense.amount), expense.currency_code)}</span>
+                            <p className="text-xs text-gray-400 font-normal">≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}</p>
+                          </div>
+                        ) : (
+                          formatCurrency(Number(expense.amount), group.currency_code)
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-0.5 justify-end">
+                          <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`}
+                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
+                            <Pencil size={13} />
+                          </Link>
+                          <button onClick={() => handleDeleteExpense(expense.id)}
+                            className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="space-y-3">

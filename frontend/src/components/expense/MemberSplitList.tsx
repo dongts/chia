@@ -34,9 +34,11 @@ export default function MemberSplitList({
 }: MemberSplitListProps) {
   const [search, setSearch] = useState("");
 
+  const sorted = [...members].sort((a, b) => a.display_name.localeCompare(b.display_name));
+
   const filtered = search
-    ? members.filter((m) => m.display_name.toLowerCase().includes(search.toLowerCase()))
-    : members;
+    ? sorted.filter((m) => m.display_name.toLowerCase().includes(search.toLowerCase()))
+    : sorted;
 
   const selectedCount = members.filter((m) => equalChecked[m.id] ?? true).length;
 
