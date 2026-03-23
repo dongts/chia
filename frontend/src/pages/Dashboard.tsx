@@ -6,7 +6,6 @@ import {
   Users,
   Wallet,
   X,
-  TrendingUp,
   ArrowRight,
   Sparkles,
   ChevronRight,
@@ -273,35 +272,19 @@ export default function Dashboard() {
                 <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
                   Total Balance
                 </p>
-                <div className="flex items-baseline gap-3">
-                  <span
-                    className={cn(
-                      "text-3xl font-bold tracking-tight",
-                      totalBalance > 0
-                        ? "text-primary"
-                        : totalBalance < 0
-                        ? "text-error"
-                        : "text-on-surface"
-                    )}
-                  >
-                    {totalBalance > 0 ? "+" : ""}
-                    {formatCurrency(totalBalance, primaryCurrency)}
-                  </span>
-                  {totalBalance !== 0 && (
-                    <span
-                      className={cn(
-                        "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
-                        totalBalance > 0
-                          ? "bg-primary/10 text-primary"
-                          : "bg-error/10 text-error"
-                      )}
-                    >
-                      <TrendingUp size={12} />
-                      {totalBalance > 0 ? "+" : ""}
-                      {((totalBalance / Math.max(Math.abs(totalBalance), 1)) * 12.5).toFixed(1)}%
-                    </span>
+                <span
+                  className={cn(
+                    "text-3xl font-bold tracking-tight",
+                    totalBalance > 0
+                      ? "text-primary"
+                      : totalBalance < 0
+                      ? "text-error"
+                      : "text-on-surface"
                   )}
-                </div>
+                >
+                  {totalBalance > 0 ? "+" : ""}
+                  {formatCurrency(totalBalance, primaryCurrency)}
+                </span>
                 <p className="text-xs text-on-surface-variant mt-1.5">
                   Across {groups.length} group{groups.length !== 1 ? "s" : ""}
                 </p>
