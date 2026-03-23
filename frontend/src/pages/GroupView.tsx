@@ -292,8 +292,6 @@ export default function GroupView() {
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
   const totalGroupSpent = balances.reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0) / 2;
-  const youAreOwed = myBalance > 0 ? myBalance : 0;
-  const youOwe = myBalance < 0 ? Math.abs(myBalance) : 0;
 
   if (loading) {
     return (
@@ -355,7 +353,7 @@ export default function GroupView() {
       </div>
 
       {/* ── Balance Summary Cards ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
           <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">Total Group Spend</p>
           <p className="text-lg font-bold text-on-surface">
@@ -363,15 +361,11 @@ export default function GroupView() {
           </p>
         </div>
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">You are owed</p>
-          <p className={cn("text-lg font-bold", youAreOwed > 0 ? "text-primary" : "text-outline")}>
-            {formatCurrency(youAreOwed, group.currency_code)}
+          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
+            {myBalance > 0 ? "You are owed" : myBalance < 0 ? "You owe" : "Your balance"}
           </p>
-        </div>
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">You owe</p>
-          <p className={cn("text-lg font-bold", youOwe > 0 ? "text-error" : "text-outline")}>
-            {formatCurrency(youOwe, group.currency_code)}
+          <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
+            {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
           </p>
         </div>
       </div>
