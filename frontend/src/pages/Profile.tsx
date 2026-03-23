@@ -40,6 +40,9 @@ export default function Profile() {
   const [formNote, setFormNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [qrModal, setQrModal] = useState<string | null>(null);
+  const [formQrFile, setFormQrFile] = useState<File | null>(null);
+  const [formQrPreview, setFormQrPreview] = useState<string | null>(null);
+  const formQrInputRef = useRef<HTMLInputElement | null>(null);
 
   const qrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -95,6 +98,8 @@ export default function Profile() {
     setFormAccountNumber("");
     setFormAccountHolder("");
     setFormNote("");
+    setFormQrFile(null);
+    setFormQrPreview(null);
   }
 
   function openAddForm() {
@@ -116,24 +121,27 @@ export default function Profile() {
     e.preventDefault();
     setSaving(true);
     try {
+      let result: PaymentMethod;
       if (editingId) {
-        const updated = await updatePaymentMethod(editingId, {
+        result = await updatePaymentMethod(editingId, {
           label: formLabel,
           bank_name: formBankName || null,
           account_number: formAccountNumber || null,
           account_holder: formAccountHolder || null,
           note: formNote || null,
         });
-        setPaymentMethods((prev) => prev.map((pm) => (pm.id === editingId ? updated : pm)));
+        if (formQrFile) result = await uploadQrImage(result.id, formQrFile);
+        setPaymentMethods((prev) => prev.map((pm) => (pm.id === editingId ? result : pm)));
       } else {
-        const created = await createPaymentMethod({
+        result = await createPaymentMethod({
           label: formLabel,
           bank_name: formBankName || null,
           account_number: formAccountNumber || null,
           account_holder: formAccountHolder || null,
           note: formNote || null,
         });
-        setPaymentMethods((prev) => [...prev, created]);
+        if (formQrFile) result = await uploadQrImage(result.id, formQrFile);
+        setPaymentMethods((prev) => [...prev, result]);
       }
       resetForm();
     } catch {
@@ -347,6 +355,38 @@ export default function Profile() {
                   placeholder="Optional instructions"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">QR Code Image</label>
+                <input
+                  ref={formQrInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setFormQrFile(file);
+                      setFormQrPreview(URL.createObjectURL(file));
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  {formQrPreview ? (
+                    <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                  ) : editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url ? (
+                    <img src={paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => formQrInputRef.current?.click()}
+                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-green-600 border border-gray-200 hover:border-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Upload size={14} />
+                    {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? "Change QR" : "Upload QR"}
+                  </button>
+                </div>
               </div>
               <div className="flex gap-2 pt-1">
                 <button
