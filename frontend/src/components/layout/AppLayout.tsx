@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Bell, User, LogOut, Menu, X, Download, Sprout,
-  LayoutGrid, Wallet, Users,
+  LayoutGrid, Wallet,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -316,13 +316,6 @@ export default function AppLayout() {
               <span className="text-[10px] font-medium">Groups</span>
             </Link>
           )}
-          <Link
-            to="/dashboard"
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] text-on-surface-variant"
-          >
-            <Users size={20} />
-            <span className="text-[10px] font-medium">Friends</span>
-          </Link>
           <Link
             to="/profile"
             className={cn(

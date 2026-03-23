@@ -84,22 +84,14 @@ export default function Landing() {
       <div className="grid grid-cols-2 gap-3 mb-8">
         <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-editorial">
           <Shield size={20} className="text-primary mb-2" />
-          <h4 className="text-xs font-semibold text-on-surface mb-0.5">Secure</h4>
-          <p className="text-[10px] text-on-surface-variant">Payments & QR in one place</p>
+          <h4 className="text-xs font-semibold text-on-surface mb-0.5">VietQR</h4>
+          <p className="text-[10px] text-on-surface-variant">Pay via QR with Vietnamese banks</p>
         </div>
         <div className="bg-surface-container-lowest rounded-2xl p-4 shadow-editorial">
           <TrendingUp size={20} className="text-primary mb-2" />
-          <h4 className="text-xs font-semibold text-on-surface mb-0.5">Growth</h4>
-          <p className="text-[10px] text-on-surface-variant">Track with organic flow</p>
+          <h4 className="text-xs font-semibold text-on-surface mb-0.5">Smart Settle</h4>
+          <p className="text-[10px] text-on-surface-variant">Minimize transfers with debt simplification</p>
         </div>
-      </div>
-
-      {/* Testimonial */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary-dim to-primary p-6 mb-8">
-        <p className="text-sm text-on-primary/90 italic leading-relaxed">
-          "The most breathable financial app I've ever used."
-        </p>
-        <p className="text-xs text-on-primary/60 mt-2 font-medium">— Happy user</p>
       </div>
 
       {/* Bottom features */}
@@ -107,15 +99,15 @@ export default function Landing() {
         <div className="flex items-center gap-3 px-1">
           <BarChart3 size={18} className="text-primary flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-on-surface">Smart Analytics</p>
-            <p className="text-[10px] text-on-surface-variant">Automated insights for your portfolio</p>
+            <p className="text-xs font-semibold text-on-surface">Group Reports</p>
+            <p className="text-[10px] text-on-surface-variant">See who spent what, by category</p>
           </div>
         </div>
         <div className="flex items-center gap-3 px-1">
           <Wallet size={18} className="text-primary flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-on-surface">Zero-Fee Tiers</p>
-            <p className="text-[10px] text-on-surface-variant">Grow your wealth without hidden costs</p>
+            <p className="text-xs font-semibold text-on-surface">Multi-Currency</p>
+            <p className="text-[10px] text-on-surface-variant">Log expenses in any currency with auto conversion</p>
           </div>
         </div>
       </div>
