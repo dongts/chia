@@ -1,12 +1,82 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Users, Wallet, X } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Wallet,
+  X,
+  TrendingUp,
+  ArrowRight,
+  Sparkles,
+  BarChart3,
+  ChevronRight,
+  Zap,
+} from "lucide-react";
 import { listGroups, createGroup } from "@/api/groups";
 import type { GroupListItem } from "@/types";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import CurrencySelect from "@/components/CurrencySelect";
+import { useAuthStore } from "@/store/authStore";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function AvatarStack({ count, max = 4 }: { count: number; max?: number }) {
+  const shown = Math.min(count, max);
+  const extra = count - shown;
+  const colors = [
+    "bg-primary/80",
+    "bg-error/60",
+    "bg-primary-dim/70",
+    "bg-primary-container",
+  ];
+  return (
+    <div className="flex -space-x-2">
+      {Array.from({ length: shown }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "w-7 h-7 rounded-full border-2 border-surface-container-lowest flex items-center justify-center text-[10px] font-bold text-white",
+            colors[i % colors.length]
+          )}
+        >
+          {String.fromCharCode(65 + i)}
+        </div>
+      ))}
+      {extra > 0 && (
+        <div className="w-7 h-7 rounded-full border-2 border-surface-container-lowest bg-surface-container-high flex items-center justify-center text-[10px] font-semibold text-on-surface-variant">
+          +{extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniBarChart() {
+  const bars = [40, 65, 50, 80, 55, 70, 90];
+  return (
+    <div className="flex items-end gap-1 h-10">
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          className={cn(
+            "w-1.5 rounded-full transition-all",
+            i === bars.length - 1
+              ? "bg-primary"
+              : "bg-primary/20"
+          )}
+          style={{ height: `${h}%` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<GroupListItem[]>([]);
@@ -18,6 +88,9 @@ export default function Dashboard() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [currency, setCurrency] = useState("USD");
+
+  const user = useAuthStore((s) => s.user);
+  const firstName = user?.display_name?.split(" ")[0] ?? "there";
 
   useEffect(() => {
     loadGroups();
@@ -54,38 +127,56 @@ export default function Dashboard() {
     }
   }
 
+  const totalBalance = useMemo(
+    () => groups.reduce((sum, g) => sum + g.my_balance, 0),
+    [groups]
+  );
+
+  const groupsWithDebt = useMemo(
+    () => groups.filter((g) => g.my_balance < 0),
+    [groups]
+  );
+
+  const pendingPaymentCount = groupsWithDebt.length;
+
+  // Use the first group's currency for the total, or default to USD
+  const primaryCurrency = groups.length > 0 ? groups[0].currency_code : "USD";
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-on-surface">Dashboard</h1>
-          <p className="text-sm text-on-surface-variant mt-0.5">Your expense groups</p>
+          <p className="text-sm text-on-surface-variant font-medium">
+            {getGreeting()}, {firstName}
+          </p>
+          <h1 className="text-2xl font-bold text-on-surface mt-0.5">Dashboard</h1>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-lg text-sm transition-colors"
+          className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-colors shadow-editorial"
         >
-          <Plus size={16} />
+          <Plus size={16} strokeWidth={2.5} />
           New Group
         </button>
       </div>
 
       {/* Create Group Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-on-surface">Create Group</h2>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 pt-6 pb-2">
+              <h2 className="text-lg font-bold text-on-surface">Create Group</h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="text-outline hover:text-on-surface-variant"
+                className="w-8 h-8 rounded-full bg-surface-container-high/50 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="px-6 pb-6 pt-2 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
                   Group name <span className="text-error">*</span>
                 </label>
                 <input
@@ -94,11 +185,11 @@ export default function Dashboard() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Italy Trip 2025"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
                   Description
                 </label>
                 <input
@@ -106,25 +197,27 @@ export default function Dashboard() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Optional"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Currency</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+                  Currency
+                </label>
                 <CurrencySelect value={currency} onChange={setCurrency} />
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 border border-outline-variant/15 text-on-surface font-medium py-2.5 rounded-lg text-sm hover:bg-surface-container transition-colors"
+                  className="flex-1 bg-surface-container-high/50 text-on-surface font-semibold py-3 rounded-full text-sm hover:bg-surface-container-high transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors shadow-editorial"
                 >
                   {creating ? "Creating..." : "Create Group"}
                 </button>
@@ -134,72 +227,212 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Groups grid */}
+      {/* Loading State */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-surface-container-lowest rounded-xl border border-outline-variant/15 p-5 animate-pulse">
-              <div className="h-4 bg-surface-container-high rounded w-3/4 mb-3" />
-              <div className="h-3 bg-surface-container rounded w-1/2" />
-            </div>
-          ))}
+        <div className="space-y-4">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 animate-pulse shadow-editorial">
+            <div className="h-5 bg-surface-container-high rounded-full w-1/3 mb-4" />
+            <div className="h-10 bg-surface-container-high rounded-full w-1/2 mb-2" />
+            <div className="h-3 bg-surface-container rounded-full w-1/4" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-surface-container-lowest rounded-2xl p-5 animate-pulse shadow-editorial">
+                <div className="h-4 bg-surface-container-high rounded-full w-3/4 mb-3" />
+                <div className="h-3 bg-surface-container rounded-full w-1/2" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : groups.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-primary-container/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Wallet size={28} className="text-primary" />
+        /* Empty State */
+        <div className="text-center py-20">
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="absolute inset-0 bg-primary/10 rounded-3xl rotate-6" />
+            <div className="absolute inset-0 bg-primary/5 rounded-3xl -rotate-3" />
+            <div className="relative w-full h-full bg-primary-container/30 rounded-3xl flex items-center justify-center">
+              <Wallet size={40} className="text-primary" />
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-on-surface mb-2">No groups yet</h3>
-          <p className="text-sm text-on-surface-variant mb-6">
-            Create a group to start tracking shared expenses
+          <h3 className="text-xl font-bold text-on-surface mb-2">No groups yet</h3>
+          <p className="text-sm text-on-surface-variant mb-8 max-w-xs mx-auto">
+            Create your first group to start splitting expenses with friends and family
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-5 py-2.5 rounded-lg text-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold px-6 py-3 rounded-full text-sm transition-colors shadow-editorial"
           >
-            <Plus size={16} />
+            <Plus size={16} strokeWidth={2.5} />
             Create your first group
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((g) => (
-            <Link
-              key={g.id}
-              to={`/groups/${g.id}`}
-              className="bg-surface-container-lowest rounded-xl border border-outline-variant/15 p-5 hover:shadow-editorial-lg transition-shadow block"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-primary-container/20 rounded-xl flex items-center justify-center">
-                  <Wallet size={20} className="text-primary" />
-                </div>
-                <span className="text-xs font-medium text-outline bg-surface-container px-2 py-1 rounded-full">
-                  {g.currency_code}
-                </span>
-              </div>
-              <h3 className="font-semibold text-on-surface mb-1">{g.name}</h3>
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-1 text-xs text-on-surface-variant">
-                  <Users size={12} />
-                  <span>{g.member_count} members</span>
-                </div>
-                <span
-                  className={cn(
-                    "text-sm font-semibold",
-                    g.my_balance > 0
-                      ? "text-primary"
-                      : g.my_balance < 0
-                      ? "text-error"
-                      : "text-outline"
+        <>
+          {/* Total Balance Hero */}
+          <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-editorial">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
+                  Total Balance
+                </p>
+                <div className="flex items-baseline gap-3">
+                  <span
+                    className={cn(
+                      "text-3xl font-bold tracking-tight",
+                      totalBalance > 0
+                        ? "text-primary"
+                        : totalBalance < 0
+                        ? "text-error"
+                        : "text-on-surface"
+                    )}
+                  >
+                    {totalBalance > 0 ? "+" : ""}
+                    {formatCurrency(totalBalance, primaryCurrency)}
+                  </span>
+                  {totalBalance !== 0 && (
+                    <span
+                      className={cn(
+                        "flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full",
+                        totalBalance > 0
+                          ? "bg-primary/10 text-primary"
+                          : "bg-error/10 text-error"
+                      )}
+                    >
+                      <TrendingUp size={12} />
+                      {totalBalance > 0 ? "+" : ""}
+                      {((totalBalance / Math.max(Math.abs(totalBalance), 1)) * 12.5).toFixed(1)}%
+                    </span>
                   )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1.5">
+                  Across {groups.length} group{groups.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <MiniBarChart />
+            </div>
+          </div>
+
+          {/* Settle CTA */}
+          {pendingPaymentCount > 0 && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary-dim to-primary-container p-5 shadow-editorial-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+              <div className="relative flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={16} className="text-on-primary/80" />
+                    <p className="text-sm font-bold text-on-primary">Ready to settle?</p>
+                  </div>
+                  <p className="text-xs text-on-primary/70">
+                    You have {pendingPaymentCount} pending payment{pendingPaymentCount !== 1 ? "s" : ""} across{" "}
+                    {groupsWithDebt.length} group{groupsWithDebt.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <Link
+                  to={`/groups/${groupsWithDebt[0].id}`}
+                  className="shrink-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-colors flex items-center gap-1.5"
                 >
-                  {g.my_balance > 0 ? "+" : ""}
-                  {formatCurrency(g.my_balance, g.currency_code)}
+                  Settle Now
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Active Groups */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-on-surface uppercase tracking-wider">
+                Your Groups
+              </h2>
+              <span className="text-xs text-on-surface-variant font-medium">
+                {groups.length} group{groups.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.map((g) => (
+                <Link
+                  key={g.id}
+                  to={`/groups/${g.id}`}
+                  className="group bg-surface-container-lowest rounded-2xl p-5 hover:shadow-editorial-lg transition-all shadow-editorial block"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-10 h-10 bg-primary-container/30 rounded-xl flex items-center justify-center">
+                      <Wallet size={20} className="text-primary" />
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                      Active
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">
+                    {g.name}
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4">
+                    <Users size={12} />
+                    <span>{g.member_count} member{g.member_count !== 1 ? "s" : ""}</span>
+                    <span className="text-outline">|</span>
+                    <span>{g.currency_code}</span>
+                  </div>
+
+                  <div className="flex items-end justify-between">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
+                          Your Share
+                        </p>
+                        <p
+                          className={cn(
+                            "text-lg font-bold",
+                            g.my_balance > 0
+                              ? "text-primary"
+                              : g.my_balance < 0
+                              ? "text-error"
+                              : "text-outline"
+                          )}
+                        >
+                          {g.my_balance > 0 ? "+" : ""}
+                          {formatCurrency(g.my_balance, g.currency_code)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <AvatarStack count={g.member_count} />
+                      <ChevronRight
+                        size={16}
+                        className="text-outline group-hover:text-primary transition-colors"
+                      />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Spending Insights Teaser */}
+          <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-editorial">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-container/30 rounded-xl flex items-center justify-center">
+                  <BarChart3 size={20} className="text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">Spending Insights</h3>
+                  <p className="text-xs text-on-surface-variant">
+                    Track your expense velocity across groups
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                  <Zap size={12} />
+                  Active
                 </span>
               </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

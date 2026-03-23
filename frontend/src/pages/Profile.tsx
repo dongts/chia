@@ -193,7 +193,7 @@ export default function Profile() {
 
       <div className="max-w-lg space-y-6">
         {/* Avatar + name */}
-        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+        <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 rounded-full bg-primary-container/30 flex items-center justify-center">
               {user.avatar_url ? (
@@ -226,7 +226,7 @@ export default function Profile() {
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
             {user.is_verified && (
@@ -240,7 +240,7 @@ export default function Profile() {
             <button
               type="submit"
               disabled={savingName}
-              className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
             >
               {savingName ? "Saving..." : "Save Changes"}
             </button>
@@ -249,7 +249,7 @@ export default function Profile() {
 
         {/* Upgrade section for guests */}
         {!user.is_verified && (
-          <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+          <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
             <div className="flex items-center gap-2 mb-1">
               <Shield size={18} className="text-primary" />
               <h2 className="text-base font-semibold text-on-surface">Upgrade to Full Account</h2>
@@ -266,7 +266,7 @@ export default function Profile() {
                   value={upgradeEmail}
                   onChange={(e) => setUpgradeEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div>
@@ -278,13 +278,13 @@ export default function Profile() {
                   value={upgradePassword}
                   onChange={(e) => setUpgradePassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <button
                 type="submit"
                 disabled={upgrading}
-                className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
+                className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
               >
                 {upgrading ? "Upgrading..." : "Upgrade Account"}
               </button>
@@ -293,7 +293,7 @@ export default function Profile() {
         )}
 
         {/* Payment Methods */}
-        <section className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-6">
+        <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-on-surface">Payment Methods</h2>
             {!showForm && (
@@ -323,7 +323,7 @@ export default function Profile() {
                   value={formLabel}
                   onChange={(e) => setFormLabel(e.target.value)}
                   placeholder="e.g. Kaspi, Bank Transfer"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div>
@@ -341,7 +341,7 @@ export default function Profile() {
                       }
                     }
                   }}
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
                 >
                   <option value="">Not a Vietnamese bank</option>
                   {vietBanks.map((b) => (
@@ -359,7 +359,7 @@ export default function Profile() {
                   value={formBankName}
                   onChange={(e) => setFormBankName(e.target.value)}
                   placeholder={formBankBin ? "Auto-filled from selection above" : "e.g. PayPal, Wise, etc."}
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div>
@@ -379,7 +379,7 @@ export default function Profile() {
                   value={formAccountHolder}
                   onChange={(e) => setFormAccountHolder(e.target.value)}
                   placeholder="Full name"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div>
@@ -389,7 +389,7 @@ export default function Profile() {
                   value={formNote}
                   onChange={(e) => setFormNote(e.target.value)}
                   placeholder="Optional instructions"
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               {/* QR section: auto-generated for VietQR banks, manual upload for others */}
@@ -441,14 +441,14 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2 rounded-lg text-sm transition-colors"
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-2.5 rounded-full text-sm transition-colors"
                 >
                   {saving ? "Saving..." : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="flex-1 border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container font-medium py-2 rounded-lg text-sm transition-colors"
+                  className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-2.5 rounded-full text-sm transition-colors"
                 >
                   Cancel
                 </button>
@@ -466,7 +466,7 @@ export default function Profile() {
               {paymentMethods.map((pm) => (
                 <li
                   key={pm.id}
-                  className="rounded-xl border border-outline-variant/15 px-4 py-3 flex gap-3 items-start"
+                  className="rounded-xl bg-surface-container/30 px-4 py-3 flex gap-3 items-start"
                 >
                   {/* QR thumbnail — auto-generated for VietQR, uploaded for others */}
                   <div className="flex-shrink-0">

@@ -154,136 +154,160 @@ export default function AddExpense() {
     }
   }
 
-  if (loading) return <div className="animate-pulse h-8 bg-surface-container-high rounded w-1/3" />;
+  if (loading) {
+    return (
+      <div className="max-w-lg mx-auto space-y-4 pt-4">
+        <div className="bg-surface-container-high rounded-2xl h-12 animate-pulse" />
+        <div className="bg-surface-container-high rounded-2xl h-48 animate-pulse" />
+        <div className="bg-surface-container-high rounded-2xl h-32 animate-pulse" />
+      </div>
+    );
+  }
+
+  const selectedPayer = members.find((m) => m.id === paidBy);
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(`/groups/${groupId}`)} className="text-outline hover:text-on-surface-variant">
-          <ArrowLeft size={20} />
+    <div className="max-w-lg mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <button
+          onClick={() => navigate(`/groups/${groupId}`)}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
+        >
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-bold text-on-surface">Add Expense</h1>
+        <h1 className="text-xl font-bold text-on-surface">Add Expense</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-lg space-y-5">
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-1">
-            Description <span className="text-error">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Dinner at Roma"
-            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Main Details Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Details</h2>
 
-        {/* Amount */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-1">
-            Amount <span className="text-error">*</span>
-          </label>
-          <input
-            type="number"
-            required
-            min="0.01"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-
-        {/* Currency */}
-        {allowedCurrencies.length > 0 && group && (
+          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-on-surface mb-1">Currency</label>
-            <CurrencySelect
-              value={currencyCode}
-              allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
-              extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main currency` }]}
-              onChange={(code) => {
-                setCurrencyCode(code);
-                if (code === group.currency_code) {
-                  setExchangeRate("");
-                } else {
-                  const gc = allowedCurrencies.find((c) => c.currency_code === code);
-                  setExchangeRate(gc ? String(gc.exchange_rate) : "");
-                }
-              }}
+            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
+              Description <span className="text-error">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Dinner at Roma"
+              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-        )}
 
-        {/* Exchange rate — only shown when currency differs */}
-        {group && currencyCode && currencyCode !== group.currency_code && (
+          {/* Amount */}
           <div>
-            <label className="block text-sm font-medium text-on-surface mb-1">
-              Exchange rate
+            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
+              Amount <span className="text-error">*</span>
             </label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-on-surface-variant">1 {currencyCode} =</span>
-              <input
-                type="number"
-                min="0.000001"
-                step="any"
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(e.target.value)}
-                placeholder="0.00"
-                className="flex-1 border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              <span className="text-sm text-on-surface-variant">{group.currency_code}</span>
-            </div>
-            {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
-              <p className="text-xs text-on-surface-variant mt-1">
-                ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)} {group.currency_code}
-              </p>
-            )}
-            <p className="text-xs text-outline mt-1">
-              Pre-filled from default rate. Edit if needed.
-            </p>
+            <input
+              type="number"
+              required
+              min="0.01"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
+            />
           </div>
-        )}
 
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-1">Date</label>
-          <input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
+          {/* Currency */}
+          {allowedCurrencies.length > 0 && group && (
+            <div>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Currency</label>
+              <CurrencySelect
+                value={currencyCode}
+                allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
+                extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main currency` }]}
+                onChange={(code) => {
+                  setCurrencyCode(code);
+                  if (code === group.currency_code) {
+                    setExchangeRate("");
+                  } else {
+                    const gc = allowedCurrencies.find((c) => c.currency_code === code);
+                    setExchangeRate(gc ? String(gc.exchange_rate) : "");
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Exchange rate */}
+          {group && currencyCode && currencyCode !== group.currency_code && (
+            <div>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
+                Exchange rate
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-on-surface-variant whitespace-nowrap">1 {currencyCode} =</span>
+                <input
+                  type="number"
+                  min="0.000001"
+                  step="any"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  placeholder="0.00"
+                  className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <span className="text-sm text-on-surface-variant">{group.currency_code}</span>
+              </div>
+              {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
+                <p className="text-xs text-on-surface-variant mt-1.5">
+                  ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)} {group.currency_code}
+                </p>
+              )}
+              <p className="text-xs text-outline mt-1">
+                Pre-filled from default rate. Edit if needed.
+              </p>
+            </div>
+          )}
+
+          {/* Date */}
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Date</label>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
         </div>
 
-        {/* Paid by */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-1">Paid by</label>
-          <select
-            value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
-            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.display_name}
-              </option>
-            ))}
-          </select>
+        {/* Paid By Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Paid by</h2>
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary pointer-events-none">
+              {selectedPayer?.display_name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+            <select
+              value={paidBy}
+              onChange={(e) => setPaidBy(e.target.value)}
+              className="w-full bg-surface-container-high/50 border-0 rounded-xl pl-12 pr-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+            >
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.display_name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Category */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-1">Category</label>
+        {/* Category Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Category</h2>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -293,17 +317,17 @@ export default function AddExpense() {
           </select>
         </div>
 
-        {/* Split type tabs */}
-        <div>
-          <label className="block text-sm font-medium text-on-surface mb-2">Split type</label>
-          <div className="flex gap-1 bg-surface-container rounded-xl p-1 mb-4">
+        {/* Split Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Split type</h2>
+          <div className="flex gap-1 bg-surface-container rounded-xl p-1">
             {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setSplitType(t)}
                 className={cn(
-                  "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
+                  "flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-colors",
                   splitType === t
                     ? "bg-surface-container-lowest text-on-surface shadow-editorial"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -332,19 +356,19 @@ export default function AddExpense() {
           />
         </div>
 
-        {/* Submit */}
-        <div className="flex gap-3 pt-2">
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2 pb-6">
           <button
             type="button"
             onClick={() => navigate(`/groups/${groupId}`)}
-            className="flex-1 border border-outline-variant/15 text-on-surface font-medium py-2.5 rounded-lg text-sm hover:bg-surface-container transition-colors"
+            className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-3 rounded-full text-sm transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
+            className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
           >
             {submitting ? "Adding..." : "Add Expense"}
           </button>

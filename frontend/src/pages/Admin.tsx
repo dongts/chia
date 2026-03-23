@@ -755,12 +755,12 @@ export default function Admin() {
 
   return (
     <div>
-      <div className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Admin</h1><p className="text-sm text-gray-500 mt-0.5">Manage users and groups</p></div>
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      <div className="mb-6"><h1 className="text-2xl font-bold text-on-surface">Admin</h1><p className="text-sm text-on-surface-variant mt-0.5">Manage users and groups</p></div>
+      <div className="flex gap-1 mb-6 border-b border-outline-variant/15">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setActiveTab(id)} className={cn(
             "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
-            activeTab === id ? "border-green-600 text-green-700" : "border-transparent text-gray-500 hover:text-gray-700"
+            activeTab === id ? "border-primary text-primary" : "border-transparent text-on-surface-variant hover:text-on-surface"
           )}><Icon size={15} />{label}</button>
         ))}
       </div>

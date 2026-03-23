@@ -165,11 +165,11 @@ export default function JoinGroup() {
             {/* Name input — for new member or editing claimed name */}
             {joinAsNew && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-on-surface mb-1">Your name</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Your name</label>
                 <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Enter your name"
                   autoFocus
-                  className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
             )}
 
@@ -199,7 +199,7 @@ export default function JoinGroup() {
 
             {/* Join button */}
             <button onClick={handleJoin} disabled={!canJoin}
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 px-6 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3.5 px-6 rounded-full transition-colors shadow-editorial">
               <ArrowRight size={18} />
               {!isAuthenticated ? "Join (as guest)" : "Join group"}
             </button>
@@ -210,11 +210,11 @@ export default function JoinGroup() {
                 <p className="text-xs text-outline">Or sign in for a permanent account:</p>
                 <div className="flex gap-2">
                   <Link to={`/login?redirect=/join/${inviteCode}`}
-                    className="flex-1 text-center text-sm text-primary hover:text-primary font-medium py-2 border border-outline-variant/15 rounded-lg hover:bg-surface-container">
+                    className="flex-1 text-center text-sm text-primary font-medium py-2.5 bg-surface-container hover:bg-surface-container-high rounded-full transition-colors">
                     Log In
                   </Link>
                   <Link to={`/register?redirect=/join/${inviteCode}`}
-                    className="flex-1 text-center text-sm text-primary hover:text-primary font-medium py-2 border border-outline-variant/15 rounded-lg hover:bg-surface-container">
+                    className="flex-1 text-center text-sm text-primary font-medium py-2.5 bg-surface-container hover:bg-surface-container-high rounded-full transition-colors">
                     Sign Up
                   </Link>
                 </div>

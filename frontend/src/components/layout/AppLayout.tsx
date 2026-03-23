@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Bell, User, LogOut, ChevronDown, Menu, X, Download, Sprout } from "lucide-react";
+import {
+  Bell, User, LogOut, Menu, X, Download, Sprout,
+  LayoutGrid, Clock, Wallet, BarChart3, Users,
+  HelpCircle, Search,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
@@ -33,9 +37,24 @@ export default function AppLayout() {
     if (unreadCount > 0) markAllRead();
   }
 
+  const sidebarNav = [
+    { icon: LayoutGrid, label: "Overview", path: "/dashboard" },
+    { icon: Clock, label: "Recent Activity", path: "/dashboard", matchExact: true },
+    { icon: Wallet, label: "Shared Vaults", path: "/dashboard" },
+    { icon: BarChart3, label: "Analytics", path: "/dashboard" },
+    { icon: Users, label: "Members", path: "/dashboard" },
+  ];
+
+  const bottomNav = [
+    { icon: LayoutGrid, label: "Dashboard", path: "/dashboard" },
+    { icon: Users, label: "Groups", path: "/dashboard" },
+    { icon: Clock, label: "Activity", path: "/dashboard" },
+    { icon: User, label: "Profile", path: "/profile" },
+  ];
+
   return (
     <div className="min-h-screen bg-surface flex flex-col">
-      {/* Install banner — gradient from primary to secondary */}
+      {/* Install banner */}
       {showBanner && (
         <div className="bg-gradient-to-r from-primary to-secondary text-on-primary px-4 py-3 flex items-center justify-between gap-3 z-50">
           <div className="flex items-center gap-3 min-w-0">
@@ -77,52 +96,66 @@ export default function AppLayout() {
           />
         )}
 
-        {/* Sidebar */}
+        {/* Sidebar — desktop: permanent, mobile: slide-in */}
         <aside
           className={cn(
-            "fixed top-0 left-0 h-full w-64 bg-surface-container-lowest z-30 flex flex-col transition-transform duration-200",
-            "shadow-editorial-xl",
-            "md:translate-x-0 md:static md:z-auto md:shadow-editorial",
+            "fixed top-0 left-0 h-full w-[240px] bg-surface-container-lowest z-30 flex flex-col transition-transform duration-200",
+            "md:translate-x-0 md:static md:z-auto",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="flex items-center justify-between p-4">
-            <Link to="/dashboard" className="flex items-center gap-2 text-primary hover:text-primary-dim font-bold text-xl">
-              <Sprout size={22} />
-              Chia
+          {/* Logo */}
+          <div className="flex items-center justify-between px-5 pt-6 pb-4">
+            <Link to="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Sprout size={16} className="text-on-primary" />
+              </div>
+              <div>
+                <span className="font-bold text-on-surface text-base">Chia</span>
+                <p className="text-[10px] text-outline uppercase tracking-wider leading-none">The Greenhouse</p>
+              </div>
             </Link>
-            <button className="md:hidden hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
-              <X size={20} className="text-on-surface-variant" />
+            <button className="md:hidden text-on-surface-variant hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
+              <X size={20} />
             </button>
           </div>
 
-          <nav className="flex-1 p-4 overflow-y-auto">
-            <Link
-              to="/dashboard"
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-4",
-                location.pathname === "/dashboard"
-                  ? "bg-primary-container/20 text-primary"
-                  : "text-on-surface-variant hover:bg-surface-container"
-              )}
-            >
-              Dashboard
-            </Link>
+          {/* Main nav */}
+          <nav className="flex-1 px-3 py-2 overflow-y-auto">
+            {sidebarNav.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors",
+                    isActive
+                      ? "bg-primary-container/20 text-primary"
+                      : "text-on-surface-variant hover:bg-surface-container"
+                  )}
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </Link>
+              );
+            })}
 
+            {/* Groups list */}
             {groups.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-outline uppercase tracking-wide px-3 mb-2">
-                  Groups
+              <div className="mt-4 pt-4 border-t border-outline-variant/10">
+                <p className="text-[10px] font-semibold text-outline uppercase tracking-wider px-3 mb-2">
+                  Your Groups
                 </p>
-                <ul className="space-y-1">
+                <ul className="space-y-0.5">
                   {groups.map((g) => (
                     <li key={g.id}>
                       <Link
                         to={`/groups/${g.id}`}
                         onClick={() => setSidebarOpen(false)}
                         className={cn(
-                          "flex items-center justify-between px-3 py-2 rounded-lg text-sm",
+                          "flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors",
                           location.pathname.startsWith(`/groups/${g.id}`)
                             ? "bg-primary-container/20 text-primary font-medium"
                             : "text-on-surface-variant hover:bg-surface-container"
@@ -131,7 +164,7 @@ export default function AppLayout() {
                         <span className="truncate">{g.name}</span>
                         <span
                           className={cn(
-                            "text-xs font-medium ml-2",
+                            "text-xs font-semibold ml-2 tabular-nums",
                             g.my_balance >= 0 ? "text-primary" : "text-error"
                           )}
                         >
@@ -146,51 +179,41 @@ export default function AppLayout() {
             )}
           </nav>
 
-          <div className="p-4 space-y-1">
-            {/* Install app button */}
-            {canInstall && (
-              showIOSInstructions ? (
-                <div className="px-3 py-2 rounded-lg text-xs text-primary bg-primary-container/20 w-full">
-                  <p className="font-medium flex items-center gap-1.5 mb-0.5">
-                    <Download size={14} /> Install App
-                  </p>
-                  <p className="text-on-surface-variant">
-                    Tap the share button then "Add to Home Screen"
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={async () => { await install(); }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-primary bg-primary-container/20 hover:bg-primary-container/30 w-full font-medium transition-colors"
-                >
-                  <Download size={16} />
-                  Install App
-                </button>
-              )
+          {/* Bottom actions */}
+          <div className="px-3 py-4 space-y-0.5">
+            {canInstall && !showIOSInstructions && (
+              <button
+                onClick={async () => { await install(); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-primary bg-primary-container/15 hover:bg-primary-container/25 w-full font-medium transition-colors"
+              >
+                <Download size={18} />
+                Install App
+              </button>
             )}
             <Link
               to="/profile"
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface-variant hover:bg-surface-container"
             >
-              <User size={16} />
-              {user?.display_name ?? "Profile"}
+              <HelpCircle size={18} />
+              Help Center
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container w-full"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error-container/15 w-full transition-colors"
             >
-              <LogOut size={16} />
-              Sign out
+              <LogOut size={18} />
+              Log Out
             </button>
           </div>
         </aside>
 
         {/* Main area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header — glass effect */}
-          <header className="bg-surface-container-lowest/80 glass-blur sticky top-0 z-10 shadow-editorial">
-            <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+          {/* Top bar — glass effect */}
+          <header className="bg-surface-container-lowest/80 glass-blur sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 md:px-6 py-3">
+              {/* Left: hamburger (mobile) + logo */}
               <div className="flex items-center gap-3">
                 <button
                   className="md:hidden text-on-surface-variant hover:text-on-surface"
@@ -198,50 +221,57 @@ export default function AppLayout() {
                 >
                   <Menu size={22} />
                 </button>
-                <Link to="/dashboard" className="md:hidden flex items-center gap-1 text-primary font-bold text-lg">
-                  <Sprout size={18} />
-                  Chia
+                <Link to="/dashboard" className="md:hidden flex items-center gap-1.5">
+                  <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+                    <Sprout size={14} className="text-on-primary" />
+                  </div>
+                  <span className="font-bold text-on-surface">Chia</span>
                 </Link>
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
-                {/* Install button in header — mobile only */}
+              {/* Right: actions */}
+              <div className="flex items-center gap-1 ml-auto">
                 {canInstall && !showBanner && (
                   <button
                     onClick={async () => { await install(); }}
-                    className="md:hidden p-2 rounded-lg text-primary hover:bg-primary-container/20"
+                    className="md:hidden p-2 rounded-xl text-primary hover:bg-primary-container/20"
                     title="Install Chia"
                   >
                     <Download size={20} />
                   </button>
                 )}
 
+                {/* Search — desktop only */}
+                <button className="hidden md:flex p-2 rounded-xl text-on-surface-variant hover:bg-surface-container">
+                  <Search size={20} />
+                </button>
+
                 {/* Notifications */}
                 <div className="relative">
                   <button
                     onClick={handleNotifClick}
-                    className="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
+                    className="relative p-2 rounded-xl text-on-surface-variant hover:bg-surface-container"
                   >
                     <Bell size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-error rounded-full text-on-error text-xs flex items-center justify-center leading-none">
+                      <span className="absolute top-1 right-1 w-4 h-4 bg-error rounded-full text-on-error text-[10px] flex items-center justify-center leading-none font-bold">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
                   </button>
                   {notifOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-72 bg-surface-container-lowest rounded-xl shadow-editorial-lg z-50 overflow-hidden">
-                      <div className="px-4 py-2 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-on-surface">Notifications</span>
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-editorial-xl z-50 overflow-hidden">
+                      <div className="px-5 py-3 flex items-center justify-between">
+                        <span className="text-sm font-bold text-on-surface">Notifications</span>
                         <button
                           onClick={() => setNotifOpen(false)}
-                          className="text-outline hover:text-on-surface-variant"
+                          className="text-outline hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container"
                         >
                           <X size={14} />
                         </button>
                       </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        <p className="px-4 py-6 text-sm text-outline text-center">
+                      <div className="max-h-72 overflow-y-auto px-5 pb-4">
+                        <p className="py-8 text-sm text-outline text-center">
                           You're all caught up!
                         </p>
                       </div>
@@ -249,27 +279,54 @@ export default function AppLayout() {
                   )}
                 </div>
 
-                {/* Profile */}
+                {/* Profile avatar */}
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-on-surface-variant hover:bg-surface-container"
+                  className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-surface-container transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-full bg-primary-container/30 text-primary flex items-center justify-center text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-primary-container/40 text-primary flex items-center justify-center text-xs font-bold">
                     {user?.display_name?.[0]?.toUpperCase() ?? "?"}
                   </div>
-                  <span className="hidden sm:inline">{user?.display_name}</span>
-                  <ChevronDown size={14} className="hidden sm:inline text-outline" />
+                  <span className="hidden md:inline text-sm font-medium text-on-surface">{user?.display_name}</span>
                 </Link>
               </div>
             </div>
           </header>
 
           {/* Content */}
-          <main className="flex-1 p-4 md:p-6 max-w-5xl w-full mx-auto">
+          <main className="flex-1 px-4 md:px-8 py-6 max-w-6xl w-full mx-auto">
             <Outlet />
           </main>
         </div>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest/90 glass-blur z-20 border-t border-outline-variant/10">
+        <div className="flex items-center justify-around px-2 py-2">
+          {bottomNav.map((item) => {
+            const isActive = item.path === "/profile"
+              ? location.pathname === "/profile"
+              : item.path === "/dashboard" && item.label === "Dashboard"
+                ? location.pathname === "/dashboard"
+                : false;
+            return (
+              <Link
+                key={item.label}
+                to={item.path}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] transition-colors",
+                  isActive
+                    ? "text-primary bg-primary-container/20"
+                    : "text-on-surface-variant"
+                )}
+              >
+                <item.icon size={20} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
