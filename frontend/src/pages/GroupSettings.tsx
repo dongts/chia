@@ -656,6 +656,46 @@ export default function GroupSettings() {
           </div>
         </section>
 
+        {/* Initial Balances — for migrating from other systems */}
+        {isAdminOrOwner && members.length > 0 && (
+          <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Initial Balances</h2>
+            <p className="text-xs text-outline mb-5">
+              Set starting balances when migrating from another system. Positive = owed to them, negative = they owe. These are not counted as transactions.
+            </p>
+            <div className="space-y-2">
+              {members.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                    {m.display_name[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-on-surface flex-1 truncate">{m.display_name}</span>
+                  <div className="w-32">
+                    <input
+                      type="number"
+                      step="0.01"
+                      defaultValue={m.initial_balance ?? 0}
+                      onBlur={async (e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        if (val === (m.initial_balance ?? 0)) return;
+                        try {
+                          const updated = await updateMember(groupId!, m.id, { initial_balance: val });
+                          setMembers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+                        } catch {
+                          window.alert("Failed to update initial balance");
+                          e.target.value = String(m.initial_balance ?? 0);
+                        }
+                      }}
+                      className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-sm text-right text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary tabular-nums"
+                    />
+                  </div>
+                  <span className="text-xs text-outline w-12">{group.currency_code}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Activity Log */}
         {activityLog.length > 0 && (
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">

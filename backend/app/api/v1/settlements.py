@@ -67,10 +67,14 @@ async def _compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.
         if s.to_member in members:
             balances[s.to_member] -= s.amount  # receiver loses credit
 
+    # Add initial balances (for migrated debts from other systems)
+    for mid, member in members.items():
+        balances[mid] += member.initial_balance
+
     # Ensure all active members appear
     for mid in members:
         if mid not in balances:
-            balances[mid] = Decimal("0")
+            balances[mid] = members[mid].initial_balance
 
     return balances
 

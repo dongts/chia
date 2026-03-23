@@ -59,17 +59,20 @@ export interface GroupMember {
   role: MemberRole;
   user_id: string | null;
   is_active: boolean;
+  initial_balance: number;
   claimed_at: string | null;
   joined_at: string;
 }
 
 export interface MemberCreate {
   display_name: string;
+  initial_balance?: number | null;
 }
 
 export interface MemberUpdate {
   role?: MemberRole | null;
   display_name?: string | null;
+  initial_balance?: number | null;
 }
 
 // Expense / Split

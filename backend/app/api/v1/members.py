@@ -56,6 +56,7 @@ async def add_member(
         group_id=group_id,
         display_name=data.display_name,
         role=MemberRole.member,
+        initial_balance=data.initial_balance or 0,
     )
     db.add(member)
     await db.flush()
@@ -101,6 +102,10 @@ async def update_member(
         target.display_name = data.display_name
         if old_name != data.display_name:
             await log_member_event(db, group_id, member_id, "renamed", f'"{old_name}" → "{data.display_name}"', current.id)
+
+    if data.initial_balance is not None:
+        require_role(current, MemberRole.owner, MemberRole.admin)
+        target.initial_balance = data.initial_balance
 
     await db.commit()
     await db.refresh(target)
