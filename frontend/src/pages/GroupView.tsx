@@ -28,6 +28,7 @@ export default function GroupView() {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
   const [paymentInfoMemberId, setPaymentInfoMemberId] = useState<string | null>(null);
+  const [paymentInfoAmount, setPaymentInfoAmount] = useState<number | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("expenses");
 
   // Transfer modal
@@ -392,7 +393,7 @@ export default function GroupView() {
                       <span className="font-medium text-gray-800">{b.member_name}</span>
                       {getMemberPaymentMethods(b.member_id).length > 0 && (
                         <button
-                          onClick={() => setPaymentInfoMemberId(b.member_id)}
+                          onClick={() => { setPaymentInfoMemberId(b.member_id); setPaymentInfoAmount(undefined); }}
                           className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                           title="Payment info"
                         >
@@ -438,7 +439,7 @@ export default function GroupView() {
                         <span className="font-semibold">{s.to_member_name}</span>
                         {getMemberPaymentMethods(s.to_member).length > 0 && (
                           <button
-                            onClick={() => setPaymentInfoMemberId(s.to_member)}
+                            onClick={() => { setPaymentInfoMemberId(s.to_member); setPaymentInfoAmount(Number(s.amount)); }}
                             className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                             title="Payment info"
                           >
@@ -547,6 +548,8 @@ export default function GroupView() {
                     <PaymentMethodCards
                       methods={getMemberPaymentMethods(transferTo).map((pm) => pm.payment_method)}
                       compact
+                      amount={transferAmount ? parseFloat(transferAmount) : undefined}
+                      qrMessage={`Chia: ${group.name}`}
                     />
                   </div>
                 )}
@@ -583,7 +586,9 @@ export default function GroupView() {
         memberName={members.find((m) => m.id === paymentInfoMemberId)?.display_name ?? ""}
         methods={paymentInfoMemberId ? getMemberPaymentMethods(paymentInfoMemberId) : []}
         isOpen={!!paymentInfoMemberId}
-        onClose={() => setPaymentInfoMemberId(null)}
+        onClose={() => { setPaymentInfoMemberId(null); setPaymentInfoAmount(undefined); }}
+        amount={paymentInfoAmount}
+        qrMessage={`Chia: ${group.name}`}
       />
     </div>
   );

@@ -212,6 +212,7 @@ export interface PaymentMethod {
   id: string;
   label: string;
   bank_name: string | null;
+  bank_bin: string | null;
   account_number: string | null;
   account_holder: string | null;
   note: string | null;
@@ -222,6 +223,7 @@ export interface PaymentMethod {
 export interface PaymentMethodCreate {
   label: string;
   bank_name?: string | null;
+  bank_bin?: string | null;
   account_number?: string | null;
   account_holder?: string | null;
   note?: string | null;
@@ -230,6 +232,7 @@ export interface PaymentMethodCreate {
 export interface PaymentMethodUpdate {
   label?: string | null;
   bank_name?: string | null;
+  bank_bin?: string | null;
   account_number?: string | null;
   account_holder?: string | null;
   note?: string | null;

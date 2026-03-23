@@ -16,6 +16,7 @@ import {
 } from "@/api/paymentMethods";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
+import { VIET_BANKS } from "@/utils/vietnamBanks";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ export default function Profile() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formLabel, setFormLabel] = useState("");
+  const [formBankBin, setFormBankBin] = useState("");
   const [formBankName, setFormBankName] = useState("");
   const [formAccountNumber, setFormAccountNumber] = useState("");
   const [formAccountHolder, setFormAccountHolder] = useState("");
@@ -95,6 +97,7 @@ export default function Profile() {
     setShowForm(false);
     setEditingId(null);
     setFormLabel("");
+    setFormBankBin("");
     setFormBankName("");
     setFormAccountNumber("");
     setFormAccountHolder("");
@@ -111,6 +114,7 @@ export default function Profile() {
   function openEditForm(pm: PaymentMethod) {
     setEditingId(pm.id);
     setFormLabel(pm.label);
+    setFormBankBin(pm.bank_bin ?? "");
     setFormBankName(pm.bank_name ?? "");
     setFormAccountNumber(pm.account_number ?? "");
     setFormAccountHolder(pm.account_holder ?? "");
@@ -127,6 +131,7 @@ export default function Profile() {
         result = await updatePaymentMethod(editingId, {
           label: formLabel,
           bank_name: formBankName || null,
+          bank_bin: formBankBin || null,
           account_number: formAccountNumber || null,
           account_holder: formAccountHolder || null,
           note: formNote || null,
@@ -137,6 +142,7 @@ export default function Profile() {
         result = await createPaymentMethod({
           label: formLabel,
           bank_name: formBankName || null,
+          bank_bin: formBankBin || null,
           account_number: formAccountNumber || null,
           account_holder: formAccountHolder || null,
           note: formNote || null,
@@ -318,12 +324,38 @@ export default function Profile() {
                 />
               </div>
               <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Vietnamese Bank (VietQR)</label>
+                <select
+                  value={formBankBin}
+                  onChange={(e) => {
+                    const bin = e.target.value;
+                    setFormBankBin(bin);
+                    if (bin) {
+                      const bank = VIET_BANKS.find((b) => b.bin === bin);
+                      if (bank) {
+                        setFormBankName(bank.shortName);
+                        if (!formLabel) setFormLabel(bank.shortName);
+                      }
+                    }
+                  }}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Not a Vietnamese bank</option>
+                  {VIET_BANKS.map((b) => (
+                    <option key={b.bin} value={b.bin}>{b.shortName} — {b.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  {formBankBin ? "QR code with amount will be auto-generated via VietQR" : "Select a bank to enable VietQR, or leave empty for other banks"}
+                </p>
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name</label>
                 <input
                   type="text"
                   value={formBankName}
                   onChange={(e) => setFormBankName(e.target.value)}
-                  placeholder="e.g. Kaspi Bank"
+                  placeholder={formBankBin ? "Auto-filled from selection above" : "e.g. PayPal, Wise, etc."}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>

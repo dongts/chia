@@ -2,13 +2,35 @@ import { useState } from "react";
 import { X, Download } from "lucide-react";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
+import { buildVietQrUrl } from "@/utils/vietnamBanks";
 
 interface PaymentMethodCardsProps {
   methods: PaymentMethod[];
   compact?: boolean;
+  /** When provided, VietQR codes include this amount (for settlements/transfers) */
+  amount?: number;
+  /** Optional message embedded in VietQR */
+  qrMessage?: string;
 }
 
-export default function PaymentMethodCards({ methods, compact = false }: PaymentMethodCardsProps) {
+function getQrUrl(m: PaymentMethod, amount?: number, qrMessage?: string): string | null {
+  // Prefer dynamic VietQR when bank_bin + account_number are available
+  if (m.bank_bin && m.account_number) {
+    return buildVietQrUrl({
+      bankBin: m.bank_bin,
+      accountNumber: m.account_number,
+      amount,
+      message: qrMessage,
+    });
+  }
+  // Fall back to uploaded QR image
+  if (m.qr_image_url) {
+    return resolveUploadUrl(m.qr_image_url);
+  }
+  return null;
+}
+
+export default function PaymentMethodCards({ methods, compact = false, amount, qrMessage }: PaymentMethodCardsProps) {
   const [viewingQr, setViewingQr] = useState<{ url: string; label: string } | null>(null);
 
   if (methods.length === 0) return null;
@@ -23,7 +45,6 @@ export default function PaymentMethodCards({ methods, compact = false }: Payment
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      // Fallback: open in new tab
       window.open(url, "_blank");
     }
   }
@@ -31,40 +52,42 @@ export default function PaymentMethodCards({ methods, compact = false }: Payment
   return (
     <>
       <div className={compact ? "space-y-2" : "space-y-3"}>
-        {methods.map((m) => (
-          <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900">{m.label}</p>
-                {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
-                {m.account_number && (
-                  <p className="text-sm text-gray-700 mt-1 font-mono">{m.account_number}</p>
+        {methods.map((m) => {
+          const qrUrl = getQrUrl(m, amount, qrMessage);
+          return (
+            <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{m.label}</p>
+                  {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
+                  {m.account_number && (
+                    <p className="text-sm text-gray-700 mt-1 font-mono">{m.account_number}</p>
+                  )}
+                  {m.account_holder && (
+                    <p className="text-xs text-gray-500 mt-0.5">{m.account_holder}</p>
+                  )}
+                  {m.note && <p className="text-xs text-gray-400 mt-1 italic">{m.note}</p>}
+                </div>
+                {qrUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setViewingQr({ url: qrUrl, label: m.label })}
+                    className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                    title="View QR code"
+                  >
+                    <img
+                      src={qrUrl}
+                      alt={`QR for ${m.label}`}
+                      className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
+                    />
+                  </button>
                 )}
-                {m.account_holder && (
-                  <p className="text-xs text-gray-500 mt-0.5">{m.account_holder}</p>
-                )}
-                {m.note && <p className="text-xs text-gray-400 mt-1 italic">{m.note}</p>}
               </div>
-              {m.qr_image_url && (
-                <button
-                  type="button"
-                  onClick={() => setViewingQr({ url: resolveUploadUrl(m.qr_image_url)!, label: m.label })}
-                  className="flex-shrink-0 hover:opacity-80 transition-opacity"
-                  title="View QR code"
-                >
-                  <img
-                    src={resolveUploadUrl(m.qr_image_url)!}
-                    alt={`QR for ${m.label}`}
-                    className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
-                  />
-                </button>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* QR full-size modal */}
       {viewingQr && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class PaymentMethodCreate(BaseModel):
     label: str
     bank_name: str | None = None
+    bank_bin: str | None = None
     account_number: str | None = None
     account_holder: str | None = None
     note: str | None = None
@@ -15,6 +16,7 @@ class PaymentMethodCreate(BaseModel):
 class PaymentMethodUpdate(BaseModel):
     label: str | None = None
     bank_name: str | None = None
+    bank_bin: str | None = None
     account_number: str | None = None
     account_holder: str | None = None
     note: str | None = None
@@ -24,6 +26,7 @@ class PaymentMethodRead(BaseModel):
     id: uuid.UUID
     label: str
     bank_name: str | None
+    bank_bin: str | None
     account_number: str | None
     account_holder: str | None
     note: str | None

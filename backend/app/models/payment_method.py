@@ -15,6 +15,7 @@ class PaymentMethod(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     label: Mapped[str] = mapped_column(String(100))
     bank_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    bank_bin: Mapped[str | None] = mapped_column(String(20), nullable=True)
     account_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
     account_holder: Mapped[str | None] = mapped_column(String(200), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)

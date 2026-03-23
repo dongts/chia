@@ -8,9 +8,13 @@ interface PaymentInfoModalProps {
   methods: GroupPaymentMethod[];
   isOpen: boolean;
   onClose: () => void;
+  /** When provided, VietQR codes include this amount */
+  amount?: number;
+  /** Optional message embedded in VietQR */
+  qrMessage?: string;
 }
 
-export default function PaymentInfoModal({ memberName, methods, isOpen, onClose }: PaymentInfoModalProps) {
+export default function PaymentInfoModal({ memberName, methods, isOpen, onClose, amount, qrMessage }: PaymentInfoModalProps) {
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -34,7 +38,7 @@ export default function PaymentInfoModal({ memberName, methods, isOpen, onClose 
         {paymentMethods.length === 0 ? (
           <p className="text-sm text-gray-400 py-4 text-center">No payment methods shared</p>
         ) : (
-          <PaymentMethodCards methods={paymentMethods} />
+          <PaymentMethodCards methods={paymentMethods} amount={amount} qrMessage={qrMessage} />
         )}
       </div>
     </div>
