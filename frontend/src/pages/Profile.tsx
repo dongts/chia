@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, ArrowLeft, Shield } from "lucide-react";
+import { User, ArrowLeft, Shield, Pencil, Trash2, Plus, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import client from "@/api/client";
 import { upgrade } from "@/api/auth";
 import { getMe } from "@/api/auth";
 import { useAuthStore } from "@/store/authStore";
+import {
+  listMyPaymentMethods,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  uploadQrImage,
+} from "@/api/paymentMethods";
+import type { PaymentMethod } from "@/types";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -20,6 +28,26 @@ export default function Profile() {
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
   const [upgrading, setUpgrading] = useState(false);
+
+  // Payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formLabel, setFormLabel] = useState("");
+  const [formBankName, setFormBankName] = useState("");
+  const [formAccountNumber, setFormAccountNumber] = useState("");
+  const [formAccountHolder, setFormAccountHolder] = useState("");
+  const [formNote, setFormNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [qrModal, setQrModal] = useState<string | null>(null);
+
+  const qrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  useEffect(() => {
+    listMyPaymentMethods()
+      .then(setPaymentMethods)
+      .catch(() => {/* silently ignore */});
+  }, []);
 
   async function handleSaveName(e: FormEvent) {
     e.preventDefault();
@@ -56,6 +84,81 @@ export default function Profile() {
       window.alert(msg);
     } finally {
       setUpgrading(false);
+    }
+  }
+
+  function resetForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setFormLabel("");
+    setFormBankName("");
+    setFormAccountNumber("");
+    setFormAccountHolder("");
+    setFormNote("");
+  }
+
+  function openAddForm() {
+    resetForm();
+    setShowForm(true);
+  }
+
+  function openEditForm(pm: PaymentMethod) {
+    setEditingId(pm.id);
+    setFormLabel(pm.label);
+    setFormBankName(pm.bank_name ?? "");
+    setFormAccountNumber(pm.account_number ?? "");
+    setFormAccountHolder(pm.account_holder ?? "");
+    setFormNote(pm.note ?? "");
+    setShowForm(true);
+  }
+
+  async function handleSavePaymentMethod(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updated = await updatePaymentMethod(editingId, {
+          label: formLabel,
+          bank_name: formBankName || null,
+          account_number: formAccountNumber || null,
+          account_holder: formAccountHolder || null,
+          note: formNote || null,
+        });
+        setPaymentMethods((prev) => prev.map((pm) => (pm.id === editingId ? updated : pm)));
+      } else {
+        const created = await createPaymentMethod({
+          label: formLabel,
+          bank_name: formBankName || null,
+          account_number: formAccountNumber || null,
+          account_holder: formAccountHolder || null,
+          note: formNote || null,
+        });
+        setPaymentMethods((prev) => [...prev, created]);
+      }
+      resetForm();
+    } catch {
+      window.alert("Failed to save payment method");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeletePaymentMethod(id: string) {
+    if (!window.confirm("Delete this payment method?")) return;
+    try {
+      await deletePaymentMethod(id);
+      setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id));
+    } catch {
+      window.alert("Failed to delete payment method");
+    }
+  }
+
+  async function handleQrUpload(id: string, file: File) {
+    try {
+      const updated = await uploadQrImage(id, file);
+      setPaymentMethods((prev) => prev.map((pm) => (pm.id === id ? updated : pm)));
+    } catch {
+      window.alert("Failed to upload QR image");
     }
   }
 
@@ -170,7 +273,211 @@ export default function Profile() {
             </form>
           </section>
         )}
+
+        {/* Payment Methods */}
+        <section className="bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Payment Methods</h2>
+            {!showForm && (
+              <button
+                onClick={openAddForm}
+                className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-700 font-medium"
+              >
+                <Plus size={16} />
+                Add
+              </button>
+            )}
+          </div>
+
+          {/* Inline form */}
+          {showForm && (
+            <form onSubmit={handleSavePaymentMethod} className="space-y-3 mb-5 p-4 rounded-xl bg-gray-50 border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800">
+                {editingId ? "Edit Payment Method" : "New Payment Method"}
+              </h3>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Label <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formLabel}
+                  onChange={(e) => setFormLabel(e.target.value)}
+                  placeholder="e.g. Kaspi, Bank Transfer"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Bank Name</label>
+                <input
+                  type="text"
+                  value={formBankName}
+                  onChange={(e) => setFormBankName(e.target.value)}
+                  placeholder="e.g. Kaspi Bank"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Account Number</label>
+                <input
+                  type="text"
+                  value={formAccountNumber}
+                  onChange={(e) => setFormAccountNumber(e.target.value)}
+                  placeholder="e.g. +7 777 123 4567"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Account Holder</label>
+                <input
+                  type="text"
+                  value={formAccountHolder}
+                  onChange={(e) => setFormAccountHolder(e.target.value)}
+                  placeholder="Full name"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Note</label>
+                <input
+                  type="text"
+                  value={formNote}
+                  onChange={(e) => setFormNote(e.target.value)}
+                  placeholder="Optional instructions"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-100 font-medium py-2 rounded-lg text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* List */}
+          {paymentMethods.length === 0 && !showForm ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              No payment methods yet. Add one so group members know how to pay you.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {paymentMethods.map((pm) => (
+                <li
+                  key={pm.id}
+                  className="rounded-xl border border-gray-200 px-4 py-3 flex gap-3 items-start"
+                >
+                  {/* QR thumbnail */}
+                  <div className="flex-shrink-0">
+                    {pm.qr_image_url ? (
+                      <button
+                        type="button"
+                        onClick={() => setQrModal(pm.qr_image_url)}
+                        className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+                        title="View QR code"
+                      >
+                        <img
+                          src={pm.qr_image_url}
+                          alt="QR"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg border border-dashed border-gray-200 flex items-center justify-center bg-gray-50">
+                        <Upload size={18} className="text-gray-300" />
+                      </div>
+                    )}
+                    {/* Hidden file input */}
+                    <input
+                      ref={(el) => { qrInputRefs.current[pm.id] = el; }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleQrUpload(pm.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => qrInputRefs.current[pm.id]?.click()}
+                      className="mt-1 w-14 text-center text-xs text-gray-400 hover:text-green-600 transition-colors"
+                      title="Upload QR image"
+                    >
+                      {pm.qr_image_url ? "Change" : "Upload"}
+                    </button>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900">{pm.label}</p>
+                    {pm.bank_name && (
+                      <p className="text-xs text-gray-500">{pm.bank_name}</p>
+                    )}
+                    {pm.account_number && (
+                      <p className="text-xs font-mono text-gray-700 mt-0.5">{pm.account_number}</p>
+                    )}
+                    {pm.account_holder && (
+                      <p className="text-xs text-gray-500">{pm.account_holder}</p>
+                    )}
+                    {pm.note && (
+                      <p className="text-xs italic text-gray-400 mt-0.5">{pm.note}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditForm(pm)}
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePaymentMethod(pm.id)}
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
+
+      {/* QR full-size modal */}
+      {qrModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setQrModal(null)}
+        >
+          <img
+            src={qrModal}
+            alt="QR code"
+            className="max-w-xs max-h-[80vh] rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
