@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2, ArrowLeftRight, List, LayoutGrid } from "lucide-react";
+import { Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2, ArrowLeftRight, List, LayoutGrid, Landmark } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
 import { listMembers } from "@/api/members";
-import type { Group, GroupMember, Expense, Balance, SuggestedSettlement, Settlement, Category } from "@/types";
+import { listGroupPaymentMethods } from "@/api/paymentMethods";
+import type { Group, GroupMember, Expense, Balance, SuggestedSettlement, Settlement, Category, GroupPaymentMethod } from "@/types";
+import PaymentInfoModal from "@/components/PaymentInfoModal";
+import PaymentMethodCards from "@/components/PaymentMethodCards";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +26,8 @@ export default function GroupView() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
+  const [paymentInfoMemberId, setPaymentInfoMemberId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("expenses");
 
   // Transfer modal
@@ -46,7 +51,7 @@ export default function GroupView() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [g, exp, bal, sug, set, cats, mem] = await Promise.all([
+      const [g, exp, bal, sug, set, cats, mem, pms] = await Promise.all([
         getGroup(groupId),
         listExpenses(groupId),
         getBalances(groupId),
@@ -54,6 +59,7 @@ export default function GroupView() {
         listSettlements(groupId),
         listGroupCategories(groupId),
         listMembers(groupId),
+        listGroupPaymentMethods(groupId),
       ]);
       setGroup(g);
       setExpenses(exp);
@@ -62,6 +68,7 @@ export default function GroupView() {
       setSettlements(set);
       setCategories(cats);
       setMembers(mem);
+      setGroupPMs(pms);
     } catch {
       window.alert("Failed to load group data");
     } finally {
@@ -125,6 +132,10 @@ export default function GroupView() {
       await loadAll();
     } catch { window.alert("Failed to record transfer"); }
     finally { setTransferring(false); }
+  }
+
+  function getMemberPaymentMethods(memberId: string) {
+    return groupPMs.filter((pm) => pm.member_id === memberId);
   }
 
   function getCategoryIcon(categoryId: string) {
@@ -379,6 +390,15 @@ export default function GroupView() {
                         {b.member_name[0]?.toUpperCase()}
                       </div>
                       <span className="font-medium text-gray-800">{b.member_name}</span>
+                      {getMemberPaymentMethods(b.member_id).length > 0 && (
+                        <button
+                          onClick={() => setPaymentInfoMemberId(b.member_id)}
+                          className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                          title="Payment info"
+                        >
+                          <Landmark size={14} />
+                        </button>
+                      )}
                     </div>
                     <span
                       className={cn(
@@ -412,10 +432,19 @@ export default function GroupView() {
                       key={key}
                       className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between"
                     >
-                      <p className="text-sm text-gray-700">
+                      <p className="text-sm text-gray-700 flex items-center gap-1 flex-wrap">
                         <span className="font-semibold">{s.from_member_name}</span>
                         {" pays "}
                         <span className="font-semibold">{s.to_member_name}</span>
+                        {getMemberPaymentMethods(s.to_member).length > 0 && (
+                          <button
+                            onClick={() => setPaymentInfoMemberId(s.to_member)}
+                            className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                            title="Payment info"
+                          >
+                            <Landmark size={14} />
+                          </button>
+                        )}
                         {" "}
                         <span className="text-green-700 font-semibold">
                           {formatCurrency(Number(s.amount), group.currency_code)}
@@ -512,6 +541,15 @@ export default function GroupView() {
                   <option value="">Select person...</option>
                   {members.filter((m) => m.id !== transferFrom).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
                 </select>
+                {transferTo && getMemberPaymentMethods(transferTo).length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-gray-500 mb-1">Payment info</p>
+                    <PaymentMethodCards
+                      methods={getMemberPaymentMethods(transferTo).map((pm) => pm.payment_method)}
+                      compact
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -541,6 +579,12 @@ export default function GroupView() {
           </div>
         </div>
       )}
+      <PaymentInfoModal
+        memberName={members.find((m) => m.id === paymentInfoMemberId)?.display_name ?? ""}
+        methods={paymentInfoMemberId ? getMemberPaymentMethods(paymentInfoMemberId) : []}
+        isOpen={!!paymentInfoMemberId}
+        onClose={() => setPaymentInfoMemberId(null)}
+      />
     </div>
   );
 }
