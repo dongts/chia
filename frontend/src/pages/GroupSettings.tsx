@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon } from "lucide-react";
 import client from "@/api/client";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
 import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
 import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
-import type { Group, GroupMember, GroupCurrencyRead, MemberRole } from "@/types";
+import { listMyGroupPaymentMethods, enablePaymentMethodInGroup, disablePaymentMethodInGroup } from "@/api/paymentMethods";
+import type { Group, GroupMember, GroupCurrencyRead, MemberRole, MyGroupPaymentMethod } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
@@ -57,6 +58,8 @@ export default function GroupSettings() {
   const [savingRename, setSavingRename] = useState(false);
   const [activityLog, setActivityLog] = useState<MemberLogEntry[]>([]);
   const [logLimit, setLogLimit] = useState(20);
+  const [myGroupPMs, setMyGroupPMs] = useState<MyGroupPaymentMethod[]>([]);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -72,16 +75,18 @@ export default function GroupSettings() {
   async function loadData() {
     if (!groupId) return;
     try {
-      const [g, m, c, logRes] = await Promise.all([
+      const [g, m, c, logRes, pms] = await Promise.all([
         getGroup(groupId),
         listMembers(groupId),
         listGroupCurrencies(groupId),
         client.get<MemberLogEntry[]>(`/groups/${groupId}/members/log`),
+        listMyGroupPaymentMethods(groupId),
       ]);
       setGroup(g);
       setMembers(m);
       setCurrencies(c);
       setActivityLog(logRes.data);
+      setMyGroupPMs(pms);
       setName(g.name);
       setDescription(g.description ?? "");
       setRequireVerified(g.require_verified_users);
@@ -199,6 +204,27 @@ export default function GroupSettings() {
     }
   }
 
+  async function handleTogglePaymentMethod(pmId: string, currentlyEnabled: boolean) {
+    if (!groupId || togglingId) return;
+    setTogglingId(pmId);
+    try {
+      if (currentlyEnabled) {
+        await disablePaymentMethodInGroup(groupId, pmId);
+      } else {
+        await enablePaymentMethodInGroup(groupId, pmId);
+      }
+      setMyGroupPMs((prev) =>
+        prev.map((p) =>
+          p.payment_method.id === pmId ? { ...p, enabled: !currentlyEnabled } : p
+        )
+      );
+    } catch {
+      window.alert("Failed to update payment method visibility");
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   async function handleRenameMember() {
     if (!groupId || !renamingMemberId || !renamingValue.trim()) return;
     setSavingRename(true);
@@ -263,7 +289,7 @@ export default function GroupSettings() {
     if (action === "left" || action === "removed") return <UserMinus className={cls} />;
     if (action === "role_changed") return <Shield className={cls} />;
     if (action === "renamed") return <Pencil className={cls} />;
-    return <Link className={cls} />;
+    return <LinkIcon className={cls} />;
   }
 
   function actionColor(action: MemberLogAction): string {
@@ -473,6 +499,52 @@ export default function GroupSettings() {
             </form>
           )}
         </section>
+
+        {/* My Payment Methods — only for linked members */}
+        {myMember?.user_id && (
+          <section className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-1">My Payment Methods</h2>
+            <p className="text-xs text-gray-400 mb-4">Choose which payment methods are visible to this group</p>
+
+            {myGroupPMs.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No payment methods saved yet.{" "}
+                <Link to="/profile" className="text-green-600 hover:underline">
+                  Add one in your profile
+                </Link>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {myGroupPMs.map(({ payment_method: pm, enabled }) => (
+                  <div key={pm.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">{pm.label}</p>
+                      {pm.bank_name && (
+                        <p className="text-xs text-gray-400">{pm.bank_name}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={togglingId === pm.id}
+                      onClick={() => handleTogglePaymentMethod(pm.id, enabled)}
+                      className={cn(
+                        "w-10 h-6 rounded-full transition-colors relative hover:opacity-80 disabled:opacity-50",
+                        enabled ? "bg-green-600" : "bg-gray-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform",
+                          enabled ? "translate-x-4" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Members */}
         <section className="bg-white rounded-2xl border border-gray-200 p-6">
