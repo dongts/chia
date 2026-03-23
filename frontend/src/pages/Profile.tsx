@@ -16,7 +16,7 @@ import {
 } from "@/api/paymentMethods";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
-import { VIET_BANKS } from "@/utils/vietnamBanks";
+import { fetchVietBanks, type VietBank } from "@/utils/vietnamBanks";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -47,9 +47,12 @@ export default function Profile() {
   const [formQrPreview, setFormQrPreview] = useState<string | null>(null);
   const formQrInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [vietBanks, setVietBanks] = useState<VietBank[]>([]);
+
   const qrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
+    fetchVietBanks().then(setVietBanks).catch(() => {});
     listMyPaymentMethods()
       .then(setPaymentMethods)
       .catch(() => {/* silently ignore */});
@@ -331,7 +334,7 @@ export default function Profile() {
                     const bin = e.target.value;
                     setFormBankBin(bin);
                     if (bin) {
-                      const bank = VIET_BANKS.find((b) => b.bin === bin);
+                      const bank = vietBanks.find((b) => b.bin === bin);
                       if (bank) {
                         setFormBankName(bank.shortName);
                         if (!formLabel) setFormLabel(bank.shortName);
@@ -341,7 +344,7 @@ export default function Profile() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
                 >
                   <option value="">Not a Vietnamese bank</option>
-                  {VIET_BANKS.map((b) => (
+                  {vietBanks.map((b) => (
                     <option key={b.bin} value={b.bin}>{b.shortName} — {b.name}</option>
                   ))}
                 </select>

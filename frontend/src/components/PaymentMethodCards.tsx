@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
-import { buildVietQrUrl } from "@/utils/vietnamBanks";
+import { buildVietQrUrl, fetchVietBanks, type VietBank } from "@/utils/vietnamBanks";
 
 interface PaymentMethodCardsProps {
   methods: PaymentMethod[];
@@ -32,8 +32,18 @@ function getQrUrl(m: PaymentMethod, amount?: number, qrMessage?: string): string
 
 export default function PaymentMethodCards({ methods, compact = false, amount, qrMessage }: PaymentMethodCardsProps) {
   const [viewingQr, setViewingQr] = useState<{ url: string; label: string } | null>(null);
+  const [banks, setBanks] = useState<VietBank[]>([]);
+
+  useEffect(() => {
+    fetchVietBanks().then(setBanks).catch(() => {});
+  }, []);
 
   if (methods.length === 0) return null;
+
+  function getBankLogo(bankBin: string | null): string | null {
+    if (!bankBin) return null;
+    return banks.find((b) => b.bin === bankBin)?.logo ?? null;
+  }
 
   async function handleDownload(url: string, label: string) {
     try {
@@ -57,7 +67,10 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
           return (
             <div key={m.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
               <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
+                {getBankLogo(m.bank_bin) && (
+                <img src={getBankLogo(m.bank_bin)!} alt="" className="w-8 h-8 rounded object-contain flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{m.label}</p>
                   {m.bank_name && <p className="text-xs text-gray-500 mt-0.5">{m.bank_name}</p>}
                   {m.account_number && (

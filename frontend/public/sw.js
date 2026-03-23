@@ -1,4 +1,4 @@
-const CACHE_NAME = "chia-v4";
+const CACHE_NAME = "chia-v5";
 const STATIC_ASSETS = [
   "./",
   "./manifest.json",

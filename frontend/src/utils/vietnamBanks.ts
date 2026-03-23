@@ -2,45 +2,81 @@ export interface VietBank {
   bin: string;
   name: string;
   shortName: string;
+  logo: string;
+  transferSupported: boolean;
 }
 
-// Source: https://api.vietqr.io/v2/banks
-// Top Vietnamese banks by usage
-export const VIET_BANKS: VietBank[] = [
-  { bin: "970436", name: "Ngân hàng TMCP Ngoại thương Việt Nam", shortName: "Vietcombank" },
-  { bin: "970415", name: "Ngân hàng TMCP Công Thương Việt Nam", shortName: "VietinBank" },
-  { bin: "970418", name: "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam", shortName: "BIDV" },
-  { bin: "970405", name: "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam", shortName: "Agribank" },
-  { bin: "970407", name: "Ngân hàng TMCP Kỹ Thương Việt Nam", shortName: "Techcombank" },
-  { bin: "970422", name: "Ngân hàng TMCP Quân Đội", shortName: "MB Bank" },
-  { bin: "970416", name: "Ngân hàng TMCP Á Châu", shortName: "ACB" },
-  { bin: "970432", name: "Ngân hàng TMCP Việt Nam Thịnh Vượng", shortName: "VPBank" },
-  { bin: "970423", name: "Ngân hàng TMCP Tiên Phong", shortName: "TPBank" },
-  { bin: "970437", name: "Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh", shortName: "HDBank" },
-  { bin: "970441", name: "Ngân hàng TMCP Quốc Tế", shortName: "VIB" },
-  { bin: "970443", name: "Ngân hàng TMCP Sài Gòn - Hà Nội", shortName: "SHB" },
-  { bin: "970403", name: "Ngân hàng TMCP Sài Gòn Thương Tín", shortName: "Sacombank" },
-  { bin: "970448", name: "Ngân hàng TMCP Phương Đông", shortName: "OCB" },
-  { bin: "970426", name: "Ngân hàng TMCP Hàng Hải Việt Nam", shortName: "MSB" },
-  { bin: "970431", name: "Ngân hàng TMCP Xuất Nhập Khẩu Việt Nam", shortName: "Eximbank" },
-  { bin: "970406", name: "Ngân hàng TMCP Đông Á", shortName: "DongA Bank" },
-  { bin: "970454", name: "Ngân hàng TMCP Bản Việt", shortName: "Viet Capital Bank" },
-  { bin: "970449", name: "Ngân hàng TMCP Bưu Điện Liên Việt", shortName: "LPBank" },
-  { bin: "970427", name: "Ngân hàng TMCP Việt Á", shortName: "VietABank" },
-  { bin: "970429", name: "Ngân hàng TMCP Sài Gòn", shortName: "SCB" },
-  { bin: "970414", name: "Ngân hàng TMCP Đại Chúng Việt Nam", shortName: "PVcomBank" },
-  { bin: "970452", name: "Ngân hàng TMCP Kiên Long", shortName: "Kienlongbank" },
-  { bin: "970430", name: "Ngân hàng TMCP Xăng Dầu Petrolimex", shortName: "PG Bank" },
-  { bin: "970400", name: "Ngân hàng TMCP Sài Gòn Công Thương", shortName: "SaigonBank" },
-  { bin: "970412", name: "Ngân hàng TMCP Đại Dương", shortName: "OceanBank" },
-  { bin: "970440", name: "Ngân hàng TMCP Đông Nam Á", shortName: "SeABank" },
-  { bin: "970442", name: "Ngân hàng TMCP An Bình", shortName: "ABBank" },
-  { bin: "970458", name: "Ngân hàng TMCP Lộc Phát Việt Nam", shortName: "BaoVietBank" },
-  { bin: "970409", name: "Ngân hàng TMCP Bắc Á", shortName: "BacABank" },
-  { bin: "970425", name: "Ngân hàng TMCP Nam Á", shortName: "Nam A Bank" },
-  { bin: "963388", name: "Ví điện tử MoMo", shortName: "MoMo" },
-  { bin: "971005", name: "Ví điện tử ZaloPay", shortName: "ZaloPay" },
-];
+const CACHE_KEY = "chia_vietqr_banks";
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+let memoryCache: VietBank[] | null = null;
+
+/**
+ * Fetch Vietnamese banks from VietQR API.
+ * Caches in localStorage for 24h with in-memory fallback.
+ */
+export async function fetchVietBanks(): Promise<VietBank[]> {
+  // In-memory cache (fastest)
+  if (memoryCache) return memoryCache;
+
+  // localStorage cache
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, ts } = JSON.parse(cached);
+      if (Date.now() - ts < CACHE_TTL && Array.isArray(data) && data.length > 0) {
+        memoryCache = data;
+        return data;
+      }
+    }
+  } catch { /* ignore parse errors */ }
+
+  // Fetch from API
+  try {
+    const res = await fetch("https://api.vietqr.io/v2/banks");
+    const json = await res.json();
+    if (json.code === "00" && Array.isArray(json.data)) {
+      const banks: VietBank[] = json.data
+        .filter((b: { transferSupported: number }) => b.transferSupported === 1)
+        .map((b: { bin: string; name: string; shortName: string; logo: string; transferSupported: number }) => ({
+          bin: b.bin,
+          name: b.name,
+          shortName: b.shortName,
+          logo: b.logo,
+          transferSupported: b.transferSupported === 1,
+        }))
+        .sort((a: VietBank, b: VietBank) => a.shortName.localeCompare(b.shortName));
+
+      memoryCache = banks;
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: banks, ts: Date.now() }));
+      } catch { /* storage full */ }
+      return banks;
+    }
+  } catch { /* network error — fall through to fallback */ }
+
+  // Hardcoded fallback (in case API is down)
+  const fallback: VietBank[] = [
+    { bin: "970416", name: "Ngân hàng TMCP Á Châu", shortName: "ACB", logo: "https://api.vietqr.io/img/ACB.png", transferSupported: true },
+    { bin: "970405", name: "Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam", shortName: "Agribank", logo: "https://api.vietqr.io/img/VBA.png", transferSupported: true },
+    { bin: "970418", name: "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam", shortName: "BIDV", logo: "https://api.vietqr.io/img/BIDV.png", transferSupported: true },
+    { bin: "970422", name: "Ngân hàng TMCP Quân Đội", shortName: "MB Bank", logo: "https://api.vietqr.io/img/MB.png", transferSupported: true },
+    { bin: "970407", name: "Ngân hàng TMCP Kỹ Thương Việt Nam", shortName: "Techcombank", logo: "https://api.vietqr.io/img/TCB.png", transferSupported: true },
+    { bin: "970423", name: "Ngân hàng TMCP Tiên Phong", shortName: "TPBank", logo: "https://api.vietqr.io/img/TPB.png", transferSupported: true },
+    { bin: "970436", name: "Ngân hàng TMCP Ngoại thương Việt Nam", shortName: "Vietcombank", logo: "https://api.vietqr.io/img/VCB.png", transferSupported: true },
+    { bin: "970415", name: "Ngân hàng TMCP Công Thương Việt Nam", shortName: "VietinBank", logo: "https://api.vietqr.io/img/ICB.png", transferSupported: true },
+    { bin: "970432", name: "Ngân hàng TMCP Việt Nam Thịnh Vượng", shortName: "VPBank", logo: "https://api.vietqr.io/img/VPB.png", transferSupported: true },
+  ];
+  memoryCache = fallback;
+  return fallback;
+}
+
+/**
+ * Look up a bank by BIN from the cached list.
+ */
+export function findBankByBin(banks: VietBank[], bin: string): VietBank | undefined {
+  return banks.find((b) => b.bin === bin);
+}
 
 /**
  * Build a VietQR image URL.
