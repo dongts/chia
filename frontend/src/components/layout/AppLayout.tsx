@@ -96,7 +96,7 @@ export default function AppLayout() {
               </div>
               <div>
                 <span className="font-bold text-on-surface text-base">Chia</span>
-                <p className="text-[10px] text-outline uppercase tracking-wider leading-none">The Greenhouse</p>
+                <p className="text-[10px] text-outline uppercase tracking-wider leading-none">Split expenses</p>
               </div>
             </Link>
             <button className="md:hidden text-on-surface-variant hover:text-on-surface" onClick={() => setSidebarOpen(false)}>

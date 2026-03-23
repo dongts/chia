@@ -36,7 +36,7 @@ export default function Landing() {
           <span className="text-primary">effortlessly</span>
         </h1>
         <p className="text-sm text-on-surface-variant leading-relaxed">
-          A digital greenhouse for your shared finances. Track, split, and settle with organic precision.
+          Track shared costs with friends, roommates, and travel companions — no sign-up required.
         </p>
       </div>
 
