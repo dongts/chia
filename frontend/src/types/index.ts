@@ -206,3 +206,43 @@ export interface Notification {
   group_id: string | null;
   created_at: string;
 }
+
+// Payment Methods
+export interface PaymentMethod {
+  id: string;
+  label: string;
+  bank_name: string | null;
+  account_number: string | null;
+  account_holder: string | null;
+  note: string | null;
+  qr_image_url: string | null;
+  created_at: string;
+}
+
+export interface PaymentMethodCreate {
+  label: string;
+  bank_name?: string | null;
+  account_number?: string | null;
+  account_holder?: string | null;
+  note?: string | null;
+}
+
+export interface PaymentMethodUpdate {
+  label?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  account_holder?: string | null;
+  note?: string | null;
+}
+
+export interface GroupPaymentMethod {
+  id: string;
+  member_id: string;
+  member_name: string;
+  payment_method: PaymentMethod;
+}
+
+export interface MyGroupPaymentMethod {
+  payment_method: PaymentMethod;
+  enabled: boolean;
+}
