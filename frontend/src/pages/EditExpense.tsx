@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { formatAmount } from "@/utils/currency";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 import DatePicker from "@/components/DatePicker";
+import SelectDropdown from "@/components/SelectDropdown";
 
 export default function EditExpense() {
   const { groupId, expenseId } = useParams<{ groupId: string; expenseId: string }>();
@@ -165,8 +166,6 @@ export default function EditExpense() {
     );
   }
 
-  const selectedPayer = members.find((m) => m.id === paidBy);
-
   return (
     <div className="max-w-lg mx-auto">
       {/* Header */}
@@ -225,38 +224,32 @@ export default function EditExpense() {
         {/* Paid By Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Paid by</h2>
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary pointer-events-none">
-              {selectedPayer?.display_name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-            <select
-              value={paidBy}
-              onChange={(e) => setPaidBy(e.target.value)}
-              className="w-full bg-surface-container-high/50 border-0 rounded-xl pl-12 pr-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer hover:bg-surface-container-high/70 transition-colors"
-            >
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectDropdown
+            value={paidBy}
+            onChange={setPaidBy}
+            searchable={members.length > 5}
+            options={members.map((m) => ({
+              value: m.id,
+              label: m.display_name,
+              icon: m.display_name[0]?.toUpperCase(),
+            }))}
+            placeholder="Select person..."
+          />
         </div>
 
         {/* Category Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Category</h2>
-          <select
+          <SelectDropdown
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer hover:bg-surface-container-high/70 transition-colors"
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.icon} {c.name}
-              </option>
-            ))}
-          </select>
+            onChange={setCategoryId}
+            options={categories.map((c) => ({
+              value: c.id,
+              label: c.name,
+              icon: c.icon,
+            }))}
+            placeholder="Select category..."
+          />
         </div>
 
         {/* Split Card */}
