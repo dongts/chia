@@ -91,10 +91,19 @@ body {
 }
 
 /* Disable text selection on interactive elements for app-like feel */
-button, a, [role="button"] {
+button, a, [role="button"], select, [onclick], label[for] {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
+  cursor: pointer;
+}
+
+input, textarea {
+  cursor: text;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  cursor: pointer;
 }
 
 /* Glass effects */
