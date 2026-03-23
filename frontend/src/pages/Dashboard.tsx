@@ -341,10 +341,6 @@ export default function Dashboard() {
                     <div className="w-10 h-10 bg-primary-container/30 rounded-xl flex items-center justify-center">
                       <Wallet size={20} className="text-primary" />
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      Active
-                    </span>
                   </div>
 
                   <h3 className="font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">

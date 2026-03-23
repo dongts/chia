@@ -2,21 +2,66 @@ import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Bell, User, LogOut, Menu, X, Download, Sprout,
-  LayoutGrid, Wallet,
+  LayoutGrid, Wallet, Check,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { listGroups } from "@/api/groups";
 import type { GroupListItem } from "@/types";
+import type { Notification } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatAmount } from "@/utils/currency";
+
+function formatRelativeTime(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+function getNotificationText(notification: Notification): string {
+  const { type, data } = notification;
+  switch (type) {
+    case "expense_added":
+      return `New expense: ${data.description ?? "Unknown"}`;
+    case "expense_updated":
+      return `Expense updated: ${data.description ?? "Unknown"}`;
+    case "expense_deleted":
+      return `Expense deleted: ${data.description ?? "Unknown"}`;
+    case "settlement_recorded":
+      return `Settlement recorded: ${data.amount ?? ""}`;
+    case "settlement_confirmed":
+      return `Settlement confirmed: ${data.amount ?? ""}`;
+    case "role_changed":
+      return `Role changed to ${data.new_role ?? "member"} by ${data.member_name ?? "someone"}`;
+    case "member_joined":
+      return `${data.member_name ?? "Someone"} joined ${data.group_name ?? "the group"}`;
+    case "member_removed":
+      return `${data.member_name ?? "Someone"} was removed from ${data.group_name ?? "the group"}`;
+    case "group_updated":
+      return `Group "${data.group_name ?? ""}" was updated`;
+    default:
+      return data.description
+        ? String(data.description)
+        : type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { unreadCount, markAllRead } = useNotifications();
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const { canInstall, showBanner, showIOSInstructions, install, dismissBanner } = useInstallPrompt();
   const [groups, setGroups] = useState<GroupListItem[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,7 +78,12 @@ export default function AppLayout() {
 
   function handleNotifClick() {
     setNotifOpen((v) => !v);
-    if (unreadCount > 0) markAllRead();
+  }
+
+  function handleNotifItemClick(notification: Notification) {
+    if (!notification.read) {
+      markRead(notification.id);
+    }
   }
 
   return (
@@ -242,17 +292,65 @@ export default function AppLayout() {
                     <div className="absolute right-0 top-full mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-editorial-xl z-50 overflow-hidden">
                       <div className="px-5 py-3 flex items-center justify-between">
                         <span className="text-sm font-bold text-on-surface">Notifications</span>
-                        <button
-                          onClick={() => setNotifOpen(false)}
-                          className="text-outline hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container"
-                        >
-                          <X size={14} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={() => markAllRead()}
+                              className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-lg hover:bg-primary-container/20 transition-colors flex items-center gap-1"
+                            >
+                              <Check size={12} />
+                              Mark all read
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setNotifOpen(false)}
+                            className="text-outline hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="max-h-72 overflow-y-auto px-5 pb-4">
-                        <p className="py-8 text-sm text-outline text-center">
-                          You're all caught up!
-                        </p>
+                      <div className="max-h-72 overflow-y-auto px-3 pb-3">
+                        {notifications.length === 0 ? (
+                          <p className="py-8 text-sm text-outline text-center">
+                            You're all caught up!
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            {notifications.map((n) => (
+                              <button
+                                key={n.id}
+                                onClick={() => handleNotifItemClick(n)}
+                                className={cn(
+                                  "w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-start gap-3",
+                                  n.read
+                                    ? "hover:bg-surface-container/50"
+                                    : "bg-primary-container/10 hover:bg-primary-container/20"
+                                )}
+                              >
+                                {/* Unread dot */}
+                                <div className="mt-1.5 flex-shrink-0">
+                                  {!n.read ? (
+                                    <span className="block w-2 h-2 rounded-full bg-primary" />
+                                  ) : (
+                                    <span className="block w-2 h-2" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className={cn(
+                                    "text-sm leading-snug",
+                                    n.read ? "text-on-surface-variant" : "text-on-surface font-medium"
+                                  )}>
+                                    {getNotificationText(n)}
+                                  </p>
+                                  <p className="text-[11px] text-outline mt-0.5">
+                                    {formatRelativeTime(n.created_at)}
+                                  </p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  Plus, Copy, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
+  Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
   ArrowLeftRight, List, LayoutGrid, Landmark,
-  ArrowRight, X,
+  ArrowRight, X, Search, Filter, ChevronDown,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
@@ -18,6 +18,107 @@ import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
 type Tab = "expenses" | "balances" | "settlements";
+
+const PAGE_SIZE = 20;
+
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, yesterday)) return "Yesterday";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function groupExpensesByDate(expenses: Expense[]): { date: string; label: string; expenses: Expense[] }[] {
+  const groups: { date: string; label: string; expenses: Expense[] }[] = [];
+  let currentDate = "";
+  for (const expense of expenses) {
+    const dateKey = new Date(expense.date).toDateString();
+    if (dateKey !== currentDate) {
+      currentDate = dateKey;
+      groups.push({ date: dateKey, label: formatRelativeDate(expense.date), expenses: [] });
+    }
+    groups[groups.length - 1].expenses.push(expense);
+  }
+  return groups;
+}
+
+/** Searchable member dropdown used in the transfer modal */
+function MemberSearchSelect({
+  value,
+  onChange,
+  members,
+  placeholder,
+  excludeId,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  members: GroupMember[];
+  placeholder: string;
+  excludeId?: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selected = members.find((m) => m.id === value);
+  const filtered = members
+    .filter((m) => m.id !== excludeId)
+    .filter((m) => m.display_name.toLowerCase().includes(search.toLowerCase()));
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+        <input
+          type="text"
+          value={open ? search : selected ? selected.display_name : ""}
+          onChange={(e) => { setSearch(e.target.value); if (!open) setOpen(true); }}
+          onFocus={() => { setOpen(true); setSearch(""); }}
+          placeholder={selected ? selected.display_name : placeholder}
+          className="w-full bg-surface-container-high/50 border-0 rounded-xl pl-9 pr-8 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+        />
+        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline" />
+      </div>
+      {open && (
+        <div className="absolute z-10 mt-1 w-full bg-surface-container-lowest rounded-xl shadow-editorial-xl border border-outline-variant/10 max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-outline">No results</p>
+          ) : (
+            filtered.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => { onChange(m.id); setSearch(""); setOpen(false); }}
+                className={cn(
+                  "w-full text-left px-3 py-2 text-sm hover:bg-surface-container transition-colors",
+                  m.id === value ? "text-primary font-semibold" : "text-on-surface"
+                )}
+              >
+                {m.display_name}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function GroupView() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -45,12 +146,41 @@ export default function GroupView() {
   const [transferType, setTransferType] = useState<"transfer" | "settle_up">("transfer");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") === "true");
+  const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") !== "false");
+
+  // Filters
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterPaidBy, setFilterPaidBy] = useState("");
+
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!groupId) return;
     loadAll();
   }, [groupId]);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filterCategory, filterPaidBy]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + PAGE_SIZE);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tab, filterCategory, filterPaidBy, expenses.length]);
 
   async function loadAll() {
     if (!groupId) return;
@@ -137,6 +267,16 @@ export default function GroupView() {
     return categories.find((c) => c.id === categoryId)?.icon ?? "📦";
   }
 
+  // Filter expenses
+  const filteredExpenses = expenses.filter((e) => {
+    if (filterCategory && e.category_id !== filterCategory) return false;
+    if (filterPaidBy && e.paid_by !== filterPaidBy) return false;
+    return true;
+  });
+
+  const visibleExpenses = filteredExpenses.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredExpenses.length;
+
   // Computed balance summaries
   const totalGroupBalance = balances.reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0) / 2;
   const youAreOwed = balances.filter((b) => Number(b.balance) > 0).reduce((sum, b) => sum + Number(b.balance), 0);
@@ -153,6 +293,8 @@ export default function GroupView() {
 
   if (!group) return null;
 
+  const dateGroups = groupExpensesByDate(visibleExpenses);
+
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
@@ -165,12 +307,7 @@ export default function GroupView() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
-              <span className="text-[11px] font-semibold tracking-wide uppercase bg-primary-container/20 text-primary px-2.5 py-0.5 rounded-full">
-                Active
-              </span>
-            </div>
+            <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-xs text-on-surface-variant">{group.member_count ?? "?"} members</span>
               <span className="text-outline">·</span>
@@ -183,9 +320,9 @@ export default function GroupView() {
           <button
             onClick={copyInviteCode}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={copied ? "Copied!" : "Copy invite link"}
+            title={copied ? "Copied!" : "Share invite link"}
           >
-            {copied ? <Check size={18} className="text-primary" /> : <Copy size={18} />}
+            {copied ? <Check size={18} className="text-primary" /> : <Share2 size={18} />}
           </button>
           <Link
             to={`/groups/${groupId}/reports`}
@@ -236,7 +373,7 @@ export default function GroupView() {
               "flex-1 py-2 rounded-full text-sm font-medium capitalize transition-colors",
               tab === t
                 ? "bg-primary text-on-primary shadow-editorial"
-                : "text-on-surface-variant hover:text-on-surface"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50"
             )}
           >
             {t}
@@ -288,12 +425,49 @@ export default function GroupView() {
             </div>
           </div>
 
+          {/* Filter row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter size={14} className="text-outline flex-shrink-0" />
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              ))}
+            </select>
+            <select
+              value={filterPaidBy}
+              onChange={(e) => setFilterPaidBy(e.target.value)}
+              className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+            >
+              <option value="">All members</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>{m.display_name}</option>
+              ))}
+            </select>
+            {(filterCategory || filterPaidBy) && (
+              <button
+                onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
+                className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-full hover:bg-primary-container/20 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           {/* Expense list */}
-          {expenses.length === 0 ? (
+          {filteredExpenses.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
               <div className="text-5xl mb-4">🧾</div>
-              <p className="font-semibold text-on-surface text-base">No expenses yet</p>
-              <p className="text-sm text-on-surface-variant mt-1">Add the first expense for this group</p>
+              <p className="font-semibold text-on-surface text-base">
+                {expenses.length === 0 ? "No expenses yet" : "No expenses match filters"}
+              </p>
+              <p className="text-sm text-on-surface-variant mt-1">
+                {expenses.length === 0 ? "Add the first expense for this group" : "Try adjusting your filters"}
+              </p>
             </div>
           ) : compactView ? (
             /* ── Compact / table view ── */
@@ -309,53 +483,62 @@ export default function GroupView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.map((expense) => (
-                    <tr
-                      key={expense.id}
-                      className="border-b border-outline-variant/5 last:border-0 hover:bg-surface-container/40 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
-                          <span className="font-medium text-on-surface truncate">{expense.description}</span>
-                        </div>
-                        <p className="text-xs text-outline sm:hidden mt-0.5">
-                          {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? "Unknown"}</td>
-                      <td className="px-4 py-3 text-outline hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
-                        {expense.currency_code !== group.currency_code ? (
-                          <div>
-                            <span>{formatCurrency(Number(expense.amount), expense.currency_code)}</span>
-                            <p className="text-xs text-outline font-normal">
-                              ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
+                  {dateGroups.map((dg) => (
+                    <>
+                      <tr key={`date-${dg.date}`}>
+                        <td colSpan={5} className="px-4 pt-4 pb-1">
+                          <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{dg.label}</p>
+                        </td>
+                      </tr>
+                      {dg.expenses.map((expense) => (
+                        <tr
+                          key={expense.id}
+                          className="border-b border-outline-variant/5 last:border-0 hover:bg-surface-container/40 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
+                              <span className="font-medium text-on-surface truncate">{expense.description}</span>
+                            </div>
+                            <p className="text-xs text-outline sm:hidden mt-0.5">
+                              {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
                             </p>
-                          </div>
-                        ) : (
-                          formatCurrency(Number(expense.amount), group.currency_code)
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-0.5 justify-end">
-                          <Link
-                            to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                            className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil size={13} />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          </td>
+                          <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? "Unknown"}</td>
+                          <td className="px-4 py-3 text-outline hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
+                            {expense.currency_code !== group.currency_code ? (
+                              <div>
+                                <span>{formatCurrency(Number(expense.amount), expense.currency_code)}</span>
+                                <p className="text-xs text-outline font-normal">
+                                  ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
+                                </p>
+                              </div>
+                            ) : (
+                              formatCurrency(Number(expense.amount), group.currency_code)
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-0.5 justify-end">
+                              <Link
+                                to={`/groups/${groupId}/expenses/${expense.id}/edit`}
+                                className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                                title="Edit"
+                              >
+                                <Pencil size={13} />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteExpense(expense.id)}
+                                className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </>
                   ))}
                 </tbody>
               </table>
@@ -363,69 +546,88 @@ export default function GroupView() {
           ) : (
             /* ── Card view ── */
             <div className="space-y-3">
-              {expenses.map((expense) => {
-                const myShare = expense.splits?.[0]?.resolved_amount;
-                return (
-                  <div
-                    key={expense.id}
-                    className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4 flex items-center gap-4"
-                  >
-                    <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-xl flex-shrink-0">
-                      {getCategoryIcon(expense.category_id)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-on-surface truncate">{expense.description}</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5">
-                        {new Date(expense.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                        {" · "}
-                        <span className="text-outline">{new Date(expense.date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
-                      </p>
-                      <p className="text-xs text-on-surface-variant mt-0.5">
-                        Paid by <span className="font-medium text-on-surface">{expense.payer_name ?? "Unknown"}</span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="text-right">
-                        {expense.currency_code !== group.currency_code ? (
-                          <>
-                            <p className="font-bold text-on-surface">
-                              {formatCurrency(Number(expense.amount), expense.currency_code)}
-                            </p>
-                            <p className="text-[11px] text-outline">
-                              ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="font-bold text-on-surface">
-                            {formatCurrency(Number(expense.amount), group.currency_code)}
+              {dateGroups.map((dg) => (
+                <div key={dg.date} className="space-y-3">
+                  <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider px-1 pt-2">{dg.label}</p>
+                  {dg.expenses.map((expense) => {
+                    const myShare = expense.splits?.[0]?.resolved_amount;
+                    return (
+                      <div
+                        key={expense.id}
+                        className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4 flex items-center gap-4"
+                      >
+                        <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-xl flex-shrink-0">
+                          {getCategoryIcon(expense.category_id)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-on-surface truncate">{expense.description}</p>
+                          <p className="text-xs text-on-surface-variant mt-0.5">
+                            {new Date(expense.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            {" · "}
+                            <span className="text-outline">{new Date(expense.date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
                           </p>
-                        )}
-                        {myShare !== undefined && (
-                          <p className="text-[11px] text-on-surface-variant">
-                            Your share: {formatCurrency(Number(myShare), group.currency_code)}
+                          <p className="text-xs text-on-surface-variant mt-0.5">
+                            Paid by <span className="font-medium text-on-surface">{expense.payer_name ?? "Unknown"}</span>
                           </p>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            {expense.currency_code !== group.currency_code ? (
+                              <>
+                                <p className="font-bold text-on-surface">
+                                  {formatCurrency(Number(expense.amount), expense.currency_code)}
+                                </p>
+                                <p className="text-[11px] text-outline">
+                                  ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="font-bold text-on-surface">
+                                {formatCurrency(Number(expense.amount), group.currency_code)}
+                              </p>
+                            )}
+                            {myShare !== undefined && (
+                              <p className="text-[11px] text-on-surface-variant">
+                                Your share: {formatCurrency(Number(myShare), group.currency_code)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <Link
+                              to={`/groups/${groupId}/expenses/${expense.id}/edit`}
+                              className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={14} />
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteExpense(expense.id)}
+                              className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-0.5">
-                        <Link
-                          to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                          className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={14} />
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Infinite scroll sentinel + count */}
+          {filteredExpenses.length > 0 && (
+            <div className="text-center space-y-2">
+              <p className="text-xs text-outline">
+                Showing {Math.min(visibleCount, filteredExpenses.length)} of {filteredExpenses.length} expenses
+              </p>
+              {hasMore && (
+                <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+                  <p className="text-xs text-outline animate-pulse">Loading more...</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -633,26 +835,24 @@ export default function GroupView() {
             <div className="px-6 pb-6 pt-3 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">From</label>
-                <select
+                <MemberSearchSelect
                   value={transferFrom}
-                  onChange={(e) => setTransferFrom(e.target.value)}
-                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Select person...</option>
-                  {members.map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
-                </select>
+                  onChange={setTransferFrom}
+                  members={members}
+                  placeholder="Search person..."
+                  excludeId={transferTo}
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">To</label>
-                <select
+                <MemberSearchSelect
                   value={transferTo}
-                  onChange={(e) => setTransferTo(e.target.value)}
-                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Select person...</option>
-                  {members.filter((m) => m.id !== transferFrom).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
-                </select>
+                  onChange={setTransferTo}
+                  members={members}
+                  placeholder="Search person..."
+                  excludeId={transferFrom}
+                />
               </div>
 
               <div>
@@ -666,7 +866,7 @@ export default function GroupView() {
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>
 
@@ -679,7 +879,7 @@ export default function GroupView() {
                   value={transferNote}
                   onChange={(e) => setTransferNote(e.target.value)}
                   placeholder="e.g. Cash payment, bank transfer..."
-                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>
 
