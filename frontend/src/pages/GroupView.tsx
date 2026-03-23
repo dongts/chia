@@ -31,16 +31,16 @@ export default function GroupView() {
   const [paymentInfoAmount, setPaymentInfoAmount] = useState<number | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("expenses");
 
-  // Transfer modal
+  // Transfer/settle modal
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferFrom, setTransferFrom] = useState("");
   const [transferTo, setTransferTo] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
   const [transferNote, setTransferNote] = useState("");
   const [transferring, setTransferring] = useState(false);
+  const [transferType, setTransferType] = useState<"transfer" | "settle_up">("transfer");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [settlingId, setSettlingId] = useState<string | null>(null);
   const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") === "true");
 
   useEffect(() => {
@@ -97,23 +97,13 @@ export default function GroupView() {
     }
   }
 
-  async function handleSettle(s: SuggestedSettlement) {
-    if (!groupId) return;
-    const key = `${s.from_member}-${s.to_member}`;
-    setSettlingId(key);
-    try {
-      await createSettlement(groupId, {
-        from_member: s.from_member,
-        to_member: s.to_member,
-        amount: s.amount,
-        type: "settle_up",
-      });
-      await loadAll();
-    } catch {
-      window.alert("Failed to record settlement");
-    } finally {
-      setSettlingId(null);
-    }
+  function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number) {
+    setTransferType(type);
+    setTransferFrom(from ?? "");
+    setTransferTo(to ?? "");
+    setTransferAmount(amount ? String(amount) : "");
+    setTransferNote("");
+    setShowTransfer(true);
   }
 
   async function handleTransfer() {
@@ -126,7 +116,7 @@ export default function GroupView() {
         to_member: transferTo,
         amount: parseFloat(transferAmount),
         description: transferNote || null,
-        type: "transfer",
+        type: transferType,
       });
       setShowTransfer(false);
       setTransferFrom(""); setTransferTo(""); setTransferAmount(""); setTransferNote("");
@@ -239,7 +229,7 @@ export default function GroupView() {
               {compactView ? <LayoutGrid size={16} /> : <List size={16} />}
             </button>
             <button
-              onClick={() => setShowTransfer(true)}
+              onClick={() => openTransferModal("transfer")}
               className="flex items-center gap-2 border border-green-600 text-green-700 hover:bg-green-50 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
             >
               <ArrowLeftRight size={16} />
@@ -452,11 +442,10 @@ export default function GroupView() {
                         </span>
                       </p>
                       <button
-                        onClick={() => handleSettle(s)}
-                        disabled={settlingId === key}
-                        className="ml-4 text-xs bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+                        onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, Number(s.amount))}
+                        className="ml-4 text-xs bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
                       >
-                        {settlingId === key ? "..." : "Mark Settled"}
+                        Settle
                       </button>
                     </div>
                   );
@@ -519,10 +508,12 @@ export default function GroupView() {
       {/* Transfer modal */}
       {showTransfer && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowTransfer(false)}>
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-5">
               <ArrowLeftRight size={20} className="text-green-600" />
-              <h3 className="text-lg font-bold text-gray-900">Money Transfer</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                {transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
+              </h3>
             </div>
 
             <div className="space-y-4">
@@ -542,17 +533,6 @@ export default function GroupView() {
                   <option value="">Select person...</option>
                   {members.filter((m) => m.id !== transferFrom).map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}
                 </select>
-                {transferTo && getMemberPaymentMethods(transferTo).length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-xs font-medium text-gray-500 mb-1">Payment info</p>
-                    <PaymentMethodCards
-                      methods={getMemberPaymentMethods(transferTo).map((pm) => pm.payment_method)}
-                      compact
-                      amount={transferAmount ? parseFloat(transferAmount) : undefined}
-                      qrMessage={`Chia: ${group.name}`}
-                    />
-                  </div>
-                )}
               </div>
 
               <div>
@@ -568,6 +548,20 @@ export default function GroupView() {
                   placeholder="e.g. Cash payment, bank transfer..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
               </div>
+
+              {/* Payment info + QR at the bottom, after all inputs are filled */}
+              {transferTo && getMemberPaymentMethods(transferTo).length > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-2">
+                    Payment info for {members.find((m) => m.id === transferTo)?.display_name}
+                  </p>
+                  <PaymentMethodCards
+                    methods={getMemberPaymentMethods(transferTo).map((pm) => pm.payment_method)}
+                    amount={transferAmount ? parseFloat(transferAmount) : undefined}
+                    qrMessage={transferNote || `Chia: ${group.name}`}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 mt-6">
@@ -576,7 +570,7 @@ export default function GroupView() {
               <button onClick={handleTransfer}
                 disabled={transferring || !transferFrom || !transferTo || !transferAmount}
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm">
-                {transferring ? "Recording..." : "Record Transfer"}
+                {transferring ? "Recording..." : transferType === "settle_up" ? "Settle" : "Record Transfer"}
               </button>
             </div>
           </div>
