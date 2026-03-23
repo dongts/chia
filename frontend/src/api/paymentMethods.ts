@@ -24,7 +24,9 @@ export async function deletePaymentMethod(id: string): Promise<void> {
 export async function uploadQrImage(id: string, file: File): Promise<PaymentMethod> {
   const form = new FormData();
   form.append("file", file);
-  const res = await client.post<PaymentMethod>(`/users/me/payment-methods/${id}/qr`, form);
+  const res = await client.post<PaymentMethod>(`/users/me/payment-methods/${id}/qr`, form, {
+    headers: { "Content-Type": undefined },
+  });
   return res.data;
 }
 
