@@ -16,7 +16,7 @@ import {
 } from "@/api/paymentMethods";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
-import { fetchVietBanks, type VietBank } from "@/utils/vietnamBanks";
+import { fetchVietBanks, buildVietQrUrl, type VietBank } from "@/utils/vietnamBanks";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -392,38 +392,51 @@ export default function Profile() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">QR Code Image</label>
-                <input
-                  ref={formQrInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setFormQrFile(file);
-                      setFormQrPreview(URL.createObjectURL(file));
-                    }
-                    e.target.value = "";
-                  }}
-                />
-                <div className="flex items-center gap-3">
-                  {formQrPreview ? (
-                    <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
-                  ) : editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url ? (
-                    <img src={resolveUploadUrl(paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url)!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => formQrInputRef.current?.click()}
-                    className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-green-600 border border-gray-200 hover:border-green-200 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Upload size={14} />
-                    {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? "Change QR" : "Upload QR"}
-                  </button>
+              {/* QR section: auto-generated for VietQR banks, manual upload for others */}
+              {formBankBin && formAccountNumber ? (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">QR Preview (auto-generated)</label>
+                  <img
+                    src={buildVietQrUrl({ bankBin: formBankBin, accountNumber: formAccountNumber })}
+                    alt="VietQR preview"
+                    className="w-32 h-32 rounded-xl border border-gray-200"
+                  />
+                  <p className="text-xs text-green-600 mt-1">QR will be auto-generated with amount when others view it</p>
                 </div>
-              </div>
+              ) : !formBankBin ? (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">QR Code Image</label>
+                  <input
+                    ref={formQrInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setFormQrFile(file);
+                        setFormQrPreview(URL.createObjectURL(file));
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <div className="flex items-center gap-3">
+                    {formQrPreview ? (
+                      <img src={formQrPreview} alt="QR preview" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                    ) : editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url ? (
+                      <img src={resolveUploadUrl(paymentMethods.find((pm) => pm.id === editingId)!.qr_image_url)!} alt="Current QR" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => formQrInputRef.current?.click()}
+                      className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-green-600 border border-gray-200 hover:border-green-200 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Upload size={14} />
+                      {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? "Change QR" : "Upload QR"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
@@ -455,9 +468,22 @@ export default function Profile() {
                   key={pm.id}
                   className="rounded-xl border border-gray-200 px-4 py-3 flex gap-3 items-start"
                 >
-                  {/* QR thumbnail */}
+                  {/* QR thumbnail — auto-generated for VietQR, uploaded for others */}
                   <div className="flex-shrink-0">
-                    {pm.qr_image_url ? (
+                    {pm.bank_bin && pm.account_number ? (
+                      <button
+                        type="button"
+                        onClick={() => setQrModal(buildVietQrUrl({ bankBin: pm.bank_bin!, accountNumber: pm.account_number! }))}
+                        className="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
+                        title="View VietQR"
+                      >
+                        <img
+                          src={buildVietQrUrl({ bankBin: pm.bank_bin!, accountNumber: pm.account_number! })}
+                          alt="VietQR"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ) : pm.qr_image_url ? (
                       <button
                         type="button"
                         onClick={() => setQrModal(resolveUploadUrl(pm.qr_image_url))}
@@ -475,26 +501,30 @@ export default function Profile() {
                         <Upload size={18} className="text-gray-300" />
                       </div>
                     )}
-                    {/* Hidden file input */}
-                    <input
-                      ref={(el) => { qrInputRefs.current[pm.id] = el; }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleQrUpload(pm.id, file);
-                        e.target.value = "";
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => qrInputRefs.current[pm.id]?.click()}
-                      className="mt-1 w-14 text-center text-xs text-gray-400 hover:text-green-600 transition-colors"
-                      title="Upload QR image"
-                    >
-                      {pm.qr_image_url ? "Change" : "Upload"}
-                    </button>
+                    {/* Upload button only for non-VietQR methods */}
+                    {!pm.bank_bin && (
+                      <>
+                        <input
+                          ref={(el) => { qrInputRefs.current[pm.id] = el; }}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleQrUpload(pm.id, file);
+                            e.target.value = "";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => qrInputRefs.current[pm.id]?.click()}
+                          className="mt-1 w-14 text-center text-xs text-gray-400 hover:text-green-600 transition-colors"
+                          title="Upload QR image"
+                        >
+                          {pm.qr_image_url ? "Change" : "Upload"}
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Details */}
