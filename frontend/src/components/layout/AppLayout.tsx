@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Bell, User, LogOut, Menu, X, Download, Sprout,
-  LayoutGrid, Clock, Wallet, BarChart3, Users,
-  HelpCircle, Search,
+  LayoutGrid, Wallet, Users,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -36,21 +35,6 @@ export default function AppLayout() {
     setNotifOpen((v) => !v);
     if (unreadCount > 0) markAllRead();
   }
-
-  const sidebarNav = [
-    { icon: LayoutGrid, label: "Overview", path: "/dashboard" },
-    { icon: Clock, label: "Recent Activity", path: "/dashboard", matchExact: true },
-    { icon: Wallet, label: "Shared Vaults", path: "/dashboard" },
-    { icon: BarChart3, label: "Analytics", path: "/dashboard" },
-    { icon: Users, label: "Members", path: "/dashboard" },
-  ];
-
-  const bottomNav = [
-    { icon: LayoutGrid, label: "Dashboard", path: "/dashboard" },
-    { icon: Users, label: "Groups", path: "/dashboard" },
-    { icon: Clock, label: "Activity", path: "/dashboard" },
-    { icon: User, label: "Profile", path: "/profile" },
-  ];
 
   return (
     <div className="min-h-screen bg-surface flex flex-col">
@@ -96,7 +80,7 @@ export default function AppLayout() {
           />
         )}
 
-        {/* Sidebar — desktop: permanent, mobile: slide-in */}
+        {/* Sidebar */}
         <aside
           className={cn(
             "fixed top-0 left-0 h-full w-[240px] bg-surface-container-lowest z-30 flex flex-col transition-transform duration-200",
@@ -122,25 +106,33 @@ export default function AppLayout() {
 
           {/* Main nav */}
           <nav className="flex-1 px-3 py-2 overflow-y-auto">
-            {sidebarNav.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors",
-                    isActive
-                      ? "bg-primary-container/20 text-primary"
-                      : "text-on-surface-variant hover:bg-surface-container"
-                  )}
-                >
-                  <item.icon size={18} />
-                  {item.label}
-                </Link>
-              );
-            })}
+            <Link
+              to="/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors",
+                location.pathname === "/dashboard"
+                  ? "bg-primary-container/20 text-primary"
+                  : "text-on-surface-variant hover:bg-surface-container"
+              )}
+            >
+              <LayoutGrid size={18} />
+              Dashboard
+            </Link>
+
+            <Link
+              to="/profile"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors",
+                location.pathname === "/profile"
+                  ? "bg-primary-container/20 text-primary"
+                  : "text-on-surface-variant hover:bg-surface-container"
+              )}
+            >
+              <User size={18} />
+              Profile
+            </Link>
 
             {/* Groups list */}
             {groups.length > 0 && (
@@ -190,14 +182,6 @@ export default function AppLayout() {
                 Install App
               </button>
             )}
-            <Link
-              to="/profile"
-              onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-on-surface-variant hover:bg-surface-container"
-            >
-              <HelpCircle size={18} />
-              Help Center
-            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error-container/15 w-full transition-colors"
@@ -240,11 +224,6 @@ export default function AppLayout() {
                     <Download size={20} />
                   </button>
                 )}
-
-                {/* Search — desktop only */}
-                <button className="hidden md:flex p-2 rounded-xl text-on-surface-variant hover:bg-surface-container">
-                  <Search size={20} />
-                </button>
 
                 {/* Notifications */}
                 <div className="relative">
@@ -303,28 +282,59 @@ export default function AppLayout() {
       {/* Mobile bottom navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest/90 glass-blur z-20 border-t border-outline-variant/10">
         <div className="flex items-center justify-around px-2 py-2">
-          {bottomNav.map((item) => {
-            const isActive = item.path === "/profile"
-              ? location.pathname === "/profile"
-              : item.path === "/dashboard" && item.label === "Dashboard"
-                ? location.pathname === "/dashboard"
-                : false;
-            return (
-              <Link
-                key={item.label}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] transition-colors",
-                  isActive
-                    ? "text-primary bg-primary-container/20"
-                    : "text-on-surface-variant"
-                )}
-              >
-                <item.icon size={20} />
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+          <Link
+            to="/dashboard"
+            className={cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] transition-colors",
+              location.pathname === "/dashboard"
+                ? "text-primary bg-primary-container/20"
+                : "text-on-surface-variant"
+            )}
+          >
+            <LayoutGrid size={20} />
+            <span className="text-[10px] font-medium">Dashboard</span>
+          </Link>
+          {groups.length > 0 ? (
+            <Link
+              to={`/groups/${groups[0].id}`}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] transition-colors",
+                location.pathname.startsWith("/groups/")
+                  ? "text-primary bg-primary-container/20"
+                  : "text-on-surface-variant"
+              )}
+            >
+              <Wallet size={20} />
+              <span className="text-[10px] font-medium">Groups</span>
+            </Link>
+          ) : (
+            <Link
+              to="/dashboard"
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] text-on-surface-variant"
+            >
+              <Wallet size={20} />
+              <span className="text-[10px] font-medium">Groups</span>
+            </Link>
+          )}
+          <Link
+            to="/dashboard"
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] text-on-surface-variant"
+          >
+            <Users size={20} />
+            <span className="text-[10px] font-medium">Friends</span>
+          </Link>
+          <Link
+            to="/profile"
+            className={cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] transition-colors",
+              location.pathname === "/profile"
+                ? "text-primary bg-primary-container/20"
+                : "text-on-surface-variant"
+            )}
+          >
+            <User size={20} />
+            <span className="text-[10px] font-medium">Profile</span>
+          </Link>
         </div>
       </nav>
     </div>
