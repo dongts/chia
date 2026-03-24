@@ -236,6 +236,114 @@ function MergeUserModal({ sourceUser, onClose, onMerged }: {
   );
 }
 
+// ── Merge Member Inline (used in Groups tab) ────────────────────────────────
+
+function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
+  memberName: string;
+  sourceUserId: string;
+  onClose: () => void;
+  onMerged: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<UserRead[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function doSearch(q: string) {
+    if (!q.trim()) { setResults([]); return; }
+    setSearching(true);
+    client.get<{ items: UserRead[] }>("/admin/users", { params: { q, limit: 10 } })
+      .then((r) => setResults(r.data.items.filter((u) => u.id !== sourceUserId)))
+      .catch(() => setResults([]))
+      .finally(() => setSearching(false));
+  }
+
+  function handleSearchChange(val: string) {
+    setSearch(val);
+    setTargetId(null);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSearch(val), 300);
+  }
+
+  async function handleMerge() {
+    if (!targetId) return;
+    setMerging(true);
+    try {
+      const r = await client.post(`/admin/users/${sourceUserId}/merge-into/${targetId}`);
+      window.alert(r.data.detail);
+      onMerged();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Merge failed";
+      window.alert(msg);
+    } finally { setMerging(false); }
+  }
+
+  const selectedUser = results.find((u) => u.id === targetId);
+
+  return (
+    <div className="mt-3 p-4 bg-surface rounded-xl border border-outline-variant/15 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-on-surface">
+          Merge "{memberName}" into:
+        </p>
+        <button onClick={onClose} className="text-outline hover:text-on-surface-variant"><X size={14} /></button>
+      </div>
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search target user by name or email..."
+          autoFocus
+          className="w-full pl-8 pr-3 py-2 bg-surface-container-high/50 border-0 rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </div>
+      {searching && <p className="text-xs text-outline">Searching...</p>}
+      {!searching && results.length > 0 && !targetId && (
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {results.map((u) => (
+            <button key={u.id} onClick={() => setTargetId(u.id)}
+              className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container transition-colors">
+              <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                {u.display_name[0]?.toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-on-surface truncate">{u.display_name}</p>
+                <p className="text-xs text-outline truncate">{u.email || "No email"}</p>
+              </div>
+              {u.is_verified && <span className="text-[10px] font-semibold text-primary bg-primary-container/20 px-1.5 py-0.5 rounded-full">Verified</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {selectedUser && (
+        <div className="flex items-center gap-2 bg-primary-container/10 rounded-lg px-3 py-2">
+          <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+            {selectedUser.display_name[0]?.toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-on-surface">{selectedUser.display_name}</p>
+            <p className="text-xs text-outline">{selectedUser.email || "No email"}</p>
+          </div>
+          <button onClick={() => setTargetId(null)} className="text-xs text-outline hover:text-on-surface-variant">Change</button>
+        </div>
+      )}
+      {targetId && (
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface py-2 rounded-lg text-sm transition-colors">Cancel</button>
+          <button onClick={handleMerge} disabled={merging}
+            className="flex-1 bg-error hover:bg-error/80 disabled:opacity-60 text-on-error py-2 rounded-lg text-sm font-semibold transition-colors">
+            {merging ? "Merging..." : "Merge"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Users Tab ────────────────────────────────────────────────────────────────
 
 function UsersTab() {
@@ -748,6 +856,7 @@ function GroupsTab() {
                       });
                     }
                   }}
+                  onRefresh={() => { load(); toggleExpand(group.id); }}
                 />
               ))}
             </tbody>
@@ -769,16 +878,19 @@ function GroupsTab() {
 }
 
 function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpenses, deletingId,
-  onToggleExpand, onDelete, onToggleExpenses, onAddMember, onMemberRenamed,
+  onToggleExpand, onDelete, onToggleExpenses, onAddMember, onMemberRenamed, onRefresh,
 }: {
   group: GroupItem; isExpanded: boolean; expandedDetail: GroupDetail | null;
   loadingDetail: boolean; showExpenses: boolean; deletingId: string | null;
   onToggleExpand: () => void; onDelete: () => void; onToggleExpenses: () => void; onAddMember: () => void;
-  onMemberRenamed: (memberId: string, newName: string) => void;
+  onMemberRenamed: (memberId: string, newName: string) => void; onRefresh: () => void;
 }) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [savingRename, setSavingRename] = useState(false);
+  const [mergeMemberId, setMergeMemberId] = useState<string | null>(null);
+  const [mergeMemberName, setMergeMemberName] = useState("");
+  const [mergeMemberUserId, setMergeMemberUserId] = useState<string | null>(null);
 
   async function handleRename(memberId: string) {
     if (!renameValue.trim()) return;
@@ -840,9 +952,25 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                         {m.email && <span className="text-xs text-outline">{m.email}</span>}
                         <Badge green={m.role === "owner"}>{m.role}</Badge>
                         {!m.user_id && <span className="text-xs text-amber-500">unclaimed</span>}
+                        {m.user_id && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMergeMemberId(m.id); setMergeMemberName(m.display_name); setMergeMemberUserId(m.user_id); }}
+                            className="text-outline-variant hover:text-primary transition-colors" title="Merge this member's account into another user"
+                          ><Merge size={11} /></button>
+                        )}
                       </span>
                     ))}
                   </div>
+
+                  {/* Merge member modal */}
+                  {mergeMemberId && mergeMemberUserId && (
+                    <MergeMemberInline
+                      memberName={mergeMemberName}
+                      sourceUserId={mergeMemberUserId}
+                      onClose={() => { setMergeMemberId(null); setMergeMemberUserId(null); }}
+                      onMerged={() => { setMergeMemberId(null); setMergeMemberUserId(null); onRefresh(); }}
+                    />
+                  )}
                 </div>
 
                 {/* Currencies */}
