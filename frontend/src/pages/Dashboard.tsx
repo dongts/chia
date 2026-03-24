@@ -357,7 +357,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div>
                         <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                          Your Share
+                          Your Balance
                         </p>
                         <p
                           className={cn(

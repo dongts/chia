@@ -147,6 +147,15 @@ async def list_groups(
             for gid, total in recv_result.all():
                 balances[gid] -= float(total)
 
+            # Initial balances (for migrated debts)
+            init_result = await db.execute(
+                select(GroupMember.group_id, GroupMember.initial_balance)
+                .where(GroupMember.id.in_(all_member_ids))
+            )
+            for gid, init_bal in init_result.all():
+                if init_bal:
+                    balances[gid] += float(init_bal)
+
     items = []
     for group, member_count in groups_data:
         items.append(GroupListItem(
