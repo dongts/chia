@@ -11,7 +11,8 @@ from app.core.exceptions import BadRequest, NotFound
 from app.database import get_db
 from app.models import (
     Category, Expense, ExpenseSplit, Group, GroupCurrency,
-    GroupMember, MemberRole, Notification, Settlement, User,
+    GroupMember, GroupMemberLog, MemberRole, Notification, Settlement, User,
+    PaymentMethod, GroupPaymentMethod,
 )
 from app.schemas.user import UserRead
 from app.services.auth import hash_password
@@ -360,3 +361,152 @@ async def delete_all_notifications(db: AsyncSession = Depends(get_db)):
 @router.get("/me")
 async def admin_check(current_user: User = Depends(require_superadmin)):
     return {"email": current_user.email, "is_superadmin": True}
+
+
+# ── Merge Users ──────────────────────────────────────────────────────────
+
+
+@router.post("/users/{source_user_id}/merge-into/{target_user_id}")
+async def merge_users(
+    source_user_id: uuid.UUID,
+    target_user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(require_superadmin),
+):
+    """Merge source user (typically guest) into target user (typically verified).
+
+    Reassigns all group memberships, expenses, settlements, and payment methods
+    from source to target, then deletes the source user.
+
+    If both users are members of the same group:
+    - Expenses/splits/settlements referencing the source member are reassigned
+      to the target member
+    - Initial balances are summed
+    - The higher role is kept
+    - The source member is deactivated
+    """
+    if source_user_id == target_user_id:
+        raise BadRequest("Cannot merge a user into themselves")
+
+    # Load both users
+    source = await db.get(User, source_user_id)
+    target = await db.get(User, target_user_id)
+    if not source:
+        raise NotFound("Source user not found")
+    if not target:
+        raise NotFound("Target user not found")
+
+    # Get all group memberships for both users
+    source_members_result = await db.execute(
+        select(GroupMember).where(GroupMember.user_id == source_user_id, GroupMember.is_active.is_(True))
+    )
+    source_members = source_members_result.scalars().all()
+
+    target_members_result = await db.execute(
+        select(GroupMember).where(GroupMember.user_id == target_user_id, GroupMember.is_active.is_(True))
+    )
+    target_members_by_group = {m.group_id: m for m in target_members_result.scalars().all()}
+
+    merged_groups = []
+    moved_groups = []
+
+    for src_member in source_members:
+        tgt_member = target_members_by_group.get(src_member.group_id)
+
+        if tgt_member:
+            # Both users in the same group — merge member records
+            # Reassign expenses paid_by and created_by
+            await db.execute(
+                Expense.__table__.update()
+                .where(Expense.paid_by == src_member.id)
+                .values(paid_by=tgt_member.id)
+            )
+            await db.execute(
+                Expense.__table__.update()
+                .where(Expense.created_by == src_member.id)
+                .values(created_by=tgt_member.id)
+            )
+
+            # Reassign expense splits
+            await db.execute(
+                ExpenseSplit.__table__.update()
+                .where(ExpenseSplit.group_member_id == src_member.id)
+                .values(group_member_id=tgt_member.id)
+            )
+
+            # Reassign settlements
+            await db.execute(
+                Settlement.__table__.update()
+                .where(Settlement.from_member == src_member.id)
+                .values(from_member=tgt_member.id)
+            )
+            await db.execute(
+                Settlement.__table__.update()
+                .where(Settlement.to_member == src_member.id)
+                .values(to_member=tgt_member.id)
+            )
+            await db.execute(
+                Settlement.__table__.update()
+                .where(Settlement.created_by == src_member.id)
+                .values(created_by=tgt_member.id)
+            )
+
+            # Reassign member logs
+            await db.execute(
+                GroupMemberLog.__table__.update()
+                .where(GroupMemberLog.member_id == src_member.id)
+                .values(member_id=tgt_member.id)
+            )
+            await db.execute(
+                GroupMemberLog.__table__.update()
+                .where(GroupMemberLog.performed_by == src_member.id)
+                .values(performed_by=tgt_member.id)
+            )
+
+            # Move group payment methods
+            await db.execute(
+                GroupPaymentMethod.__table__.update()
+                .where(GroupPaymentMethod.member_id == src_member.id)
+                .values(member_id=tgt_member.id)
+            )
+
+            # Sum initial balances
+            tgt_member.initial_balance += src_member.initial_balance
+
+            # Keep higher role
+            role_priority = {"owner": 3, "admin": 2, "member": 1}
+            if role_priority.get(src_member.role.value, 0) > role_priority.get(tgt_member.role.value, 0):
+                tgt_member.role = src_member.role
+
+            # Deactivate source member
+            src_member.is_active = False
+            src_member.user_id = None
+
+            merged_groups.append(str(src_member.group_id))
+        else:
+            # Only source user in this group — reassign membership to target
+            src_member.user_id = target_user_id
+            moved_groups.append(str(src_member.group_id))
+
+    # Move payment methods from source to target
+    await db.execute(
+        PaymentMethod.__table__.update()
+        .where(PaymentMethod.user_id == source_user_id)
+        .values(user_id=target_user_id)
+    )
+
+    # Delete source user's notifications (not worth moving)
+    await db.execute(
+        delete(Notification).where(Notification.user_id == source_user_id)
+    )
+
+    # Delete source user (cascades OAuth accounts)
+    await db.delete(source)
+    await db.commit()
+
+    return {
+        "detail": f"Merged user '{source.display_name}' into '{target.display_name}'",
+        "merged_groups": merged_groups,
+        "moved_groups": moved_groups,
+        "source_deleted": True,
+    }
