@@ -83,13 +83,6 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Prevent pull-to-refresh in standalone PWA mode */
-@media (display-mode: standalone) {
-  html {
-    overscroll-behavior-y: contain;
-  }
-}
-
 /* Disable text selection on interactive elements for app-like feel */
 button, a, [role="button"], select, [onclick], label[for] {
   -webkit-tap-highlight-color: transparent;
