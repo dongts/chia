@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
-  ArrowLeftRight, List, LayoutGrid, Landmark,
+  ArrowLeftRight, Landmark,
   ArrowRight, X, Search, Filter, ChevronDown,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
-import { getBalances, createSettlement, listSettlements } from "@/api/settlements";
+import { getBalances, createSettlement, updateSettlement, listSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
 import { listMembers } from "@/api/members";
 import { listGroupPaymentMethods } from "@/api/paymentMethods";
@@ -145,9 +145,9 @@ export default function GroupView() {
   const [transferNote, setTransferNote] = useState("");
   const [transferring, setTransferring] = useState(false);
   const [transferType, setTransferType] = useState<"transfer" | "settle_up">("transfer");
+  const [editingSettlementId, setEditingSettlementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [compactView, setCompactView] = useState(() => localStorage.getItem("chia-compact-view") !== "false");
 
   const currentUser = useAuthStore((s) => s.user);
 
@@ -232,12 +232,13 @@ export default function GroupView() {
     }
   }
 
-  function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number) {
+  function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
     setTransferType(type);
     setTransferFrom(from ?? "");
     setTransferTo(to ?? "");
     setTransferAmount(amount ? String(amount) : "");
-    setTransferNote("");
+    setTransferNote(note ?? "");
+    setEditingSettlementId(settlementId ?? null);
     setShowTransfer(true);
   }
 
@@ -246,17 +247,28 @@ export default function GroupView() {
     if (transferFrom === transferTo) { window.alert("Cannot transfer to the same person"); return; }
     setTransferring(true);
     try {
-      await createSettlement(groupId, {
-        from_member: transferFrom,
-        to_member: transferTo,
-        amount: parseFloat(transferAmount),
-        description: transferNote || null,
-        type: transferType,
-      });
+      if (editingSettlementId) {
+        await updateSettlement(groupId, editingSettlementId, {
+          from_member: transferFrom,
+          to_member: transferTo,
+          amount: parseFloat(transferAmount),
+          description: transferNote || null,
+          type: transferType,
+        });
+      } else {
+        await createSettlement(groupId, {
+          from_member: transferFrom,
+          to_member: transferTo,
+          amount: parseFloat(transferAmount),
+          description: transferNote || null,
+          type: transferType,
+        });
+      }
       setShowTransfer(false);
       setTransferFrom(""); setTransferTo(""); setTransferAmount(""); setTransferNote("");
+      setEditingSettlementId(null);
       await loadAll();
-    } catch { window.alert("Failed to record transfer"); }
+    } catch { window.alert(editingSettlementId ? "Failed to update transfer" : "Failed to record transfer"); }
     finally { setTransferring(false); }
   }
 
@@ -271,11 +283,6 @@ export default function GroupView() {
   // Find the current user's member ID in this group
   const myMemberId = members.find((m) => m.user_id === currentUser?.id)?.id;
 
-  function getMyShare(expense: Expense): number | undefined {
-    if (!myMemberId) return undefined;
-    const split = expense.splits?.find((s) => s.group_member_id === myMemberId);
-    return split ? Number(split.resolved_amount) : undefined;
-  }
 
   // Filter expenses
   const filteredExpenses = expenses.filter((e) => {
@@ -383,27 +390,7 @@ export default function GroupView() {
       {tab === "expenses" && (
         <div className="space-y-4">
           {/* Action row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const next = !compactView;
-                  setCompactView(next);
-                  localStorage.setItem("chia-compact-view", String(next));
-                }}
-                className={cn(
-                  "p-2 rounded-full transition-colors",
-                  compactView
-                    ? "bg-primary-container/20 text-primary"
-                    : "bg-surface-container text-on-surface-variant hover:text-on-surface"
-                )}
-                title={compactView ? "Card view" : "Compact view"}
-              >
-                {compactView ? <LayoutGrid size={16} /> : <List size={16} />}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => openTransferModal("transfer")}
                 className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
@@ -418,7 +405,6 @@ export default function GroupView() {
                 <Plus size={16} />
                 Add Expense
               </Link>
-            </div>
           </div>
 
           {/* Filter row */}
@@ -465,8 +451,8 @@ export default function GroupView() {
                 {expenses.length === 0 ? "Add the first expense for this group" : "Try adjusting your filters"}
               </p>
             </div>
-          ) : compactView ? (
-            /* ── Compact / table view ── */
+          ) : (
+            /* ── Expense table ── */
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -538,78 +524,6 @@ export default function GroupView() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            /* ── Card view ── */
-            <div className="space-y-3">
-              {dateGroups.map((dg) => (
-                <div key={dg.date} className="space-y-3">
-                  <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider px-1 pt-2">{dg.label}</p>
-                  {dg.expenses.map((expense) => {
-                    const myShare = getMyShare(expense);
-                    return (
-                      <div
-                        key={expense.id}
-                        className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4 flex items-center gap-4"
-                      >
-                        <div className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center text-xl flex-shrink-0">
-                          {getCategoryIcon(expense.category_id)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-semibold text-on-surface truncate block hover:text-primary transition-colors">{expense.description}</Link>
-                          <p className="text-xs text-on-surface-variant mt-0.5">
-                            {new Date(expense.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                            {" · "}
-                            <span className="text-outline">{new Date(expense.date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
-                          </p>
-                          <p className="text-xs text-on-surface-variant mt-0.5">
-                            Paid by <span className="font-medium text-on-surface">{expense.payer_name ?? "Unknown"}</span>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className="text-right">
-                            {expense.currency_code !== group.currency_code ? (
-                              <>
-                                <p className="font-bold text-on-surface">
-                                  {formatCurrency(Number(expense.amount), expense.currency_code)}
-                                </p>
-                                <p className="text-[11px] text-outline">
-                                  ≈ {formatCurrency(Number(expense.converted_amount), group.currency_code)}
-                                </p>
-                              </>
-                            ) : (
-                              <p className="font-bold text-on-surface">
-                                {formatCurrency(Number(expense.amount), group.currency_code)}
-                              </p>
-                            )}
-                            {myShare !== undefined && (
-                              <p className="text-[11px] text-on-surface-variant">
-                                Your share: {formatCurrency(Number(myShare), group.currency_code)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <Link
-                              to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                              className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                              title="Edit"
-                            >
-                              <Pencil size={14} />
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteExpense(expense.id)}
-                              className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
             </div>
           )}
 
@@ -736,6 +650,16 @@ export default function GroupView() {
                     {s.type === "transfer" ? "Transfer" : "Settlement"}
                   </span>
                 </div>
+                <button
+                  onClick={() => openTransferModal(
+                    (s.type as "transfer" | "settle_up") || "settle_up",
+                    s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
+                  )}
+                  className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil size={14} />
+                </button>
               </div>
             ))
           )}
@@ -761,7 +685,7 @@ export default function GroupView() {
                   <ArrowLeftRight size={18} className="text-primary" />
                 </div>
                 <h3 className="text-lg font-bold text-on-surface">
-                  {transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
+                  {editingSettlementId ? "Edit Transfer" : transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
                 </h3>
               </div>
               <button
@@ -846,7 +770,7 @@ export default function GroupView() {
                   disabled={transferring || !transferFrom || !transferTo || !transferAmount}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  {transferring ? "Recording..." : transferType === "settle_up" ? "Settle Up" : "Record Transfer"}
+                  {transferring ? "Saving..." : editingSettlementId ? "Save Changes" : transferType === "settle_up" ? "Settle Up" : "Record Transfer"}
                 </button>
               </div>
             </div>

@@ -20,6 +20,7 @@ from app.schemas.settlement import (
     BalanceRead,
     SettlementCreate,
     SettlementRead,
+    SettlementUpdate,
     SuggestedSettlement,
 )
 from app.services.debt_simplifier import simplify_debts
@@ -186,6 +187,56 @@ async def create_settlement(
         amount=settlement.amount,
         description=settlement.description,
         type=settlement.type,
+        settled_at=settlement.settled_at,
+    )
+
+
+@router.patch("/settlements/{settlement_id}", response_model=SettlementRead)
+async def update_settlement(
+    group_id: uuid.UUID,
+    settlement_id: uuid.UUID,
+    data: SettlementUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await get_current_member(db, group_id, current_user.id)
+    result = await db.execute(
+        select(Settlement).where(Settlement.id == settlement_id, Settlement.group_id == group_id)
+    )
+    settlement = result.scalars().first()
+    if not settlement:
+        from app.core.exceptions import NotFound
+        raise NotFound("Settlement not found")
+
+    if data.from_member is not None:
+        settlement.from_member = data.from_member
+    if data.to_member is not None:
+        settlement.to_member = data.to_member
+    if data.amount is not None:
+        settlement.amount = data.amount
+    if data.description is not None:
+        settlement.description = data.description
+    if data.type is not None:
+        settlement.type = data.type
+
+    await db.commit()
+    await db.refresh(settlement)
+
+    member_ids = {settlement.from_member, settlement.to_member}
+    members_result = await db.execute(
+        select(GroupMember).where(GroupMember.id.in_(member_ids))
+    )
+    member_names = {m.id: m.display_name for m in members_result.scalars().all()}
+
+    return SettlementRead(
+        id=settlement.id,
+        from_member=settlement.from_member,
+        from_member_name=member_names.get(settlement.from_member),
+        to_member=settlement.to_member,
+        to_member_name=member_names.get(settlement.to_member),
+        amount=settlement.amount,
+        description=settlement.description,
+        type=settlement.type or "settle_up",
         settled_at=settlement.settled_at,
     )
 

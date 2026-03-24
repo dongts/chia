@@ -13,6 +13,14 @@ class SettlementCreate(BaseModel):
     type: str = "settle_up"  # "settle_up" or "transfer"
 
 
+class SettlementUpdate(BaseModel):
+    from_member: uuid.UUID | None = None
+    to_member: uuid.UUID | None = None
+    amount: Decimal | None = None
+    description: str | None = None
+    type: str | None = None
+
+
 class SettlementRead(BaseModel):
     id: uuid.UUID
     from_member: uuid.UUID

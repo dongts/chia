@@ -34,7 +34,26 @@ export default function MemberSplitList({
 }: MemberSplitListProps) {
   const [search, setSearch] = useState("");
 
-  const sorted = [...members].sort((a, b) => a.display_name.localeCompare(b.display_name));
+  // Sort: members with active values first, then alphabetical
+  const sorted = [...members].sort((a, b) => {
+    let aActive = false;
+    let bActive = false;
+    if (splitType === "equal") {
+      aActive = equalChecked[a.id] ?? false;
+      bActive = equalChecked[b.id] ?? false;
+    } else if (splitType === "exact") {
+      aActive = parseFloat(exactValues[a.id] || "0") > 0;
+      bActive = parseFloat(exactValues[b.id] || "0") > 0;
+    } else if (splitType === "percentage") {
+      aActive = parseFloat(percentValues[a.id] || "0") > 0;
+      bActive = parseFloat(percentValues[b.id] || "0") > 0;
+    } else if (splitType === "shares") {
+      aActive = parseFloat(shareValues[a.id] || "0") > 0;
+      bActive = parseFloat(shareValues[b.id] || "0") > 0;
+    }
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return a.display_name.localeCompare(b.display_name);
+  });
 
   const filtered = search
     ? sorted.filter((m) => m.display_name.toLowerCase().includes(search.toLowerCase()))
