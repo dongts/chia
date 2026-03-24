@@ -188,16 +188,59 @@ async def list_members(group_id: str, ctx: Context) -> str:
 
 
 @mcp.tool()
-async def add_member(group_id: str, display_name: str, ctx: Context) -> str:
+async def add_member(
+    group_id: str,
+    display_name: str,
+    ctx: Context,
+    initial_balance: float | None = None,
+) -> str:
     """Add a new placeholder member to a group (they can claim their account later via invite link).
 
     Args:
         group_id: UUID of the group.
         display_name: Name of the member to add.
+        initial_balance: Optional starting balance for migration from other systems.
+            Positive = the group owes them, negative = they owe the group.
+            Not counted as a transaction.
     """
+    payload: dict = {"display_name": display_name}
+    if initial_balance is not None:
+        payload["initial_balance"] = initial_balance
     data = await _get_client(ctx).post(
         f"/api/v1/groups/{group_id}/members",
-        json={"display_name": display_name},
+        json=payload,
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def update_member(
+    group_id: str,
+    member_id: str,
+    ctx: Context,
+    display_name: str | None = None,
+    initial_balance: float | None = None,
+) -> str:
+    """Update a group member's name or initial balance.
+
+    Args:
+        group_id: UUID of the group.
+        member_id: UUID of the member.
+        display_name: New display name (optional).
+        initial_balance: Set starting balance for migration from other systems.
+            Positive = the group owes them, negative = they owe the group.
+            Not counted as a transaction. (optional)
+    """
+    payload: dict = {}
+    if display_name is not None:
+        payload["display_name"] = display_name
+    if initial_balance is not None:
+        payload["initial_balance"] = initial_balance
+    if not payload:
+        return "No fields to update. Provide display_name or initial_balance."
+    data = await _get_client(ctx).patch(
+        f"/api/v1/groups/{group_id}/members/{member_id}",
+        json=payload,
     )
     return _serialize(data)
 
