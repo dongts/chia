@@ -11,6 +11,7 @@ import { formatAmount } from "@/utils/currency";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 import DatePicker from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function EditExpense() {
   const { groupId, expenseId } = useParams<{ groupId: string; expenseId: string }>();
@@ -203,15 +204,7 @@ export default function EditExpense() {
             <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
               Amount <span className="text-error">*</span>
             </label>
-            <input
-              type="number"
-              required
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
-            />
+            <MoneyInput value={amount} onChange={setAmount} required />
           </div>
 
           {/* Date */}

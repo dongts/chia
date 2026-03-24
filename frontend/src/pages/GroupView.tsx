@@ -12,6 +12,7 @@ import { listGroupCategories } from "@/api/categories";
 import { listMembers } from "@/api/members";
 import { listGroupPaymentMethods } from "@/api/paymentMethods";
 import type { Group, GroupMember, Expense, Balance, Settlement, Category, GroupPaymentMethod } from "@/types";
+import MoneyInput from "@/components/MoneyInput";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
 import { formatCurrency } from "@/utils/currency";
@@ -799,14 +800,9 @@ export default function GroupView() {
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
                   Amount ({group.currency_code})
                 </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                <MoneyInput
                   value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+                  onChange={setTransferAmount}
                 />
               </div>
 

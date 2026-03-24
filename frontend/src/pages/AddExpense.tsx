@@ -13,6 +13,7 @@ import { formatAmount } from "@/utils/currency";
 import CurrencySelect from "@/components/CurrencySelect";
 import DatePicker from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
+import MoneyInput from "@/components/MoneyInput";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 
 export default function AddExpense() {
@@ -205,16 +206,7 @@ export default function AddExpense() {
             <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
               Amount <span className="text-error">*</span>
             </label>
-            <input
-              type="number"
-              required
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
-            />
+            <MoneyInput value={amount} onChange={setAmount} required />
           </div>
 
           {/* Currency */}
