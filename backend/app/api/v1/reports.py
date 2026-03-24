@@ -48,7 +48,7 @@ async def report_summary(
     )
     all_splits = splits_result.scalars().all()
 
-    total_spent = sum(e.converted_amount for e in expenses)
+    total_spent = sum((e.converted_amount for e in expenses), Decimal("0"))
     expense_count = len(expenses)
 
     # Per member: total paid, total owed
@@ -201,8 +201,8 @@ async def report_member_detail(
         for split, expense in owed_splits[:50]
     ]
 
-    total_paid = sum(e.converted_amount for e in paid_expenses)
-    total_owed = sum(s.resolved_amount for s, _ in owed_splits)
+    total_paid = sum((e.converted_amount for e in paid_expenses), Decimal("0"))
+    total_owed = sum((s.resolved_amount for s, _ in owed_splits), Decimal("0"))
 
     return {
         "member_id": str(member_id),
