@@ -33,5 +33,14 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class LinkAccountRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class LinkGoogleAccountRequest(BaseModel):
+    credential: str  # Google ID token
+
+
 class GoogleAuthRequest(BaseModel):
     credential: str  # Google ID token from Sign In With Google

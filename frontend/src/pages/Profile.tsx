@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, ArrowLeft, Shield, Pencil, Trash2, Plus, Upload } from "lucide-react";
+import { User, ArrowLeft, Shield, Link2, Pencil, Trash2, Plus, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import client from "@/api/client";
-import { upgrade } from "@/api/auth";
+import { upgrade, linkAccount, linkGoogleAccount } from "@/api/auth";
 import { getMe } from "@/api/auth";
+import GoogleSignIn from "@/components/GoogleSignIn";
 import { useAuthStore } from "@/store/authStore";
 import {
   listMyPaymentMethods,
@@ -30,6 +31,11 @@ export default function Profile() {
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
   const [upgrading, setUpgrading] = useState(false);
+
+  // Link existing account form
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
+  const [linking, setLinking] = useState(false);
 
   // Payment methods
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -93,6 +99,47 @@ export default function Profile() {
       window.alert(msg);
     } finally {
       setUpgrading(false);
+    }
+  }
+
+  async function handleLinkAccount(e: FormEvent) {
+    e.preventDefault();
+    setLinking(true);
+    try {
+      const tokens = await linkAccount({ email: linkEmail, password: linkPassword });
+      localStorage.setItem("access_token", tokens.access_token);
+      localStorage.setItem("refresh_token", tokens.refresh_token);
+      const updated = await getMe();
+      setUser(updated);
+      window.alert("Account linked! You are now logged in as your verified account.");
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Failed to link account";
+      window.alert(msg);
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function handleLinkGoogle(credential: string) {
+    setLinking(true);
+    try {
+      const tokens = await linkGoogleAccount(credential);
+      localStorage.setItem("access_token", tokens.access_token);
+      localStorage.setItem("refresh_token", tokens.refresh_token);
+      const updated = await getMe();
+      setUser(updated);
+      window.alert("Account linked via Google! You are now logged in as your verified account.");
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Failed to link Google account";
+      window.alert(msg);
+    } finally {
+      setLinking(false);
     }
   }
 
@@ -287,6 +334,65 @@ export default function Profile() {
                 className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
               >
                 {upgrading ? "Upgrading..." : "Upgrade Account"}
+              </button>
+            </form>
+          </section>
+        )}
+
+        {/* Link to existing account — for guests who already have a verified account */}
+        {!user.is_verified && (
+          <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Link2 size={18} className="text-primary" />
+              <h2 className="text-base font-semibold text-on-surface">Link to Existing Account</h2>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-4">
+              Already have an account? Sign in below to merge this guest account into your existing one.
+              All your groups, expenses, and balances will be transferred.
+            </p>
+
+            <div className="mb-4">
+              <GoogleSignIn onCredential={handleLinkGoogle} disabled={linking} />
+            </div>
+
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-outline-variant/15" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-surface-container-lowest px-3 text-outline font-medium">or use email</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleLinkAccount} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={linkEmail}
+                  onChange={(e) => setLinkEmail(e.target.value)}
+                  placeholder="your-existing@email.com"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  placeholder="Your account password"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={linking}
+                className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
+              >
+                {linking ? "Linking..." : "Link Account"}
               </button>
             </form>
           </section>

@@ -43,6 +43,16 @@ export async function upgrade(data: UpgradeData): Promise<TokenResponse> {
   return response.data;
 }
 
+export async function linkAccount(data: LoginData): Promise<TokenResponse> {
+  const response = await client.post<TokenResponse>("/auth/link-account", data);
+  return response.data;
+}
+
+export async function linkGoogleAccount(credential: string): Promise<TokenResponse> {
+  const response = await client.post<TokenResponse>("/auth/link-google", { credential });
+  return response.data;
+}
+
 export async function googleAuth(credential: string): Promise<TokenResponse> {
   const response = await client.post<TokenResponse>("/auth/google", { credential });
   return response.data;

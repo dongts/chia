@@ -8,6 +8,8 @@ from app.models import User
 from app.schemas.auth import (
     GoogleAuthRequest,
     GuestAuthRequest,
+    LinkAccountRequest,
+    LinkGoogleAccountRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -100,6 +102,69 @@ async def upgrade_guest(
     return TokenResponse(
         access_token=create_access_token(str(current_user.id)),
         refresh_token=create_refresh_token(str(current_user.id)),
+    )
+
+
+@router.post("/link-account", response_model=TokenResponse)
+async def link_existing_account(
+    data: LinkAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Link guest account to an existing verified account via email/password.
+
+    Merges all group memberships, expenses, and payment methods from the
+    guest into the verified account, then deletes the guest.
+    Returns tokens for the verified account.
+    """
+    if current_user.is_verified:
+        raise HTTPException(status_code=400, detail="Already a verified user")
+
+    target = await get_user_by_email(db, data.email)
+    if not target:
+        raise HTTPException(status_code=401, detail="Account not found")
+    if not target.password_hash or not verify_password(data.password, target.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    from app.services.merge_users import merge_user_into
+    await merge_user_into(db, current_user.id, target.id)
+
+    return TokenResponse(
+        access_token=create_access_token(str(target.id)),
+        refresh_token=create_refresh_token(str(target.id)),
+    )
+
+
+@router.post("/link-google", response_model=TokenResponse)
+async def link_google_account(
+    data: LinkGoogleAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Link guest account to an existing Google account.
+
+    Verifies the Google credential, finds or creates the verified user,
+    merges the guest into them, returns tokens for the verified account.
+    """
+    if current_user.is_verified:
+        raise HTTPException(status_code=400, detail="Already a verified user")
+
+    try:
+        claims = await verify_google_id_token(data.credential)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Google credential")
+
+    target = await get_or_create_google_user(db, claims)
+
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot link to yourself")
+
+    from app.services.merge_users import merge_user_into
+    await merge_user_into(db, current_user.id, target.id)
+
+    return TokenResponse(
+        access_token=create_access_token(str(target.id)),
+        refresh_token=create_refresh_token(str(target.id)),
     )
 
 
