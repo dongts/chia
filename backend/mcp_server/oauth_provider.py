@@ -272,7 +272,35 @@ class ChiaOAuthProvider(OAuthAuthorizationServerProvider):
     # -- Access token validation --
 
     async def load_access_token(self, token: str) -> AccessToken | None:
-        return self._access_tokens.get(token)
+        # Check in-memory store first (for freshly issued tokens)
+        stored = self._access_tokens.get(token)
+        if stored:
+            return stored
+
+        # If not found in memory (e.g. after server restart / deploy),
+        # validate the token against the Chia API directly.
+        # Chia JWTs are self-contained and verified by the backend on
+        # every request, so we just need to check it's still valid.
+        try:
+            async with httpx.AsyncClient(base_url=CHIA_API_URL, timeout=10) as http:
+                resp = await http.get(
+                    "/api/v1/users/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            if resp.status_code == 200:
+                # Token is valid — re-register it in memory for future lookups
+                access_token = AccessToken(
+                    token=token,
+                    client_id="restored",
+                    scopes=[],
+                    expires_at=None,
+                )
+                self._access_tokens[token] = access_token
+                return access_token
+        except Exception:
+            pass
+
+        return None
 
     # -- Refresh tokens (not supported) --
 
