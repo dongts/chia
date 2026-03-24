@@ -7,11 +7,11 @@ import {
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
-import { getBalances, getSuggestedSettlements, createSettlement, listSettlements } from "@/api/settlements";
+import { getBalances, createSettlement, listSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
 import { listMembers } from "@/api/members";
 import { listGroupPaymentMethods } from "@/api/paymentMethods";
-import type { Group, GroupMember, Expense, Balance, SuggestedSettlement, Settlement, Category, GroupPaymentMethod } from "@/types";
+import type { Group, GroupMember, Expense, Balance, Settlement, Category, GroupPaymentMethod } from "@/types";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
 import { formatCurrency } from "@/utils/currency";
@@ -128,7 +128,6 @@ export default function GroupView() {
   const [group, setGroup] = useState<Group | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
-  const [suggested, setSuggested] = useState<SuggestedSettlement[]>([]);
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -189,11 +188,10 @@ export default function GroupView() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [g, exp, bal, sug, set, cats, mem, pms] = await Promise.all([
+      const [g, exp, bal, set, cats, mem, pms] = await Promise.all([
         getGroup(groupId),
         listExpenses(groupId),
         getBalances(groupId),
-        getSuggestedSettlements(groupId),
         listSettlements(groupId),
         listGroupCategories(groupId),
         listMembers(groupId),
@@ -202,7 +200,6 @@ export default function GroupView() {
       setGroup(g);
       setExpenses(exp);
       setBalances(bal);
-      setSuggested(sug);
       setSettlements(set);
       setCategories(cats);
       setMembers(mem);
@@ -656,19 +653,7 @@ export default function GroupView() {
                       <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant">
                         {b.member_name[0]?.toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-semibold text-on-surface text-sm">{b.member_name}</p>
-                        <p className={cn(
-                          "text-xs font-medium mt-0.5",
-                          isPositive ? "text-primary" : isNegative ? "text-error" : "text-outline"
-                        )}>
-                          {isPositive
-                            ? `Owes you ${formatCurrency(bal, group.currency_code)}`
-                            : isNegative
-                            ? `You owe ${formatCurrency(Math.abs(bal), group.currency_code)}`
-                            : "Settled up"}
-                        </p>
-                      </div>
+                      <p className="font-semibold text-on-surface text-sm">{b.member_name}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {getMemberPaymentMethods(b.member_id).length > 0 && (
@@ -696,49 +681,6 @@ export default function GroupView() {
             )}
           </div>
 
-          {/* Suggested settlements */}
-          {suggested.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">
-                Suggested Settlements
-              </p>
-              <div className="space-y-3">
-                {suggested.map((s) => {
-                  const key = `${s.from_member}-${s.to_member}`;
-                  return (
-                    <div
-                      key={key}
-                      className="bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-3.5 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2 text-sm flex-wrap">
-                        <span className="font-semibold text-on-surface">{s.from_member_name}</span>
-                        <ArrowRight size={14} className="text-outline" />
-                        <span className="font-semibold text-on-surface">{s.to_member_name}</span>
-                        {getMemberPaymentMethods(s.to_member).length > 0 && (
-                          <button
-                            onClick={() => { setPaymentInfoMemberId(s.to_member); setPaymentInfoAmount(Number(s.amount)); }}
-                            className="p-1 text-outline hover:text-primary hover:bg-primary-container/20 rounded-full transition-colors"
-                            title="Payment info"
-                          >
-                            <Landmark size={14} />
-                          </button>
-                        )}
-                        <span className="text-primary font-bold ml-1">
-                          {formatCurrency(Number(s.amount), group.currency_code)}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, Number(s.amount))}
-                        className="bg-primary hover:bg-primary-dim text-on-primary font-medium text-xs px-4 py-2 rounded-full transition-colors"
-                      >
-                        Settle Up
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
