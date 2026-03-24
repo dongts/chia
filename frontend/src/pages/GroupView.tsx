@@ -291,7 +291,6 @@ export default function GroupView() {
 
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
-  const totalGroupSpent = balances.reduce((sum, b) => sum + Math.abs(Number(b.balance)), 0) / 2;
 
   if (loading) {
     return (
@@ -352,22 +351,14 @@ export default function GroupView() {
         </div>
       </div>
 
-      {/* ── Balance Summary Cards ── */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">Total Group Spend</p>
-          <p className="text-lg font-bold text-on-surface">
-            {formatCurrency(totalGroupSpent, group.currency_code)}
-          </p>
-        </div>
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-          <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
-            {myBalance > 0 ? "You are owed" : myBalance < 0 ? "You owe" : "Your balance"}
-          </p>
-          <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
-            {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
-          </p>
-        </div>
+      {/* ── Balance Summary Card ── */}
+      <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
+        <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
+          {myBalance > 0 ? "You are owed" : myBalance < 0 ? "You owe" : "Your balance"}
+        </p>
+        <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
+          {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
+        </p>
       </div>
 
       {/* ── Tab Navigation ── */}
