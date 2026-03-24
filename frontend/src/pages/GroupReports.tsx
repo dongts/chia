@@ -92,10 +92,10 @@ export default function GroupReports() {
   const maxCategoryAmount = sortedCategories[0]?.total_amount ?? 0;
 
   // Find most active member and top category for summary cards
-  const mostActiveMember = summary?.per_member.reduce((max, m) => m.expense_count > max.expense_count ? m : max, summary.per_member[0]);
+  const mostActiveMember = summary?.per_member.length ? summary.per_member.reduce((max, m) => m.expense_count > max.expense_count ? m : max, summary.per_member[0]) : undefined;
   const topCategory = sortedCategories[0];
 
-  const highestSpender = summary?.per_member.reduce((max, m) => m.total_paid > max.total_paid ? m : max, summary.per_member[0]);
+  const highestSpender = summary?.per_member.length ? summary.per_member.reduce((max, m) => m.total_paid > max.total_paid ? m : max, summary.per_member[0]) : undefined;
 
   // Computed sorted/filtered members
   const sortedMembers = useMemo(() => {
