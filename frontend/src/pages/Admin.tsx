@@ -344,6 +344,98 @@ function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
   );
 }
 
+function MergeGroupMemberInline({ groupId, sourceMemberId, sourceMemberName, members, onClose, onMerged }: {
+  groupId: string;
+  sourceMemberId: string;
+  sourceMemberName: string;
+  members: { id: string; display_name: string; user_id: string | null; email: string | null }[];
+  onClose: () => void;
+  onMerged: () => void;
+}) {
+  const [targetId, setTargetId] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const filtered = members.filter((m) =>
+    m.display_name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  async function handleMerge() {
+    if (!targetId) return;
+    setMerging(true);
+    try {
+      const r = await client.post<{ detail: string }>(`/admin/groups/${groupId}/members/${sourceMemberId}/merge-into/${targetId}`);
+      window.alert(r.data.detail);
+      onMerged();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Merge failed";
+      window.alert(msg);
+    } finally { setMerging(false); }
+  }
+
+  const selectedMember = members.find((m) => m.id === targetId);
+
+  return (
+    <div className="mt-3 p-4 bg-surface rounded-xl border border-outline-variant/15 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-on-surface">
+          Merge "{sourceMemberName}" into:
+        </p>
+        <button onClick={onClose} className="text-outline hover:text-on-surface-variant"><X size={14} /></button>
+      </div>
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+        <input
+          type="text"
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); setTargetId(null); }}
+          placeholder="Filter members..."
+          autoFocus
+          className="w-full pl-8 pr-3 py-2 bg-surface-container-high/50 border-0 rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </div>
+      {!targetId && (
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {filtered.map((m) => (
+            <button key={m.id} onClick={() => setTargetId(m.id)}
+              className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container transition-colors">
+              <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                {m.display_name[0]?.toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-on-surface truncate">{m.display_name}</p>
+                <p className="text-xs text-outline truncate">{m.user_id ? m.email || "Claimed" : "Unclaimed"}</p>
+              </div>
+            </button>
+          ))}
+          {filtered.length === 0 && <p className="text-xs text-outline text-center py-2">No matching members</p>}
+        </div>
+      )}
+      {selectedMember && (
+        <div className="flex items-center gap-2 bg-primary-container/10 rounded-lg px-3 py-2">
+          <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+            {selectedMember.display_name[0]?.toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-on-surface">{selectedMember.display_name}</p>
+            <p className="text-xs text-outline">{selectedMember.user_id ? selectedMember.email || "Claimed" : "Unclaimed"}</p>
+          </div>
+          <button onClick={() => setTargetId(null)} className="text-xs text-outline hover:text-on-surface-variant">Change</button>
+        </div>
+      )}
+      {targetId && (
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface py-2 rounded-lg text-sm transition-colors">Cancel</button>
+          <button onClick={handleMerge} disabled={merging}
+            className="flex-1 bg-error hover:bg-error/80 disabled:opacity-60 text-on-error py-2 rounded-lg text-sm font-semibold transition-colors">
+            {merging ? "Merging..." : "Merge"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Users Tab ────────────────────────────────────────────────────────────────
 
 function UsersTab() {
@@ -891,6 +983,7 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
   const [mergeMemberId, setMergeMemberId] = useState<string | null>(null);
   const [mergeMemberName, setMergeMemberName] = useState("");
   const [mergeMemberUserId, setMergeMemberUserId] = useState<string | null>(null);
+  const [mergeType, setMergeType] = useState<"user" | "member">("user");
 
   async function handleRename(memberId: string) {
     if (!renameValue.trim()) return;
@@ -952,10 +1045,16 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                         {m.email && <span className="text-xs text-outline">{m.email}</span>}
                         <Badge green={m.role === "owner"}>{m.role}</Badge>
                         {!m.user_id && <span className="text-xs text-amber-500">unclaimed</span>}
-                        {m.user_id && (
+                        {m.is_active && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setMergeMemberId(m.id); setMergeMemberName(m.display_name); setMergeMemberUserId(m.user_id); }}
-                            className="text-outline-variant hover:text-primary transition-colors" title="Merge this member's account into another user"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMergeMemberId(m.id);
+                              setMergeMemberName(m.display_name);
+                              setMergeMemberUserId(m.user_id);
+                              setMergeType(m.user_id ? "user" : "member");
+                            }}
+                            className="text-outline-variant hover:text-primary transition-colors" title="Merge this member into another"
                           ><Merge size={11} /></button>
                         )}
                       </span>
@@ -963,10 +1062,20 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                   </div>
 
                   {/* Merge member modal */}
-                  {mergeMemberId && mergeMemberUserId && (
+                  {mergeMemberId && mergeType === "user" && mergeMemberUserId && (
                     <MergeMemberInline
                       memberName={mergeMemberName}
                       sourceUserId={mergeMemberUserId}
+                      onClose={() => { setMergeMemberId(null); setMergeMemberUserId(null); }}
+                      onMerged={() => { setMergeMemberId(null); setMergeMemberUserId(null); onRefresh(); }}
+                    />
+                  )}
+                  {mergeMemberId && mergeType === "member" && (
+                    <MergeGroupMemberInline
+                      groupId={group.id}
+                      sourceMemberId={mergeMemberId}
+                      sourceMemberName={mergeMemberName}
+                      members={expandedDetail?.members.filter((m) => m.id !== mergeMemberId && m.is_active) ?? []}
                       onClose={() => { setMergeMemberId(null); setMergeMemberUserId(null); }}
                       onMerged={() => { setMergeMemberId(null); setMergeMemberUserId(null); onRefresh(); }}
                     />

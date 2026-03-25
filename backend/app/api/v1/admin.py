@@ -363,6 +363,89 @@ async def admin_check(current_user: User = Depends(require_superadmin)):
     return {"email": current_user.email, "is_superadmin": True}
 
 
+# ── Merge Group Members ──────────────────────────────────────────────────
+
+
+@router.post("/groups/{group_id}/members/{source_member_id}/merge-into/{target_member_id}")
+async def merge_group_members(
+    group_id: uuid.UUID,
+    source_member_id: uuid.UUID,
+    target_member_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(require_superadmin),
+):
+    """Merge source member into target member within the same group.
+
+    Reassigns all expenses, splits, settlements, and logs from source to target,
+    adds initial_balance, keeps the higher role, then deactivates source.
+    Works for unclaimed members (no user_id).
+    """
+    if source_member_id == target_member_id:
+        raise BadRequest("Cannot merge a member into themselves")
+
+    src = (await db.execute(
+        select(GroupMember).where(GroupMember.id == source_member_id, GroupMember.group_id == group_id)
+    )).scalars().first()
+    tgt = (await db.execute(
+        select(GroupMember).where(GroupMember.id == target_member_id, GroupMember.group_id == group_id)
+    )).scalars().first()
+    if not src:
+        raise NotFound("Source member not found")
+    if not tgt:
+        raise NotFound("Target member not found")
+
+    source_name = src.display_name
+    target_name = tgt.display_name
+
+    # Reassign all references from source to target
+    await db.execute(
+        Expense.__table__.update().where(Expense.paid_by == src.id).values(paid_by=tgt.id)
+    )
+    await db.execute(
+        Expense.__table__.update().where(Expense.created_by == src.id).values(created_by=tgt.id)
+    )
+    await db.execute(
+        ExpenseSplit.__table__.update().where(ExpenseSplit.group_member_id == src.id).values(group_member_id=tgt.id)
+    )
+    await db.execute(
+        Settlement.__table__.update().where(Settlement.from_member == src.id).values(from_member=tgt.id)
+    )
+    await db.execute(
+        Settlement.__table__.update().where(Settlement.to_member == src.id).values(to_member=tgt.id)
+    )
+    await db.execute(
+        Settlement.__table__.update().where(Settlement.created_by == src.id).values(created_by=tgt.id)
+    )
+    await db.execute(
+        GroupMemberLog.__table__.update().where(GroupMemberLog.member_id == src.id).values(member_id=tgt.id)
+    )
+    await db.execute(
+        GroupMemberLog.__table__.update().where(GroupMemberLog.performed_by == src.id).values(performed_by=tgt.id)
+    )
+    await db.execute(
+        GroupPaymentMethod.__table__.update().where(GroupPaymentMethod.member_id == src.id).values(member_id=tgt.id)
+    )
+
+    # Combine initial balances and keep higher role
+    tgt.initial_balance += src.initial_balance
+
+    role_priority = {"owner": 3, "admin": 2, "member": 1}
+    if role_priority.get(src.role.value, 0) > role_priority.get(tgt.role.value, 0):
+        tgt.role = src.role
+
+    # Deactivate source
+    src.is_active = False
+    src.user_id = None
+
+    await db.commit()
+
+    return {
+        "detail": f"Merged member '{source_name}' into '{target_name}'",
+        "source_name": source_name,
+        "target_name": target_name,
+    }
+
+
 # ── Merge Users ──────────────────────────────────────────────────────────
 
 
