@@ -276,6 +276,42 @@ async def update_group_member(
     }
 
 
+@router.delete("/groups/{group_id}/members/{member_id}")
+async def delete_group_member(
+    group_id: uuid.UUID, member_id: uuid.UUID, db: AsyncSession = Depends(get_db),
+):
+    """Hard-delete a group member and all their associated data."""
+    member = (await db.execute(
+        select(GroupMember).where(GroupMember.id == member_id, GroupMember.group_id == group_id)
+    )).scalars().first()
+    if not member:
+        raise NotFound("Member not found")
+
+    name = member.display_name
+
+    # Delete associated data
+    await db.execute(delete(ExpenseSplit).where(ExpenseSplit.group_member_id == member_id))
+    await db.execute(delete(Settlement).where(
+        (Settlement.from_member == member_id) | (Settlement.to_member == member_id)
+    ))
+    await db.execute(delete(GroupMemberLog).where(
+        (GroupMemberLog.member_id == member_id) | (GroupMemberLog.performed_by == member_id)
+    ))
+    await db.execute(delete(GroupPaymentMethod).where(GroupPaymentMethod.member_id == member_id))
+
+    # Delete expenses paid by this member
+    await db.execute(delete(Expense).where(Expense.paid_by == member_id))
+
+    # Nullify created_by references on remaining expenses
+    await db.execute(
+        Expense.__table__.update().where(Expense.created_by == member_id).values(created_by=None)
+    )
+
+    await db.delete(member)
+    await db.commit()
+    return {"detail": f"Member '{name}' permanently deleted"}
+
+
 @router.delete("/groups/{group_id}")
 async def delete_group(group_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Group).where(Group.id == group_id))
