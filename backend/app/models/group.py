@@ -29,3 +29,4 @@ class Group(Base):
     members: Mapped[list["GroupMember"]] = relationship(back_populates="group")  # noqa: F821
     expenses: Mapped[list["Expense"]] = relationship(back_populates="group")  # noqa: F821
     settlements: Mapped[list["Settlement"]] = relationship(back_populates="group")  # noqa: F821
+    funds: Mapped[list["Fund"]] = relationship(back_populates="group")  # noqa: F821

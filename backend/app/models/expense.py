@@ -31,6 +31,9 @@ class Expense(Base):
     converted_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     category_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("categories.id"))
     receipt_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    fund_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("funds.id", ondelete="SET NULL"), nullable=True
+    )
     date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -39,6 +42,7 @@ class Expense(Base):
     payer: Mapped["GroupMember"] = relationship(foreign_keys=[paid_by])  # noqa: F821
     creator: Mapped["GroupMember"] = relationship(foreign_keys=[created_by])  # noqa: F821
     category: Mapped["Category"] = relationship()  # noqa: F821
+    fund: Mapped["Fund | None"] = relationship()  # noqa: F821
     splits: Mapped[list["ExpenseSplit"]] = relationship(back_populates="expense", cascade="all, delete-orphan")
 
 

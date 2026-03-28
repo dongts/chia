@@ -8,10 +8,12 @@ from app.models.notification import Notification
 from app.models.group_currency import GroupCurrency
 from app.models.group_member_log import GroupMemberLog
 from app.models.payment_method import PaymentMethod, GroupPaymentMethod
+from app.models.fund import Fund, FundTransaction, FundTransactionType
 
 __all__ = [
     "User", "UserOAuth", "Group", "GroupMember", "MemberRole",
     "Category", "Expense", "ExpenseSplit", "SplitType",
     "Settlement", "Notification", "GroupCurrency", "GroupMemberLog",
     "PaymentMethod", "GroupPaymentMethod",
+    "Fund", "FundTransaction", "FundTransactionType",
 ]
