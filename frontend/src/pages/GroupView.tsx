@@ -376,10 +376,7 @@ export default function GroupView() {
 
       {/* ── Tab Navigation ── */}
       <div className="flex gap-1 bg-surface-container rounded-full p-1">
-        {(funds.length > 0
-          ? (["expenses", "balances", "settlements", "funds"] as Tab[])
-          : (["expenses", "balances", "settlements"] as Tab[])
-        ).map((t) => (
+        {(["expenses", "balances", "settlements", "funds"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
