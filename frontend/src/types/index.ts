@@ -106,6 +106,8 @@ export interface Expense {
   created_by: string;
   category_id: string;
   receipt_url: string | null;
+  fund_id: string | null;
+  fund_name: string | null;
   splits: ExpenseSplit[];
   created_at: string;
 }
@@ -118,6 +120,7 @@ export interface ExpenseCreate {
   date: string;
   paid_by: string;
   category_id: string;
+  fund_id?: string | null;
   split_type: SplitType;
   splits: SplitInput[];
 }
@@ -130,6 +133,7 @@ export interface ExpenseUpdate {
   date?: string | null;
   paid_by?: string | null;
   category_id?: string | null;
+  fund_id?: string | null;
   split_type?: SplitType | null;
   splits?: SplitInput[] | null;
 }
@@ -192,6 +196,68 @@ export interface SettlementUpdate {
   amount?: number;
   description?: string | null;
   type?: "settle_up" | "transfer";
+}
+
+// Fund
+export type FundTransactionType = "contribute" | "withdraw" | "expense" | "holder_change";
+
+export interface Fund {
+  id: string;
+  group_id: string;
+  name: string;
+  description: string | null;
+  holder_id: string;
+  holder_name: string | null;
+  created_by: string;
+  is_active: boolean;
+  balance: number;
+  transaction_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FundDetail extends Fund {
+  contributions_by_member: MemberContribution[];
+}
+
+export interface MemberContribution {
+  member_id: string;
+  member_name: string;
+  total: number;
+}
+
+export interface FundCreate {
+  name: string;
+  description?: string | null;
+  holder_id?: string | null;
+}
+
+export interface FundUpdate {
+  name?: string | null;
+  description?: string | null;
+  holder_id?: string | null;
+  is_active?: boolean | null;
+}
+
+export interface FundTransaction {
+  id: string;
+  fund_id: string;
+  type: FundTransactionType;
+  amount: number;
+  member_id: string;
+  member_name: string | null;
+  expense_id: string | null;
+  note: string | null;
+  created_by: string;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+export interface FundTransactionCreate {
+  type: "contribute" | "withdraw";
+  amount: number;
+  member_id: string;
+  note?: string | null;
 }
 
 export interface Balance {
