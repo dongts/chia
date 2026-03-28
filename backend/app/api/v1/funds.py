@@ -2,7 +2,7 @@ import uuid
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
@@ -46,7 +46,7 @@ async def _compute_balance(db: AsyncSession, fund_id: uuid.UUID) -> Decimal:
         select(
             func.coalesce(
                 func.sum(
-                    func.case(
+                    case(
                         (FundTransaction.type == FundTransactionType.contribute, FundTransaction.amount),
                         else_=Decimal("0"),
                     )
@@ -55,7 +55,7 @@ async def _compute_balance(db: AsyncSession, fund_id: uuid.UUID) -> Decimal:
             )
             - func.coalesce(
                 func.sum(
-                    func.case(
+                    case(
                         (
                             FundTransaction.type.in_([FundTransactionType.withdraw, FundTransactionType.expense]),
                             FundTransaction.amount,
