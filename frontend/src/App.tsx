@@ -18,6 +18,7 @@ import EditExpense from "@/pages/EditExpense";
 import GroupSettings from "@/pages/GroupSettings";
 import GroupReports from "./pages/GroupReports";
 import MemberAnalytics from "@/pages/MemberAnalytics";
+import FundDetail from "@/pages/FundDetail";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import UpdatePrompt from "@/components/UpdatePrompt";
@@ -93,6 +94,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/groups/:groupId" element={<GroupView />} />
+            <Route path="/groups/:groupId/funds/:fundId" element={<FundDetail />} />
             <Route path="/groups/:groupId/add-expense" element={<AddExpense />} />
             <Route
               path="/groups/:groupId/expenses/:expenseId/edit"
