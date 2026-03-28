@@ -12,6 +12,7 @@ from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
+from app.models.fund import Fund, FundTransaction, FundTransactionType
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, SplitRead
 from app.services.notification import notify_group
 from app.services.split_calculator import calculate_splits
@@ -28,6 +29,7 @@ def _build_expense_read(expense: Expense, group_currency: str | None = None) -> 
     result = ExpenseRead.model_validate(expense)
     result.splits = splits
     result.payer_name = expense.payer.display_name if expense.payer else None
+    result.fund_name = expense.fund.name if expense.fund else None
     result.group_currency = group_currency or expense.group.currency_code if expense.group else None
     return result
 
@@ -71,6 +73,20 @@ async def create_expense(
             exchange_rate = allowed_currency.exchange_rate
     converted_amount = (data.amount * exchange_rate).quantize(Decimal("0.01"))
 
+    # Validate fund if provided
+    fund = None
+    if data.fund_id:
+        fund_result = await db.execute(
+            select(Fund).where(
+                Fund.id == data.fund_id,
+                Fund.group_id == group_id,
+                Fund.is_active == True,
+            )
+        )
+        fund = fund_result.scalars().first()
+        if not fund:
+            raise BadRequest("Fund not found or inactive")
+
     # Compute splits against converted amount (in group's main currency)
     members_map = {str(s.group_member_id): s.value for s in data.splits}
     resolved = calculate_splits(converted_amount, data.split_type.value, members_map)
@@ -85,10 +101,24 @@ async def create_expense(
         exchange_rate=exchange_rate,
         converted_amount=converted_amount,
         category_id=data.category_id,
+        fund_id=data.fund_id,
         date=data.date,
     )
     db.add(expense)
     await db.flush()
+
+    # Create fund transaction if expense is linked to a fund
+    if data.fund_id:
+        fund_tx = FundTransaction(
+            fund_id=data.fund_id,
+            type=FundTransactionType.expense,
+            amount=converted_amount,
+            member_id=data.paid_by,
+            expense_id=expense.id,
+            note=data.description,
+            created_by=current.id,
+        )
+        db.add(fund_tx)
 
     for s in data.splits:
         split = ExpenseSplit(
@@ -115,6 +145,7 @@ async def create_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
+            selectinload(Expense.fund),
         )
     )
     expense = result.scalars().first()
@@ -140,6 +171,7 @@ async def list_expenses(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
+            selectinload(Expense.fund),
         )
         .order_by(Expense.date.desc(), Expense.created_at.desc())
         .limit(limit)
@@ -170,6 +202,7 @@ async def get_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
+            selectinload(Expense.fund),
         )
     )
     expense = result.scalars().first()
@@ -216,6 +249,42 @@ async def update_expense(
     if data.category_id is not None:
         expense.category_id = data.category_id
 
+    if data.fund_id is not None:
+        if data.fund_id != expense.fund_id:
+            # Remove old fund transaction
+            if expense.fund_id:
+                old_ft_result = await db.execute(
+                    select(FundTransaction).where(FundTransaction.expense_id == expense.id)
+                )
+                old_ft = old_ft_result.scalars().first()
+                if old_ft:
+                    await db.delete(old_ft)
+
+            # Add new fund transaction
+            if data.fund_id:
+                fund_result = await db.execute(
+                    select(Fund).where(
+                        Fund.id == data.fund_id,
+                        Fund.group_id == group_id,
+                        Fund.is_active == True,
+                    )
+                )
+                if not fund_result.scalars().first():
+                    raise BadRequest("Fund not found or inactive")
+
+                new_ft = FundTransaction(
+                    fund_id=data.fund_id,
+                    type=FundTransactionType.expense,
+                    amount=expense.converted_amount,
+                    member_id=expense.paid_by,
+                    expense_id=expense.id,
+                    note=expense.description,
+                    created_by=current.id,
+                )
+                db.add(new_ft)
+
+            expense.fund_id = data.fund_id
+
     # Recalculate converted amount
     if data.amount is not None or data.exchange_rate is not None or data.currency_code is not None:
         rate = expense.exchange_rate if expense.currency_code != group.currency_code else Decimal("1")
@@ -255,6 +324,7 @@ async def update_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
+            selectinload(Expense.fund),
         )
     )
     expense = result.scalars().first()
@@ -283,6 +353,15 @@ async def delete_expense(
         db, group_id, current_user.id, "expense_deleted",
         {"description": expense.description, "amount": str(expense.amount)},
     )
+
+    # Delete linked fund transaction if any
+    if expense.fund_id:
+        ft_result = await db.execute(
+            select(FundTransaction).where(FundTransaction.expense_id == expense_id)
+        )
+        ft = ft_result.scalars().first()
+        if ft:
+            await db.delete(ft)
 
     await db.delete(expense)
     await db.commit()
