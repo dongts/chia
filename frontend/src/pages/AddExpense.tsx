@@ -7,9 +7,10 @@ import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
 import { listGroupCurrencies } from "@/api/groupCurrencies";
-import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput } from "@/types";
+import { listFunds } from "@/api/funds";
+import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput, Fund } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatAmount } from "@/utils/currency";
+import { formatAmount, formatCurrency } from "@/utils/currency";
 import CurrencySelect from "@/components/CurrencySelect";
 import DatePicker from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
@@ -26,6 +27,9 @@ export default function AddExpense() {
   const [allowedCurrencies, setAllowedCurrencies] = useState<GroupCurrencyRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [selectedFundId, setSelectedFundId] = useState<string>("");
 
   // Form fields
   const [description, setDescription] = useState("");
@@ -45,6 +49,7 @@ export default function AddExpense() {
 
   useEffect(() => {
     if (!groupId) return;
+    listFunds(groupId).then((f) => setFunds(f.filter((fund) => fund.is_active)));
     Promise.all([getGroup(groupId), listMembers(groupId), listGroupCategories(groupId), listGroupCurrencies(groupId)])
       .then(([g, m, c, gc]) => {
         setGroup(g);
@@ -144,6 +149,7 @@ export default function AddExpense() {
         date,
         paid_by: paidBy,
         category_id: categoryId,
+        fund_id: selectedFundId || null,
         split_type: splitType,
         splits,
       });
@@ -297,6 +303,30 @@ export default function AddExpense() {
             placeholder="Select category..."
           />
         </div>
+
+        {/* Fund Selector */}
+        {funds.length > 0 && (
+          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Fund</h2>
+            <div>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+                Pay from fund <span className="text-outline font-normal">(optional)</span>
+              </label>
+              <select
+                value={selectedFundId}
+                onChange={(e) => setSelectedFundId(e.target.value)}
+                className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">No fund (personal expense)</option>
+                {funds.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} ({formatCurrency(f.balance, group?.currency_code || "VND")})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Split Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
