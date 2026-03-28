@@ -11,7 +11,8 @@ import { getBalances, createSettlement, updateSettlement, listSettlements } from
 import { listGroupCategories } from "@/api/categories";
 import { listMembers } from "@/api/members";
 import { listGroupPaymentMethods } from "@/api/paymentMethods";
-import type { Group, GroupMember, Expense, Balance, Settlement, Category, GroupPaymentMethod } from "@/types";
+import { listFunds, createFund } from "@/api/funds";
+import type { Group, GroupMember, Expense, Balance, Settlement, Category, GroupPaymentMethod, Fund } from "@/types";
 import MoneyInput from "@/components/MoneyInput";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
@@ -19,7 +20,7 @@ import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 
-type Tab = "expenses" | "balances" | "settlements";
+type Tab = "expenses" | "balances" | "settlements" | "funds";
 
 const PAGE_SIZE = 20;
 
@@ -133,6 +134,11 @@ export default function GroupView() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [showCreateFund, setShowCreateFund] = useState(false);
+  const [newFundName, setNewFundName] = useState("");
+  const [newFundDescription, setNewFundDescription] = useState("");
+  const [newFundHolder, setNewFundHolder] = useState("");
   const [paymentInfoMemberId, setPaymentInfoMemberId] = useState<string | null>(null);
   const [paymentInfoAmount, setPaymentInfoAmount] = useState<number | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("expenses");
@@ -189,7 +195,7 @@ export default function GroupView() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [g, exp, bal, set, cats, mem, pms] = await Promise.all([
+      const [g, exp, bal, set, cats, mem, pms, fds] = await Promise.all([
         getGroup(groupId),
         listExpenses(groupId),
         getBalances(groupId),
@@ -197,6 +203,7 @@ export default function GroupView() {
         listGroupCategories(groupId),
         listMembers(groupId),
         listGroupPaymentMethods(groupId),
+        listFunds(groupId),
       ]);
       setGroup(g);
       setExpenses(exp);
@@ -205,6 +212,7 @@ export default function GroupView() {
       setCategories(cats);
       setMembers(mem);
       setGroupPMs(pms);
+      setFunds(fds);
     } catch {
       window.alert("Failed to load group data");
     } finally {
@@ -368,7 +376,10 @@ export default function GroupView() {
 
       {/* ── Tab Navigation ── */}
       <div className="flex gap-1 bg-surface-container rounded-full p-1">
-        {(["expenses", "balances", "settlements"] as Tab[]).map((t) => (
+        {(funds.length > 0
+          ? (["expenses", "balances", "settlements", "funds"] as Tab[])
+          : (["expenses", "balances", "settlements"] as Tab[])
+        ).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -481,6 +492,11 @@ export default function GroupView() {
                             <div className="flex items-center gap-2.5">
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
                               <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors">{expense.description}</Link>
+                              {expense.fund_name && (
+                                <span className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                                  {expense.fund_name}
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-outline sm:hidden mt-0.5">
                               {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
@@ -667,6 +683,67 @@ export default function GroupView() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
+          FUNDS TAB
+         ══════════════════════════════════════════════════════════ */}
+      {tab === "funds" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-on-surface">Group Funds</h3>
+            <button
+              onClick={() => setShowCreateFund(true)}
+              className="flex items-center gap-1.5 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
+            >
+              <Plus size={16} /> New Fund
+            </button>
+          </div>
+
+          {funds.length === 0 ? (
+            <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
+              <div className="text-5xl mb-4">💰</div>
+              <p className="font-semibold text-on-surface text-base">No funds yet</p>
+              <p className="text-sm text-on-surface-variant mt-1">Create a shared fund for this group</p>
+            </div>
+          ) : (
+            funds.map((fund) => (
+              <Link
+                key={fund.id}
+                to={`/groups/${groupId}/funds/${fund.id}`}
+                className={cn(
+                  "block bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-4 transition-shadow hover:shadow-editorial-xl",
+                  !fund.is_active && "opacity-50"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-on-surface text-sm">{fund.name}</span>
+                      {!fund.is_active && (
+                        <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-medium uppercase tracking-wide">
+                          Closed
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-on-surface-variant mt-1">
+                      Holder: {fund.holder_name} · {fund.transaction_count} transactions
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn(
+                      "text-base font-bold",
+                      fund.balance > 0 ? "text-primary" : "text-outline"
+                    )}>
+                      {formatCurrency(fund.balance, group.currency_code)}
+                    </p>
+                    <p className="text-[10px] text-outline uppercase tracking-wide">Balance</p>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
           TRANSFER / SETTLE MODAL
          ══════════════════════════════════════════════════════════ */}
       {showTransfer && (
@@ -771,6 +848,97 @@ export default function GroupView() {
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
                   {transferring ? "Saving..." : editingSettlementId ? "Save Changes" : transferType === "settle_up" ? "Settle Up" : "Record Transfer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Fund Modal ── */}
+      {showCreateFund && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setShowCreateFund(false)}
+        >
+          <div
+            className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 pt-6 pb-2">
+              <h3 className="text-lg font-bold text-on-surface">New Fund</h3>
+              <button
+                onClick={() => setShowCreateFund(false)}
+                className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 pb-6 pt-3 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Name *</label>
+                <input
+                  type="text"
+                  value={newFundName}
+                  onChange={(e) => setNewFundName(e.target.value)}
+                  placeholder="e.g. Quỹ tiền phạt"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+                  Description <span className="text-outline font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newFundDescription}
+                  onChange={(e) => setNewFundDescription(e.target.value)}
+                  placeholder="What is this fund for?"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Holder</label>
+                <select
+                  value={newFundHolder}
+                  onChange={(e) => setNewFundHolder(e.target.value)}
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+                >
+                  <option value="">Myself (default)</option>
+                  {members.filter((m) => m.is_active).map((m) => (
+                    <option key={m.id} value={m.id}>{m.display_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowCreateFund(false)}
+                  className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!newFundName.trim() || !groupId) return;
+                    try {
+                      await createFund(groupId, {
+                        name: newFundName.trim(),
+                        description: newFundDescription.trim() || null,
+                        holder_id: newFundHolder || null,
+                      });
+                      setShowCreateFund(false);
+                      setNewFundName("");
+                      setNewFundDescription("");
+                      setNewFundHolder("");
+                      await loadAll();
+                    } catch {
+                      window.alert("Failed to create fund");
+                    }
+                  }}
+                  disabled={!newFundName.trim()}
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
+                >
+                  Create Fund
                 </button>
               </div>
             </div>
