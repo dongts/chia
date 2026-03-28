@@ -275,6 +275,7 @@ async def create_expense(
     expense_date: str | None = None,
     currency_code: str | None = None,
     exchange_rate: float | None = None,
+    fund_id: str | None = None,
 ) -> str:
     """Create an expense in a group. For equal splits, pass all member IDs with value=1.
 
@@ -293,6 +294,7 @@ async def create_expense(
         expense_date: Date of the expense in YYYY-MM-DD format. Defaults to today.
         currency_code: Currency code if different from group default.
         exchange_rate: Exchange rate to group currency if using a different currency.
+        fund_id: UUID of a fund to pay from. Creates a linked fund transaction automatically.
     """
     payload: dict = {
         "description": description,
@@ -307,6 +309,8 @@ async def create_expense(
         payload["currency_code"] = currency_code
     if exchange_rate:
         payload["exchange_rate"] = exchange_rate
+    if fund_id:
+        payload["fund_id"] = fund_id
 
     data = await _get_client(ctx).post(
         f"/api/v1/groups/{group_id}/expenses", json=payload
@@ -444,6 +448,212 @@ async def list_settlements(
         params={"limit": limit, "offset": offset},
     )
     return _serialize(data)
+
+
+# ── Funds ────────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+async def list_funds(group_id: str, ctx: Context) -> str:
+    """List all funds in a group with their current balance, holder, and transaction count.
+
+    Args:
+        group_id: UUID of the group.
+    """
+    data = await _get_client(ctx).get(f"/api/v1/groups/{group_id}/funds")
+    return _serialize(data)
+
+
+@mcp.tool()
+async def get_fund(group_id: str, fund_id: str, ctx: Context) -> str:
+    """Get detailed info about a fund including balance, holder, and contributions by member.
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+    """
+    data = await _get_client(ctx).get(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}"
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def create_fund(
+    group_id: str,
+    name: str,
+    ctx: Context,
+    description: str | None = None,
+    holder_id: str | None = None,
+) -> str:
+    """Create a new shared fund in a group.
+
+    Args:
+        group_id: UUID of the group.
+        name: Name of the fund (e.g. "Quỹ tiền phạt").
+        description: Optional description of the fund's purpose.
+        holder_id: UUID of the member who holds the fund. Defaults to the creator.
+    """
+    payload: dict = {"name": name}
+    if description:
+        payload["description"] = description
+    if holder_id:
+        payload["holder_id"] = holder_id
+    data = await _get_client(ctx).post(
+        f"/api/v1/groups/{group_id}/funds", json=payload
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def update_fund(
+    group_id: str,
+    fund_id: str,
+    ctx: Context,
+    name: str | None = None,
+    description: str | None = None,
+    holder_id: str | None = None,
+    is_active: bool | None = None,
+) -> str:
+    """Update a fund's name, description, holder, or active status.
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+        name: New name for the fund.
+        description: New description.
+        holder_id: UUID of the new holder (logs a holder_change transaction).
+        is_active: Set to false to close the fund, true to reopen.
+    """
+    payload: dict = {}
+    if name is not None:
+        payload["name"] = name
+    if description is not None:
+        payload["description"] = description
+    if holder_id is not None:
+        payload["holder_id"] = holder_id
+    if is_active is not None:
+        payload["is_active"] = is_active
+    if not payload:
+        return "No fields to update."
+    data = await _get_client(ctx).patch(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}", json=payload
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def close_fund(group_id: str, fund_id: str, ctx: Context) -> str:
+    """Close a fund (soft delete). No new transactions can be added to a closed fund.
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+    """
+    await _get_client(ctx).delete(f"/api/v1/groups/{group_id}/funds/{fund_id}")
+    return "Fund closed successfully."
+
+
+@mcp.tool()
+async def contribute_to_fund(
+    group_id: str,
+    fund_id: str,
+    amount: float,
+    member_id: str,
+    ctx: Context,
+    note: str | None = None,
+) -> str:
+    """Record a contribution to a fund.
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+        amount: Amount contributed (must be positive).
+        member_id: UUID of the member who contributed.
+        note: Optional note (e.g. "Tiền phạt thua trận").
+    """
+    payload: dict = {
+        "type": "contribute",
+        "amount": amount,
+        "member_id": member_id,
+    }
+    if note:
+        payload["note"] = note
+    data = await _get_client(ctx).post(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}/transactions", json=payload
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def withdraw_from_fund(
+    group_id: str,
+    fund_id: str,
+    amount: float,
+    member_id: str,
+    ctx: Context,
+    note: str | None = None,
+) -> str:
+    """Record a withdrawal from a fund.
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+        amount: Amount withdrawn (must be positive).
+        member_id: UUID of the member who received the withdrawal.
+        note: Optional note explaining the withdrawal.
+    """
+    payload: dict = {
+        "type": "withdraw",
+        "amount": amount,
+        "member_id": member_id,
+    }
+    if note:
+        payload["note"] = note
+    data = await _get_client(ctx).post(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}/transactions", json=payload
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def list_fund_transactions(
+    group_id: str,
+    fund_id: str,
+    ctx: Context,
+    limit: int = 50,
+    offset: int = 0,
+) -> str:
+    """List transaction history for a fund (contributions, withdrawals, expenses, holder changes).
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+        limit: Maximum number of transactions to return (default 50).
+        offset: Number of transactions to skip for pagination.
+    """
+    data = await _get_client(ctx).get(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}/transactions",
+        params={"limit": limit, "offset": offset},
+    )
+    return _serialize(data)
+
+
+@mcp.tool()
+async def delete_fund_transaction(
+    group_id: str, fund_id: str, transaction_id: str, ctx: Context
+) -> str:
+    """Delete a fund transaction (only contribute/withdraw, not expense-linked or holder changes).
+
+    Args:
+        group_id: UUID of the group.
+        fund_id: UUID of the fund.
+        transaction_id: UUID of the transaction to delete.
+    """
+    await _get_client(ctx).delete(
+        f"/api/v1/groups/{group_id}/funds/{fund_id}/transactions/{transaction_id}"
+    )
+    return "Transaction deleted successfully."
 
 
 # ── Reports ──────────────────────────────────────────────────────────────
