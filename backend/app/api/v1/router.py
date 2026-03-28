@@ -30,3 +30,6 @@ api_router.include_router(reports_router)
 
 from app.api.v1.payment_methods import router as payment_methods_router
 api_router.include_router(payment_methods_router)
+
+from app.api.v1.funds import router as funds_router
+api_router.include_router(funds_router)
