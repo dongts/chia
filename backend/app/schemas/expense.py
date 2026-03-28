@@ -22,6 +22,7 @@ class ExpenseCreate(BaseModel):
     date: DateType
     paid_by: uuid.UUID
     category_id: uuid.UUID
+    fund_id: Optional[uuid.UUID] = None
     split_type: SplitType
     splits: list[SplitInput]
 
@@ -50,6 +51,8 @@ class ExpenseRead(BaseModel):
     payer_name: Optional[str] = None
     created_by: uuid.UUID
     category_id: uuid.UUID
+    fund_id: Optional[uuid.UUID] = None
+    fund_name: Optional[str] = None
     receipt_url: Optional[str]
     splits: list[SplitRead] = []
     created_at: datetime
@@ -65,5 +68,6 @@ class ExpenseUpdate(BaseModel):
     date: Optional[DateType] = None
     paid_by: Optional[uuid.UUID] = None
     category_id: Optional[uuid.UUID] = None
+    fund_id: Optional[uuid.UUID] = None
     split_type: Optional[SplitType] = None
     splits: Optional[list[SplitInput]] = None
