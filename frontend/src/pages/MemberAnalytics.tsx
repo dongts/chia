@@ -71,9 +71,10 @@ function formatDate(iso: string) {
 }
 
 function formatCompact(amount: number, currencyCode: string = "USD"): string {
-  if (amount >= 1000) {
-    return formatCurrency(Math.round(amount / 100) * 100, currencyCode);
-  }
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
+  if (abs >= 10_000) return `${(amount / 1_000).toFixed(0)}K`;
   return formatCurrency(amount, currencyCode);
 }
 
@@ -111,8 +112,8 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
         />
         {/* White center */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-24 h-24 rounded-full bg-surface-container-lowest flex items-center justify-center">
-            <span className="text-lg font-bold text-on-surface">{formatCompact(total, currencyCode)}</span>
+          <div className="w-24 h-24 rounded-full bg-surface-container-lowest flex items-center justify-center px-2">
+            <span className="text-sm font-bold text-on-surface text-center leading-tight break-all">{formatCompact(total, currencyCode)}</span>
           </div>
         </div>
       </div>
