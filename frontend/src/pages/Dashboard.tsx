@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   Users,
@@ -9,9 +9,12 @@ import {
   ArrowRight,
   Sparkles,
   ChevronRight,
+  Share2,
+  Check,
+  UserPlus,
 } from "lucide-react";
 import { listGroups, createGroup } from "@/api/groups";
-import type { GroupListItem } from "@/types";
+import type { Group, GroupListItem } from "@/types";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import CurrencySelect from "@/components/CurrencySelect";
@@ -86,6 +89,11 @@ export default function Dashboard() {
   const [description, setDescription] = useState("");
   const [currency, setCurrency] = useState("USD");
 
+  // Post-creation state
+  const [createdGroup, setCreatedGroup] = useState<Group | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const firstName = user?.display_name?.split(" ")[0] ?? "there";
 
@@ -108,11 +116,12 @@ export default function Dashboard() {
     e.preventDefault();
     setCreating(true);
     try {
-      await createGroup({ name, description: description || null, currency_code: currency });
+      const newGroup = await createGroup({ name, description: description || null, currency_code: currency });
       setShowForm(false);
       setName("");
       setDescription("");
       setCurrency("USD");
+      setCreatedGroup(newGroup);
       await loadGroups();
     } catch (err: unknown) {
       const msg =
@@ -122,6 +131,15 @@ export default function Dashboard() {
     } finally {
       setCreating(false);
     }
+  }
+
+  function copyCreatedGroupLink() {
+    if (!createdGroup) return;
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${createdGroup.invite_code}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
   }
 
   const totalBalance = useMemo(
@@ -220,6 +238,44 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Creation Modal */}
+      {createdGroup && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 pt-8 pb-6 text-center space-y-4">
+              <div className="text-5xl">🎉</div>
+              <h2 className="text-xl font-bold text-on-surface">Group Created!</h2>
+              <p className="text-sm text-on-surface-variant">
+                <span className="font-semibold text-on-surface">{createdGroup.name}</span> is ready. Invite people to start splitting expenses.
+              </p>
+
+              <div className="space-y-3 pt-2">
+                <button
+                  onClick={copyCreatedGroupLink}
+                  className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold py-3 rounded-full text-sm transition-colors shadow-editorial"
+                >
+                  {copiedLink ? <Check size={16} /> : <Share2 size={16} />}
+                  {copiedLink ? "Link Copied!" : "Copy Invite Link"}
+                </button>
+                <button
+                  onClick={() => { setCreatedGroup(null); navigate(`/groups/${createdGroup.id}`); }}
+                  className="w-full flex items-center justify-center gap-2 bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface font-semibold py-3 rounded-full text-sm transition-colors"
+                >
+                  <UserPlus size={16} />
+                  Go to Group
+                </button>
+                <button
+                  onClick={() => setCreatedGroup(null)}
+                  className="w-full text-sm text-on-surface-variant hover:text-on-surface font-medium py-2 transition-colors"
+                >
+                  Stay on Dashboard
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -346,11 +402,17 @@ export default function Dashboard() {
                   <h3 className="font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">
                     {g.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4">
+                  <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4 flex-wrap">
                     <Users size={12} />
                     <span>{g.member_count} member{g.member_count !== 1 ? "s" : ""}</span>
                     <span className="text-outline">|</span>
                     <span>{g.currency_code}</span>
+                    {g.created_at && (
+                      <>
+                        <span className="text-outline">|</span>
+                        <span>{new Date(g.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex items-end justify-between">

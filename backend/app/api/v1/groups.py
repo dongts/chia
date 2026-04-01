@@ -164,6 +164,7 @@ async def list_groups(
             currency_code=group.currency_code,
             member_count=member_count,
             my_balance=round(balances.get(group.id, 0.0), 2),
+            created_at=group.created_at,
         ))
     return items
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { createExpense } from "@/api/expenses";
+import { ArrowLeft, ImagePlus, X } from "lucide-react";
+import { createExpense, uploadReceipt } from "@/api/expenses";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
@@ -30,6 +30,8 @@ export default function AddExpense() {
 
   const [funds, setFunds] = useState<Fund[]>([]);
   const [selectedFundId, setSelectedFundId] = useState<string>("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   // Form fields
   const [description, setDescription] = useState("");
@@ -141,7 +143,7 @@ export default function AddExpense() {
 
     setSubmitting(true);
     try {
-      await createExpense(groupId, {
+      const created = await createExpense(groupId, {
         description,
         amount: parseFloat(amount),
         currency_code: isDifferentCurrency ? currencyCode : undefined,
@@ -153,6 +155,13 @@ export default function AddExpense() {
         split_type: splitType,
         splits,
       });
+      if (receiptFile) {
+        try {
+          await uploadReceipt(groupId, created.id, receiptFile);
+        } catch {
+          // Expense created but receipt failed — not critical
+        }
+      }
       navigate(`/groups/${groupId}`);
     } catch (err: unknown) {
       const msg =
@@ -270,6 +279,43 @@ export default function AddExpense() {
           <div>
             <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Date</label>
             <DatePicker value={date} onChange={setDate} />
+          </div>
+
+          {/* Receipt Image */}
+          <div>
+            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
+              Receipt <span className="text-outline font-normal">(optional)</span>
+            </label>
+            {receiptPreview ? (
+              <div className="space-y-2">
+                <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
+                  <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-48 object-contain bg-surface-container" />
+                  <button
+                    type="button"
+                    onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-surface-container/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 px-4 py-3 bg-surface-container-high/50 rounded-xl cursor-pointer hover:bg-surface-container-high/70 transition-colors">
+                <ImagePlus size={18} className="text-outline" />
+                <span className="text-sm text-on-surface-variant">Add receipt image</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setReceiptFile(file);
+                    setReceiptPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
 

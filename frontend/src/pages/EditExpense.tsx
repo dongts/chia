@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { getExpense, updateExpense } from "@/api/expenses";
+import { ArrowLeft, ImagePlus, Trash2, Loader2 } from "lucide-react";
+import { getExpense, updateExpense, uploadReceipt, deleteReceipt } from "@/api/expenses";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
@@ -27,6 +27,8 @@ export default function EditExpense() {
   const [selectedFundId, setSelectedFundId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Form fields
   const [description, setDescription] = useState("");
@@ -56,6 +58,7 @@ export default function EditExpense() {
         setMembers(m);
         setCategories(c);
         setSelectedFundId(exp.fund_id || "");
+        setReceiptUrl(exp.receipt_url);
 
         // Pre-fill form
         setDescription(exp.description);
@@ -315,6 +318,73 @@ export default function EditExpense() {
             shareValues={shareValues}
             onShareChange={(id, v) => setShareValues((prev) => ({ ...prev, [id]: v }))}
           />
+        </div>
+
+        {/* Receipt / Image Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Receipt / Image</h2>
+          {receiptUrl ? (
+            <div className="space-y-3">
+              <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
+                <img
+                  src={receiptUrl}
+                  alt="Receipt"
+                  className="w-full max-h-64 object-contain bg-surface-container"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!groupId || !expenseId) return;
+                  if (!window.confirm("Remove receipt image?")) return;
+                  setUploadingReceipt(true);
+                  try {
+                    await deleteReceipt(groupId, expenseId);
+                    setReceiptUrl(null);
+                  } catch {
+                    window.alert("Failed to remove receipt");
+                  } finally {
+                    setUploadingReceipt(false);
+                  }
+                }}
+                disabled={uploadingReceipt}
+                className="flex items-center gap-2 text-error hover:text-error/80 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-error-container/10 transition-colors"
+              >
+                <Trash2 size={14} />
+                Remove Image
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-outline-variant/30 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-primary-container/5 transition-colors">
+              {uploadingReceipt ? (
+                <Loader2 size={24} className="text-primary animate-spin" />
+              ) : (
+                <ImagePlus size={24} className="text-outline" />
+              )}
+              <span className="text-xs text-on-surface-variant font-medium">
+                {uploadingReceipt ? "Uploading..." : "Click to upload receipt image"}
+              </span>
+              <span className="text-[10px] text-outline">JPEG, PNG, or WebP</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !groupId || !expenseId) return;
+                  setUploadingReceipt(true);
+                  try {
+                    const updated = await uploadReceipt(groupId, expenseId, file);
+                    setReceiptUrl(updated.receipt_url);
+                  } catch {
+                    window.alert("Failed to upload receipt");
+                  } finally {
+                    setUploadingReceipt(false);
+                  }
+                }}
+              />
+            </label>
+          )}
         </div>
 
         {/* Action Buttons */}

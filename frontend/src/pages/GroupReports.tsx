@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Search, ChevronUp, ChevronDown } from "lucide-react";
 import client from "@/api/client";
-import { formatCurrency, formatAmount } from "@/utils/currency";
+import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -42,7 +42,7 @@ function CategoryBar({ category, maxAmount, currencyCode }: { category: Category
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-on-surface-variant">{category.percentage.toFixed(0)}%</span>
             <span className="text-sm font-semibold text-on-surface">
-              {formatAmount(category.total_amount, currencyCode)}
+              {formatCurrency(category.total_amount, currencyCode)}
             </span>
           </div>
         </div>

@@ -38,5 +38,6 @@ class GroupListItem(BaseModel):
     currency_code: str
     member_count: int
     my_balance: float = 0.0
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}

@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models import Expense, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
 from app.models.fund import Fund, FundTransaction, FundTransactionType
 from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, SplitRead
+from app.services.file_storage import save_upload
 from app.services.notification import notify_group
 from app.services.split_calculator import calculate_splits
 
@@ -366,3 +367,81 @@ async def delete_expense(
     await db.delete(expense)
     await db.commit()
     return {"detail": "Expense deleted"}
+
+
+@router.post("/{expense_id}/receipt", response_model=ExpenseRead)
+async def upload_receipt(
+    group_id: uuid.UUID,
+    expense_id: uuid.UUID,
+    file: UploadFile,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    group = await get_group_or_404(db, group_id)
+    current = await get_current_member(db, group_id, current_user.id)
+    result = await db.execute(
+        select(Expense).where(Expense.id == expense_id, Expense.group_id == group_id)
+    )
+    expense = result.scalars().first()
+    if not expense:
+        raise NotFound("Expense not found")
+
+    if expense.created_by != current.id:
+        require_role(current, MemberRole.owner, MemberRole.admin)
+
+    try:
+        url = await save_upload(file)
+    except ValueError as e:
+        raise BadRequest(str(e))
+
+    expense.receipt_url = url
+    await db.commit()
+
+    result = await db.execute(
+        select(Expense)
+        .where(Expense.id == expense.id)
+        .options(
+            selectinload(Expense.splits).selectinload(ExpenseSplit.member),
+            selectinload(Expense.payer),
+            selectinload(Expense.group),
+            selectinload(Expense.fund),
+        )
+    )
+    expense = result.scalars().first()
+    return _build_expense_read(expense, group.currency_code)
+
+
+@router.delete("/{expense_id}/receipt", response_model=ExpenseRead)
+async def delete_receipt(
+    group_id: uuid.UUID,
+    expense_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    group = await get_group_or_404(db, group_id)
+    current = await get_current_member(db, group_id, current_user.id)
+    result = await db.execute(
+        select(Expense).where(Expense.id == expense_id, Expense.group_id == group_id)
+    )
+    expense = result.scalars().first()
+    if not expense:
+        raise NotFound("Expense not found")
+
+    if expense.created_by != current.id:
+        require_role(current, MemberRole.owner, MemberRole.admin)
+
+    expense.receipt_url = None
+    await db.commit()
+
+    result = await db.execute(
+        select(Expense)
+        .where(Expense.id == expense.id)
+        .options(
+            selectinload(Expense.splits).selectinload(ExpenseSplit.member),
+            selectinload(Expense.payer),
+            selectinload(Expense.group),
+            selectinload(Expense.fund),
+        )
+    )
+    expense = result.scalars().first()
+    return _build_expense_read(expense, group.currency_code)

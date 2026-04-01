@@ -31,3 +31,21 @@ export async function updateExpense(
 export async function deleteExpense(groupId: string, expenseId: string): Promise<void> {
   await client.delete(`/groups/${groupId}/expenses/${expenseId}`);
 }
+
+export async function uploadReceipt(groupId: string, expenseId: string, file: File): Promise<Expense> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await client.post<Expense>(
+    `/groups/${groupId}/expenses/${expenseId}/receipt`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
+}
+
+export async function deleteReceipt(groupId: string, expenseId: string): Promise<Expense> {
+  const response = await client.delete<Expense>(
+    `/groups/${groupId}/expenses/${expenseId}/receipt`
+  );
+  return response.data;
+}

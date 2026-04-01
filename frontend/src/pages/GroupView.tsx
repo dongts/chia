@@ -2,17 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
-  ArrowLeftRight, Landmark,
+  ArrowLeftRight, Landmark, UserPlus, ImageIcon,
   ArrowRight, X, Search, Filter, ChevronDown,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
-import { getBalances, createSettlement, updateSettlement, listSettlements } from "@/api/settlements";
+import { getBalances, createSettlement, updateSettlement, listSettlements, getSuggestedSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
-import { listMembers } from "@/api/members";
+import { listMembers, addMember } from "@/api/members";
 import { listGroupPaymentMethods } from "@/api/paymentMethods";
 import { listFunds, createFund } from "@/api/funds";
-import type { Group, GroupMember, Expense, Balance, Settlement, Category, GroupPaymentMethod, Fund } from "@/types";
+import type { Group, GroupMember, Expense, Balance, Settlement, SuggestedSettlement, Category, GroupPaymentMethod, Fund } from "@/types";
 import MoneyInput from "@/components/MoneyInput";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
@@ -134,6 +134,7 @@ export default function GroupView() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
+  const [suggestedSettlements, setSuggestedSettlements] = useState<SuggestedSettlement[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [showCreateFund, setShowCreateFund] = useState(false);
   const [newFundName, setNewFundName] = useState("");
@@ -154,6 +155,11 @@ export default function GroupView() {
   const [editingSettlementId, setEditingSettlementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // Add member modal
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
 
   const currentUser = useAuthStore((s) => s.user);
 
@@ -195,7 +201,7 @@ export default function GroupView() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [g, exp, bal, set, cats, mem, pms, fds] = await Promise.all([
+      const [g, exp, bal, set, cats, mem, pms, fds, suggested] = await Promise.all([
         getGroup(groupId),
         listExpenses(groupId),
         getBalances(groupId),
@@ -204,6 +210,7 @@ export default function GroupView() {
         listMembers(groupId),
         listGroupPaymentMethods(groupId),
         listFunds(groupId),
+        getSuggestedSettlements(groupId).catch(() => [] as SuggestedSettlement[]),
       ]);
       setGroup(g);
       setExpenses(exp);
@@ -213,6 +220,7 @@ export default function GroupView() {
       setMembers(mem);
       setGroupPMs(pms);
       setFunds(fds);
+      setSuggestedSettlements(suggested);
     } catch {
       window.alert("Failed to load group data");
     } finally {
@@ -305,6 +313,11 @@ export default function GroupView() {
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
 
+  // Settlement suggestions involving the current user
+  const mySettlementSuggestions = myMemberId
+    ? suggestedSettlements.filter((s) => s.from_member === myMemberId || s.to_member === myMemberId)
+    : [];
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -331,15 +344,28 @@ export default function GroupView() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-xs text-on-surface-variant">{group.member_count ?? "?"} members</span>
               <span className="text-outline">·</span>
               <span className="text-xs font-medium text-outline">{group.currency_code}</span>
+              {group.created_at && (
+                <>
+                  <span className="text-outline">·</span>
+                  <span className="text-xs text-outline">Created {new Date(group.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowAddMember(true)}
+            className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
+            title="Add member"
+          >
+            <UserPlus size={18} />
+          </button>
           <button
             onClick={copyInviteCode}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
@@ -373,6 +399,84 @@ export default function GroupView() {
           {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
         </p>
       </div>
+
+      {/* ── Settlement Suggestions for Current User ── */}
+      {mySettlementSuggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider px-1">Suggested Settlements</p>
+          {mySettlementSuggestions.map((s, i) => {
+            const iOwe = s.from_member === myMemberId;
+            return (
+              <div
+                key={i}
+                className="bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold",
+                    iOwe ? "bg-error-container/20 text-error" : "bg-primary-container/20 text-primary"
+                  )}>
+                    {iOwe ? s.to_member_name[0]?.toUpperCase() : s.from_member_name[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">
+                      {iOwe
+                        ? <>You owe <span className="font-semibold">{s.to_member_name}</span></>
+                        : <><span className="font-semibold">{s.from_member_name}</span> owes you</>
+                      }
+                    </p>
+                    <p className={cn("text-sm font-bold", iOwe ? "text-error" : "text-primary")}>
+                      {formatCurrency(Number(s.amount), group.currency_code)}
+                    </p>
+                  </div>
+                </div>
+                {iOwe && (
+                  <button
+                    onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, Number(s.amount))}
+                    className="flex items-center gap-1.5 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-xs transition-colors"
+                  >
+                    Settle Up
+                  </button>
+                )}
+                {!iOwe && getMemberPaymentMethods(s.from_member).length > 0 && (
+                  <button
+                    onClick={() => { setPaymentInfoMemberId(s.from_member); setPaymentInfoAmount(Number(s.amount)); }}
+                    className="p-2 text-outline hover:text-primary hover:bg-primary-container/20 rounded-full transition-colors"
+                    title="Payment info"
+                  >
+                    <Landmark size={16} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Onboarding CTA (empty group) ── */}
+      {members.length <= 1 && expenses.length === 0 && (
+        <div className="bg-primary-container/20 border border-primary-container/40 rounded-2xl p-5 text-center space-y-3">
+          <div className="text-4xl">👋</div>
+          <p className="font-semibold text-on-surface">Get started by inviting people</p>
+          <p className="text-sm text-on-surface-variant">Share the invite link or add members to start splitting expenses together.</p>
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <button
+              onClick={() => setShowAddMember(true)}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-5 py-2.5 rounded-full text-sm transition-colors"
+            >
+              <UserPlus size={16} />
+              Add Member
+            </button>
+            <button
+              onClick={copyInviteCode}
+              className="flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container text-on-surface font-medium px-5 py-2.5 rounded-full text-sm transition-colors shadow-editorial"
+            >
+              {copied ? <Check size={16} className="text-primary" /> : <Share2 size={16} />}
+              {copied ? "Copied!" : "Share Link"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Tab Navigation ── */}
       <div className="flex gap-1 bg-surface-container rounded-full p-1">
@@ -489,6 +593,9 @@ export default function GroupView() {
                             <div className="flex items-center gap-2.5">
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
                               <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors">{expense.description}</Link>
+                              {expense.receipt_url && (
+                                <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
+                              )}
                               {expense.fund_name && (
                                 <span className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
                                   {expense.fund_name}
@@ -936,6 +1043,96 @@ export default function GroupView() {
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
                   Create Fund
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Member Modal ── */}
+      {showAddMember && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setShowAddMember(false)}
+        >
+          <div
+            className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 pt-6 pb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center">
+                  <UserPlus size={18} className="text-primary" />
+                </div>
+                <h3 className="text-lg font-bold text-on-surface">Add Member</h3>
+              </div>
+              <button
+                onClick={() => setShowAddMember(false)}
+                className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 pb-6 pt-3 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Display name *</label>
+                <input
+                  type="text"
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  placeholder="e.g. John"
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (newMemberName.trim() && groupId) {
+                        setAddingMember(true);
+                        addMember(groupId, { display_name: newMemberName.trim() })
+                          .then(() => { setShowAddMember(false); setNewMemberName(""); loadAll(); })
+                          .catch(() => window.alert("Failed to add member"))
+                          .finally(() => setAddingMember(false));
+                      }
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-xs text-on-surface-variant">
+                Or share the invite link so they can join themselves:
+              </p>
+              <button
+                onClick={copyInviteCode}
+                className="w-full flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2.5 rounded-full text-sm transition-colors"
+              >
+                {copied ? <Check size={16} className="text-primary" /> : <Share2 size={16} />}
+                {copied ? "Link Copied!" : "Copy Invite Link"}
+              </button>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowAddMember(false)}
+                  className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!newMemberName.trim() || !groupId) return;
+                    setAddingMember(true);
+                    try {
+                      await addMember(groupId, { display_name: newMemberName.trim() });
+                      setShowAddMember(false);
+                      setNewMemberName("");
+                      await loadAll();
+                    } catch {
+                      window.alert("Failed to add member");
+                    } finally {
+                      setAddingMember(false);
+                    }
+                  }}
+                  disabled={!newMemberName.trim() || addingMember}
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
+                >
+                  {addingMember ? "Adding..." : "Add Member"}
                 </button>
               </div>
             </div>

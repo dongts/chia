@@ -34,6 +34,7 @@ export interface GroupListItem {
   currency_code: string;
   member_count: number;
   my_balance: number;
+  created_at: string | null;
 }
 
 export interface GroupCreate {
