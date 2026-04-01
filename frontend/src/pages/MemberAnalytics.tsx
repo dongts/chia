@@ -70,11 +70,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function formatCompact(amount: number): string {
+function formatCompact(amount: number, currencyCode: string = "USD"): string {
   if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(1)}k`;
+    return formatCurrency(Math.round(amount / 100) * 100, currencyCode);
   }
-  return `$${amount.toFixed(0)}`;
+  return formatCurrency(amount, currencyCode);
 }
 
 function LoadingSpinner() {
@@ -112,7 +112,7 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
         {/* White center */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-24 h-24 rounded-full bg-surface-container-lowest flex items-center justify-center">
-            <span className="text-lg font-bold text-on-surface">{formatCompact(total)}</span>
+            <span className="text-lg font-bold text-on-surface">{formatCompact(total, currencyCode)}</span>
           </div>
         </div>
       </div>
