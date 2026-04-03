@@ -394,7 +394,9 @@ async def update_expense(
         rate = expense.exchange_rate if expense.currency_code != group.currency_code else Decimal("1")
         expense.converted_amount = (expense.amount * rate).quantize(Decimal("0.01"))
 
-    # Recalculate splits if provided
+    # Recalculate splits if provided, or if deductions/amount changed
+    deductions_changed = data.fund_deductions is not None
+    amount_changed = data.amount is not None or data.exchange_rate is not None or data.currency_code is not None
     if data.splits is not None and data.split_type is not None:
         for old_split in expense.splits:
             await db.delete(old_split)
@@ -422,6 +424,25 @@ async def update_expense(
                 resolved_amount=resolved[str(s.group_member_id)],
             )
             db.add(split)
+    elif (deductions_changed or amount_changed) and expense.splits:
+        # Re-resolve existing splits against new splittable_amount
+        deductions_result = await db.execute(
+            select(func.coalesce(func.sum(ExpenseFundDeduction.amount), Decimal("0")))
+            .where(ExpenseFundDeduction.expense_id == expense.id)
+        )
+        total_deductions = deductions_result.scalar() or Decimal("0")
+        splittable_amount = expense.converted_amount - total_deductions
+
+        current_split_type = expense.splits[0].split_type.value
+        members_map = {str(s.group_member_id): s.value for s in expense.splits}
+
+        if splittable_amount == 0:
+            resolved = {mid: Decimal("0") for mid in members_map}
+        else:
+            resolved = calculate_splits(splittable_amount, current_split_type, members_map)
+
+        for s in expense.splits:
+            s.resolved_amount = resolved[str(s.group_member_id)]
 
     await notify_group(
         db, group_id, current_user.id, "expense_updated",
