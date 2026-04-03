@@ -39,11 +39,24 @@ def _build_expense_read(expense: Expense, group_currency: str | None = None) -> 
             amount=d.amount,
         ))
 
-    result = ExpenseRead.model_validate(expense)
-    result.splits = splits
-    result.fund_deductions = fund_deductions
-    result.payer_name = expense.payer.display_name if expense.payer else None
-    result.group_currency = group_currency or expense.group.currency_code if expense.group else None
+    result = ExpenseRead(
+        id=expense.id,
+        description=expense.description,
+        amount=expense.amount,
+        currency_code=expense.currency_code,
+        exchange_rate=expense.exchange_rate,
+        converted_amount=expense.converted_amount,
+        date=expense.date,
+        paid_by=expense.paid_by,
+        payer_name=expense.payer.display_name if expense.payer else None,
+        created_by=expense.created_by,
+        category_id=expense.category_id,
+        fund_deductions=fund_deductions,
+        receipt_url=expense.receipt_url,
+        splits=splits,
+        created_at=expense.created_at,
+        group_currency=group_currency or (expense.group.currency_code if expense.group else None),
+    )
     return result
 
 
