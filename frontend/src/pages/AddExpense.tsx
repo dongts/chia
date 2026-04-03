@@ -90,7 +90,7 @@ export default function AddExpense() {
             checked[mem.id] = checkAll;
             exact[mem.id] = "";
             pct[mem.id] = "";
-            shares[mem.id] = "1";
+            shares[mem.id] = "0";
           });
           setEqualChecked(checked);
           setExactValues(exact);

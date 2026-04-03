@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
-  ArrowLeftRight, Landmark, UserPlus, ImageIcon, ChevronRight,
+  ArrowLeftRight, Landmark, UserPlus, ImageIcon,
   ArrowRight, X, Search, Filter, ChevronDown,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
@@ -134,7 +134,7 @@ export default function GroupView() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
-  const [suggestedSettlements, setSuggestedSettlements] = useState<SuggestedSettlement[]>([]);
+  const [, setSuggestedSettlements] = useState<SuggestedSettlement[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [showCreateFund, setShowCreateFund] = useState(false);
   const [newFundName, setNewFundName] = useState("");
@@ -155,9 +155,6 @@ export default function GroupView() {
   const [editingSettlementId, setEditingSettlementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-
-  // Settlement suggestions
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Add member modal
   const [showAddMember, setShowAddMember] = useState(false);
@@ -316,10 +313,6 @@ export default function GroupView() {
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
 
-  // Settlement suggestions involving the current user
-  const mySettlementSuggestions = myMemberId
-    ? suggestedSettlements.filter((s) => s.from_member === myMemberId || s.to_member === myMemberId)
-    : [];
 
   if (loading) {
     return (
@@ -403,70 +396,7 @@ export default function GroupView() {
         </p>
       </div>
 
-      {/* ── Settlement Suggestions for Current User (collapsible) ── */}
-      {mySettlementSuggestions.length > 0 && (
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-          <button
-            onClick={() => setShowSuggestions((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-container/40 transition-colors"
-          >
-            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
-              Suggested Settlements ({mySettlementSuggestions.length})
-            </p>
-            <ChevronRight size={16} className={cn("text-outline transition-transform", showSuggestions && "rotate-90")} />
-          </button>
-          {showSuggestions && (
-            <div className="px-4 pb-3 space-y-2">
-              {mySettlementSuggestions.map((s, i) => {
-                const iOwe = s.from_member === myMemberId;
-                return (
-                  <div
-                    key={i}
-                    className="bg-surface-container/30 rounded-xl px-4 py-3 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold",
-                        iOwe ? "bg-error-container/20 text-error" : "bg-primary-container/20 text-primary"
-                      )}>
-                        {iOwe ? s.to_member_name[0]?.toUpperCase() : s.from_member_name[0]?.toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">
-                          {iOwe
-                            ? <>You owe <span className="font-semibold">{s.to_member_name}</span></>
-                            : <><span className="font-semibold">{s.from_member_name}</span> owes you</>
-                          }
-                        </p>
-                        <p className={cn("text-sm font-bold", iOwe ? "text-error" : "text-primary")}>
-                          {formatCurrency(Number(s.amount), group.currency_code)}
-                        </p>
-                      </div>
-                    </div>
-                    {iOwe && (
-                      <button
-                        onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, Number(s.amount))}
-                        className="flex items-center gap-1.5 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-xs transition-colors"
-                      >
-                        Settle Up
-                      </button>
-                    )}
-                    {!iOwe && getMemberPaymentMethods(s.from_member).length > 0 && (
-                      <button
-                        onClick={() => { setPaymentInfoMemberId(s.from_member); setPaymentInfoAmount(Number(s.amount)); }}
-                        className="p-2 text-outline hover:text-primary hover:bg-primary-container/20 rounded-full transition-colors"
-                        title="Payment info"
-                      >
-                        <Landmark size={16} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Settlement suggestions removed — available in Balances tab */}
 
       {/* ── Onboarding CTA (empty group) ── */}
       {members.length <= 1 && expenses.length === 0 && (

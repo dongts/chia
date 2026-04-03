@@ -34,24 +34,24 @@ export default function MemberSplitList({
 }: MemberSplitListProps) {
   const [search, setSearch] = useState("");
 
-  // Sort: members with active values first, then alphabetical
+  // Sort: for equal mode keep stable order (alphabetical only) to avoid scroll jumps.
+  // For other modes, sort active values first then alphabetical.
   const sorted = [...members].sort((a, b) => {
-    let aActive = false;
-    let bActive = false;
-    if (splitType === "equal") {
-      aActive = equalChecked[a.id] ?? false;
-      bActive = equalChecked[b.id] ?? false;
-    } else if (splitType === "exact") {
-      aActive = parseFloat(exactValues[a.id] || "0") > 0;
-      bActive = parseFloat(exactValues[b.id] || "0") > 0;
-    } else if (splitType === "percentage") {
-      aActive = parseFloat(percentValues[a.id] || "0") > 0;
-      bActive = parseFloat(percentValues[b.id] || "0") > 0;
-    } else if (splitType === "shares") {
-      aActive = parseFloat(shareValues[a.id] || "0") > 0;
-      bActive = parseFloat(shareValues[b.id] || "0") > 0;
+    if (splitType !== "equal") {
+      let aActive = false;
+      let bActive = false;
+      if (splitType === "exact") {
+        aActive = parseFloat(exactValues[a.id] || "0") > 0;
+        bActive = parseFloat(exactValues[b.id] || "0") > 0;
+      } else if (splitType === "percentage") {
+        aActive = parseFloat(percentValues[a.id] || "0") > 0;
+        bActive = parseFloat(percentValues[b.id] || "0") > 0;
+      } else if (splitType === "shares") {
+        aActive = parseFloat(shareValues[a.id] || "0") > 0;
+        bActive = parseFloat(shareValues[b.id] || "0") > 0;
+      }
+      if (aActive !== bActive) return aActive ? -1 : 1;
     }
-    if (aActive !== bActive) return aActive ? -1 : 1;
     return a.display_name.localeCompare(b.display_name);
   });
 
@@ -162,14 +162,14 @@ export default function MemberSplitList({
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     <div className="flex items-center gap-1">
                       <button type="button"
-                        onClick={() => onShareChange(m.id, String(Math.max(0, parseFloat(shareValues[m.id] || "1") - 1)))}
+                        onClick={() => onShareChange(m.id, String(Math.max(0, parseFloat(shareValues[m.id] || "0") - 1)))}
                         className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">−</button>
                       <input type="number" min="0" step="1"
                         value={shareValues[m.id] ?? "1"}
                         onChange={(e) => onShareChange(m.id, e.target.value)}
                         className="w-12 text-center border border-outline-variant/15 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                       <button type="button"
-                        onClick={() => onShareChange(m.id, String(parseFloat(shareValues[m.id] || "1") + 1))}
+                        onClick={() => onShareChange(m.id, String(parseFloat(shareValues[m.id] || "0") + 1))}
                         className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">+</button>
                     </div>
                   </div>

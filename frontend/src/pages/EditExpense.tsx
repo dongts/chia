@@ -103,7 +103,7 @@ export default function EditExpense() {
           checked[mem.id] = !!existingSplit;
           exact[mem.id] = existingSplit ? String(existingSplit.resolved_amount) : "";
           pct[mem.id] = existingSplit ? String(existingSplit.value) : "";
-          shares[mem.id] = existingSplit ? String(existingSplit.value) : "1";
+          shares[mem.id] = existingSplit ? String(existingSplit.value) : "0";
         });
 
         setEqualChecked(checked);
