@@ -318,7 +318,8 @@ async def delete_group(group_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     group = result.scalars().first()
     if not group:
         raise NotFound("Group not found")
-    await db.delete(group)
+    # Use raw DELETE to let DB-level CASCADE handle all child tables
+    await db.execute(delete(Group).where(Group.id == group_id))
     await db.commit()
     return {"detail": "Group deleted"}
 
