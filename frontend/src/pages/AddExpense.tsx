@@ -29,7 +29,7 @@ export default function AddExpense() {
   const [submitting, setSubmitting] = useState(false);
 
   const [funds, setFunds] = useState<Fund[]>([]);
-  const [selectedFundId, setSelectedFundId] = useState<string>("");
+  const [fundDeductions, setFundDeductions] = useState<Array<{ fundId: string; amount: string }>>([]);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
@@ -48,6 +48,26 @@ export default function AddExpense() {
   const [exactValues, setExactValues] = useState<Record<string, string>>({});
   const [percentValues, setPercentValues] = useState<Record<string, string>>({});
   const [shareValues, setShareValues] = useState<Record<string, string>>({});
+
+  function addFundDeduction() {
+    setFundDeductions((prev) => [...prev, { fundId: "", amount: "" }]);
+  }
+
+  function removeFundDeduction(index: number) {
+    setFundDeductions((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateFundDeduction(index: number, field: "fundId" | "amount", value: string) {
+    setFundDeductions((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, [field]: value } : d))
+    );
+  }
+
+  const totalFundDeductions = fundDeductions.reduce(
+    (sum, d) => sum + (parseFloat(d.amount) || 0), 0
+  );
+
+  const splittableAmount = Math.max(0, (parseFloat(amount) || 0) - totalFundDeductions);
 
   useEffect(() => {
     if (!groupId) return;
@@ -99,9 +119,8 @@ export default function AddExpense() {
         .map((m) => ({ group_member_id: m.id, value: parseFloat(exactValues[m.id] || "0") }))
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
-      const amtNum = parseFloat(amount);
-      if (Math.abs(total - amtNum) > 0.01) {
-        window.alert(`Exact amounts must sum to ${amount}. Currently: ${formatAmount(total, group?.currency_code)}`);
+      if (Math.abs(total - splittableAmount) > 0.01) {
+        window.alert(`Exact amounts must sum to ${formatAmount(splittableAmount, group?.currency_code)}. Currently: ${formatAmount(total, group?.currency_code)}`);
         return null;
       }
       return splits;
@@ -151,7 +170,9 @@ export default function AddExpense() {
         date,
         paid_by: paidBy,
         category_id: categoryId,
-        fund_id: selectedFundId || null,
+        fund_deductions: fundDeductions
+          .filter((d) => d.fundId && parseFloat(d.amount) > 0)
+          .map((d) => ({ fund_id: d.fundId, amount: parseFloat(d.amount) })),
         split_type: splitType,
         splits,
       });
@@ -350,27 +371,87 @@ export default function AddExpense() {
           />
         </div>
 
-        {/* Fund Selector */}
+        {/* Fund Deductions */}
         {funds.length > 0 && (
           <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Fund</h2>
-            <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
-                Pay from fund <span className="text-outline font-normal">(optional)</span>
-              </label>
-              <select
-                value={selectedFundId}
-                onChange={(e) => setSelectedFundId(e.target.value)}
-                className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Pay from funds</h2>
+              <button
+                type="button"
+                onClick={addFundDeduction}
+                disabled={fundDeductions.length >= funds.length}
+                className="text-xs font-semibold text-primary hover:text-primary-dim disabled:opacity-40 transition-colors"
               >
-                <option value="">No fund (personal expense)</option>
-                {funds.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name} ({formatCurrency(f.balance, group?.currency_code || "VND")})
-                  </option>
-                ))}
-              </select>
+                + Add fund
+              </button>
             </div>
+
+            {fundDeductions.length === 0 && (
+              <p className="text-xs text-outline">No fund deductions — full amount will be split among members.</p>
+            )}
+
+            {fundDeductions.map((d, i) => {
+              const selectedIds = fundDeductions.map((dd) => dd.fundId).filter((id) => id && id !== d.fundId);
+              const availableFunds = funds.filter((f) => !selectedIds.includes(f.id));
+              const selectedFund = funds.find((f) => f.id === d.fundId);
+              const deductionExceedsBalance = selectedFund && parseFloat(d.amount) > selectedFund.balance;
+
+              return (
+                <div key={i} className="flex items-start gap-2">
+                  <div className="flex-1 space-y-2">
+                    <select
+                      value={d.fundId}
+                      onChange={(e) => updateFundDeduction(i, "fundId", e.target.value)}
+                      className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+                    >
+                      <option value="">Select fund...</option>
+                      {availableFunds.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} (bal: {formatCurrency(f.balance, group?.currency_code || "VND")})
+                        </option>
+                      ))}
+                    </select>
+                    <MoneyInput
+                      value={d.amount}
+                      onChange={(v) => updateFundDeduction(i, "amount", v)}
+                      placeholder="Amount from fund"
+                    />
+                    {deductionExceedsBalance && (
+                      <p className="text-xs text-error">
+                        Exceeds fund balance ({formatCurrency(selectedFund.balance, group?.currency_code || "VND")})
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFundDeduction(i)}
+                    className="mt-2 w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-error hover:bg-error-container/10 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              );
+            })}
+
+            {fundDeductions.length > 0 && amount && (
+              <div className="pt-2 border-t border-outline-variant/10">
+                <div className="flex justify-between text-xs">
+                  <span className="text-on-surface-variant">Total from funds:</span>
+                  <span className="font-semibold text-on-surface">
+                    {formatCurrency(totalFundDeductions, group?.currency_code || "VND")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs mt-1">
+                  <span className="text-on-surface-variant">Amount to split:</span>
+                  <span className={cn("font-semibold", splittableAmount < 0 ? "text-error" : "text-on-surface")}>
+                    {formatCurrency(splittableAmount, group?.currency_code || "VND")}
+                  </span>
+                </div>
+                {totalFundDeductions > (parseFloat(amount) || 0) && (
+                  <p className="text-xs text-error mt-1">Total fund deductions exceed expense amount!</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
