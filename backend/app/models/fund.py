@@ -45,7 +45,10 @@ class FundTransaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     member_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("group_members.id"))
     expense_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("expenses.id", ondelete="CASCADE"), nullable=True, unique=True
+        UUID(as_uuid=True), ForeignKey("expenses.id", ondelete="CASCADE"), nullable=True
+    )
+    deduction_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("expense_fund_deductions.id", ondelete="CASCADE"), nullable=True
     )
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("group_members.id"))
