@@ -93,6 +93,18 @@ export interface ExpenseSplit {
   resolved_amount: number;
 }
 
+export interface FundDeductionInput {
+  fund_id: string;
+  amount: number;
+}
+
+export interface FundDeductionRead {
+  id: string;
+  fund_id: string;
+  fund_name: string;
+  amount: number;
+}
+
 export interface Expense {
   id: string;
   description: string;
@@ -107,8 +119,7 @@ export interface Expense {
   created_by: string;
   category_id: string;
   receipt_url: string | null;
-  fund_id: string | null;
-  fund_name: string | null;
+  fund_deductions: FundDeductionRead[];
   splits: ExpenseSplit[];
   created_at: string;
 }
@@ -121,7 +132,7 @@ export interface ExpenseCreate {
   date: string;
   paid_by: string;
   category_id: string;
-  fund_id?: string | null;
+  fund_deductions?: FundDeductionInput[];
   split_type: SplitType;
   splits: SplitInput[];
 }
@@ -134,7 +145,7 @@ export interface ExpenseUpdate {
   date?: string | null;
   paid_by?: string | null;
   category_id?: string | null;
-  fund_id?: string | null;
+  fund_deductions?: FundDeductionInput[];
   split_type?: SplitType | null;
   splits?: SplitInput[] | null;
 }
