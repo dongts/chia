@@ -49,7 +49,7 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      CHIA_DATABASE_URL: ${DATABASE_URL:-}
+      CHIA_DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${DB_USER:-chia}:${DB_PASSWORD:-chia}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME:-chia}}
       DB_USER: ${DB_USER:-chia}
       DB_PASSWORD: ${DB_PASSWORD:-chia}
       DB_HOST: ${DB_HOST:-db}
