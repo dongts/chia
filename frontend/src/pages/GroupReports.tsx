@@ -67,7 +67,7 @@ export default function GroupReports() {
   const [settlements, setSettlements] = useState<SuggestedSettlement[]>([]);
 
   // Sort & search state for member table
-  const [sortColumn, setSortColumn] = useState<"name" | "paid" | "owed" | "net" | "expenses">("net");
+  const [sortColumn, setSortColumn] = useState<"name" | "balance">("balance");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [memberSearch, setMemberSearch] = useState("");
 
@@ -110,17 +110,13 @@ export default function GroupReports() {
 
     // Sort
     list.sort((a, b) => {
-      let va: number, vb: number;
-      switch (sortColumn) {
-        case "name": return sortDir === "asc"
+      if (sortColumn === "name") {
+        return sortDir === "asc"
           ? a.member_name.localeCompare(b.member_name)
           : b.member_name.localeCompare(a.member_name);
-        case "paid": va = a.total_paid; vb = b.total_paid; break;
-        case "owed": va = a.total_owed; vb = b.total_owed; break;
-        case "net": va = a.total_paid - a.total_owed; vb = b.total_paid - b.total_owed; break;
-        case "expenses": va = a.expense_count; vb = b.expense_count; break;
-        default: va = 0; vb = 0;
       }
+      const va = a.total_paid - a.total_owed;
+      const vb = b.total_paid - b.total_owed;
       return sortDir === "asc" ? va - vb : vb - va;
     });
 
@@ -129,12 +125,12 @@ export default function GroupReports() {
 
   const visibleMembers = sortedMembers.slice(0, 20);
 
-  function handleSort(col: typeof sortColumn) {
+  function handleSort(col: "name" | "balance") {
     if (sortColumn === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortColumn(col); setSortDir("desc"); }
   }
 
-  function SortIndicator({ col }: { col: typeof sortColumn }) {
+  function SortIndicator({ col }: { col: "name" | "balance" }) {
     if (sortColumn !== col) return null;
     return sortDir === "asc"
       ? <ChevronUp size={12} className="inline-block ml-0.5" />
@@ -285,10 +281,7 @@ export default function GroupReports() {
                                 <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                                   {member.member_name[0]?.toUpperCase()}
                                 </div>
-                                <div>
-                                  <p className="text-sm font-semibold text-on-surface">{member.member_name}</p>
-                                  <p className="text-xs text-on-surface-variant">Paid {formatCurrency(member.total_paid, summary.currency_code)}</p>
-                                </div>
+                                <p className="text-sm font-semibold text-on-surface">{member.member_name}</p>
                               </div>
                               <span className={cn("text-sm font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
                                 {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
@@ -455,22 +448,10 @@ export default function GroupReports() {
                               Name<SortIndicator col="name" />
                             </th>
                             <th
-                              onClick={() => handleSort("paid")}
+                              onClick={() => handleSort("balance")}
                               className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
                             >
-                              Paid<SortIndicator col="paid" />
-                            </th>
-                            <th
-                              onClick={() => handleSort("owed")}
-                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
-                            >
-                              Owed<SortIndicator col="owed" />
-                            </th>
-                            <th
-                              onClick={() => handleSort("net")}
-                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
-                            >
-                              Net Balance<SortIndicator col="net" />
+                              Balance<SortIndicator col="balance" />
                             </th>
                             <th className="px-3 py-3 w-10"></th>
                           </tr>
@@ -490,8 +471,6 @@ export default function GroupReports() {
                                     <span className="font-semibold text-on-surface">{member.member_name}</span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3.5 text-right text-on-surface">{formatCurrency(member.total_paid, summary.currency_code)}</td>
-                                <td className="px-3 py-3.5 text-right text-on-surface">{formatCurrency(member.total_owed, summary.currency_code)}</td>
                                 <td className={cn("px-3 py-3.5 text-right font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
                                   {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
                                 </td>
