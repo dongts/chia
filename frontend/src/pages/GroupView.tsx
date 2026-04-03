@@ -611,11 +611,11 @@ export default function GroupView() {
                               {expense.receipt_url && (
                                 <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
-                              {expense.fund_name && (
-                                <span className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
-                                  {expense.fund_name}
+                              {expense.fund_deductions?.length > 0 && expense.fund_deductions.map((d) => (
+                                <span key={d.id} className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                                  {d.fund_name}
                                 </span>
-                              )}
+                              ))}
                             </div>
                             <p className="text-xs text-outline sm:hidden mt-0.5">
                               {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
