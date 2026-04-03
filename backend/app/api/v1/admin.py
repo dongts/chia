@@ -12,8 +12,9 @@ from app.database import get_db
 from app.models import (
     Category, Expense, ExpenseSplit, Group, GroupCurrency,
     GroupMember, GroupMemberLog, MemberRole, Notification, Settlement, User,
-    PaymentMethod, GroupPaymentMethod,
+    PaymentMethod, GroupPaymentMethod, Fund, FundTransaction,
 )
+from app.models.expense_fund_deduction import ExpenseFundDeduction
 from app.schemas.user import UserRead
 from app.services.auth import hash_password
 
@@ -318,7 +319,24 @@ async def delete_group(group_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     group = result.scalars().first()
     if not group:
         raise NotFound("Group not found")
-    # Use raw DELETE to let DB-level CASCADE handle all child tables
+
+    member_ids = select(GroupMember.id).where(GroupMember.group_id == group_id)
+    expense_ids = select(Expense.id).where(Expense.group_id == group_id)
+    fund_ids = select(Fund.id).where(Fund.group_id == group_id)
+
+    # Delete in dependency order (leaves first)
+    await db.execute(delete(FundTransaction).where(FundTransaction.fund_id.in_(fund_ids)))
+    await db.execute(delete(ExpenseFundDeduction).where(ExpenseFundDeduction.expense_id.in_(expense_ids)))
+    await db.execute(delete(ExpenseSplit).where(ExpenseSplit.expense_id.in_(expense_ids)))
+    await db.execute(delete(Notification).where(Notification.group_id == group_id))
+    await db.execute(delete(Settlement).where(Settlement.group_id == group_id))
+    await db.execute(delete(Expense).where(Expense.group_id == group_id))
+    await db.execute(delete(Fund).where(Fund.group_id == group_id))
+    await db.execute(delete(GroupPaymentMethod).where(GroupPaymentMethod.member_id.in_(member_ids)))
+    await db.execute(delete(GroupMemberLog).where(GroupMemberLog.group_id == group_id))
+    await db.execute(delete(GroupCurrency).where(GroupCurrency.group_id == group_id))
+    await db.execute(delete(Category).where(Category.group_id == group_id))
+    await db.execute(delete(GroupMember).where(GroupMember.group_id == group_id))
     await db.execute(delete(Group).where(Group.id == group_id))
     await db.commit()
     return {"detail": "Group deleted"}
