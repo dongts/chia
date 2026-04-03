@@ -2,18 +2,20 @@ import uuid
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query, UploadFile
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.v1.funds import compute_fund_balance
 from app.api.v1.groups import get_current_member, get_group_or_404
 from app.core.exceptions import BadRequest, Forbidden, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
+from app.models.expense_fund_deduction import ExpenseFundDeduction
 from app.models.fund import Fund, FundTransaction, FundTransactionType
-from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, SplitRead
+from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, FundDeductionRead, SplitRead
 from app.services.file_storage import save_upload
 from app.services.notification import notify_group
 from app.services.split_calculator import calculate_splits
@@ -27,10 +29,20 @@ def _build_expense_read(expense: Expense, group_currency: str | None = None) -> 
         sr = SplitRead.model_validate(s)
         sr.member_name = s.member.display_name if s.member else None
         splits.append(sr)
+
+    fund_deductions = []
+    for d in expense.fund_deductions:
+        fund_deductions.append(FundDeductionRead(
+            id=d.id,
+            fund_id=d.fund_id,
+            fund_name=d.fund.name if d.fund else "Unknown",
+            amount=d.amount,
+        ))
+
     result = ExpenseRead.model_validate(expense)
     result.splits = splits
+    result.fund_deductions = fund_deductions
     result.payer_name = expense.payer.display_name if expense.payer else None
-    result.fund_name = expense.fund.name if expense.fund else None
     result.group_currency = group_currency or expense.group.currency_code if expense.group else None
     return result
 
@@ -45,16 +57,13 @@ async def create_expense(
     group = await get_group_or_404(db, group_id)
     current = await get_current_member(db, group_id, current_user.id)
 
-    # Check on-behalf permission
     if data.paid_by != current.id:
         if current.role == MemberRole.member and not group.allow_log_on_behalf:
             raise Forbidden("This group does not allow logging expenses on behalf of others")
 
-    # Determine currency and exchange rate
     expense_currency = (data.currency_code or group.currency_code).upper().strip()
     exchange_rate = Decimal("1")
     if expense_currency != group.currency_code:
-        # Look up allowed currency for default rate
         gc_result = await db.execute(
             select(GroupCurrency).where(
                 GroupCurrency.group_id == group_id,
@@ -67,30 +76,59 @@ async def create_expense(
                 f"{expense_currency} is not an allowed currency for this group. "
                 f"Add it in group settings first."
             )
-        # Use provided rate or fall back to default
         if data.exchange_rate is not None and data.exchange_rate > 0:
             exchange_rate = data.exchange_rate
         else:
             exchange_rate = allowed_currency.exchange_rate
     converted_amount = (data.amount * exchange_rate).quantize(Decimal("0.01"))
 
-    # Validate fund if provided
-    fund = None
-    if data.fund_id:
-        fund_result = await db.execute(
-            select(Fund).where(
-                Fund.id == data.fund_id,
-                Fund.group_id == group_id,
-                Fund.is_active == True,
-            )
-        )
-        fund = fund_result.scalars().first()
-        if not fund:
-            raise BadRequest("Fund not found or inactive")
+    # Validate fund deductions
+    total_deductions = Decimal("0")
+    validated_funds: list[tuple[Fund, Decimal]] = []
 
-    # Compute splits against converted amount (in group's main currency)
+    if data.fund_deductions:
+        seen_fund_ids = set()
+        for fd in data.fund_deductions:
+            if fd.fund_id in seen_fund_ids:
+                raise BadRequest("Duplicate fund in deductions")
+            seen_fund_ids.add(fd.fund_id)
+
+            if fd.amount <= 0:
+                raise BadRequest("Fund deduction amount must be greater than zero")
+
+            fund_result = await db.execute(
+                select(Fund).where(
+                    Fund.id == fd.fund_id,
+                    Fund.group_id == group_id,
+                    Fund.is_active == True,
+                )
+            )
+            fund = fund_result.scalars().first()
+            if not fund:
+                raise BadRequest(f"Fund {fd.fund_id} not found or inactive")
+
+            balance = await compute_fund_balance(db, fund.id)
+            if fd.amount > balance:
+                raise BadRequest(
+                    f"Fund '{fund.name}' has insufficient balance "
+                    f"({balance} available, {fd.amount} requested)"
+                )
+
+            total_deductions += fd.amount
+            validated_funds.append((fund, fd.amount))
+
+        if total_deductions > converted_amount:
+            raise BadRequest(
+                f"Total fund deductions ({total_deductions}) exceed expense amount ({converted_amount})"
+            )
+
+    splittable_amount = converted_amount - total_deductions
     members_map = {str(s.group_member_id): s.value for s in data.splits}
-    resolved = calculate_splits(converted_amount, data.split_type.value, members_map)
+
+    if splittable_amount == 0:
+        resolved = {mid: Decimal("0") for mid in members_map}
+    else:
+        resolved = calculate_splits(splittable_amount, data.split_type.value, members_map)
 
     expense = Expense(
         group_id=group_id,
@@ -102,20 +140,28 @@ async def create_expense(
         exchange_rate=exchange_rate,
         converted_amount=converted_amount,
         category_id=data.category_id,
-        fund_id=data.fund_id,
         date=data.date,
     )
     db.add(expense)
     await db.flush()
 
-    # Create fund transaction if expense is linked to a fund
-    if data.fund_id:
+    for fund, deduction_amount in validated_funds:
+        deduction = ExpenseFundDeduction(
+            expense_id=expense.id,
+            fund_id=fund.id,
+            amount=deduction_amount,
+            created_by=current.id,
+        )
+        db.add(deduction)
+        await db.flush()
+
         fund_tx = FundTransaction(
-            fund_id=data.fund_id,
+            fund_id=fund.id,
             type=FundTransactionType.expense,
-            amount=converted_amount,
+            amount=deduction_amount,
             member_id=data.paid_by,
             expense_id=expense.id,
+            deduction_id=deduction.id,
             note=data.description,
             created_by=current.id,
         )
@@ -138,7 +184,6 @@ async def create_expense(
 
     await db.commit()
 
-    # Reload with relationships
     result = await db.execute(
         select(Expense)
         .where(Expense.id == expense.id)
@@ -146,7 +191,7 @@ async def create_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
     )
     expense = result.scalars().first()
@@ -172,7 +217,7 @@ async def list_expenses(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
         .order_by(Expense.date.desc(), Expense.created_at.desc())
         .limit(limit)
@@ -203,7 +248,7 @@ async def get_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
     )
     expense = result.scalars().first()
@@ -250,41 +295,99 @@ async def update_expense(
     if data.category_id is not None:
         expense.category_id = data.category_id
 
-    if data.fund_id is not None:
-        if data.fund_id != expense.fund_id:
-            # Remove old fund transaction
-            if expense.fund_id:
+    # Handle fund deductions update
+    if data.fund_deductions is not None:
+        existing_deductions_result = await db.execute(
+            select(ExpenseFundDeduction).where(ExpenseFundDeduction.expense_id == expense.id)
+        )
+        existing_deductions = {d.fund_id: d for d in existing_deductions_result.scalars().all()}
+
+        new_fund_ids = set()
+        total_deductions = Decimal("0")
+
+        for fd in data.fund_deductions:
+            if fd.fund_id in new_fund_ids:
+                raise BadRequest("Duplicate fund in deductions")
+            new_fund_ids.add(fd.fund_id)
+
+            if fd.amount <= 0:
+                raise BadRequest("Fund deduction amount must be greater than zero")
+
+            fund_result = await db.execute(
+                select(Fund).where(
+                    Fund.id == fd.fund_id,
+                    Fund.group_id == group_id,
+                    Fund.is_active == True,
+                )
+            )
+            fund = fund_result.scalars().first()
+            if not fund:
+                raise BadRequest(f"Fund {fd.fund_id} not found or inactive")
+
+            balance = await compute_fund_balance(db, fund.id)
+            old_deduction = existing_deductions.get(fd.fund_id)
+            available = balance + (old_deduction.amount if old_deduction else Decimal("0"))
+            if fd.amount > available:
+                raise BadRequest(
+                    f"Fund '{fund.name}' has insufficient balance "
+                    f"({available} available, {fd.amount} requested)"
+                )
+
+            total_deductions += fd.amount
+
+        effective_converted = expense.converted_amount
+        if data.amount is not None or data.exchange_rate is not None or data.currency_code is not None:
+            rate = expense.exchange_rate if expense.currency_code != group.currency_code else Decimal("1")
+            effective_converted = (expense.amount * rate).quantize(Decimal("0.01"))
+
+        if total_deductions > effective_converted:
+            raise BadRequest(
+                f"Total fund deductions ({total_deductions}) exceed expense amount ({effective_converted})"
+            )
+
+        # Delete removed deductions and their fund transactions
+        for old_fund_id, old_deduction in existing_deductions.items():
+            if old_fund_id not in new_fund_ids:
                 old_ft_result = await db.execute(
-                    select(FundTransaction).where(FundTransaction.expense_id == expense.id)
+                    select(FundTransaction).where(FundTransaction.deduction_id == old_deduction.id)
                 )
                 old_ft = old_ft_result.scalars().first()
                 if old_ft:
                     await db.delete(old_ft)
+                await db.delete(old_deduction)
 
-            # Add new fund transaction
-            if data.fund_id:
-                fund_result = await db.execute(
-                    select(Fund).where(
-                        Fund.id == data.fund_id,
-                        Fund.group_id == group_id,
-                        Fund.is_active == True,
-                    )
+        # Upsert deductions
+        for fd in data.fund_deductions:
+            old_deduction = existing_deductions.get(fd.fund_id)
+            if old_deduction:
+                old_deduction.amount = fd.amount
+                ft_result = await db.execute(
+                    select(FundTransaction).where(FundTransaction.deduction_id == old_deduction.id)
                 )
-                if not fund_result.scalars().first():
-                    raise BadRequest("Fund not found or inactive")
+                ft = ft_result.scalars().first()
+                if ft:
+                    ft.amount = fd.amount
+            else:
+                new_deduction = ExpenseFundDeduction(
+                    expense_id=expense.id,
+                    fund_id=fd.fund_id,
+                    amount=fd.amount,
+                    created_by=current.id,
+                )
+                db.add(new_deduction)
+                await db.flush()
 
                 new_ft = FundTransaction(
-                    fund_id=data.fund_id,
+                    fund_id=fd.fund_id,
                     type=FundTransactionType.expense,
-                    amount=expense.converted_amount,
+                    amount=fd.amount,
                     member_id=expense.paid_by,
                     expense_id=expense.id,
+                    deduction_id=new_deduction.id,
                     note=expense.description,
                     created_by=current.id,
                 )
                 db.add(new_ft)
-
-            expense.fund_id = data.fund_id
 
     # Recalculate converted amount
     if data.amount is not None or data.exchange_rate is not None or data.currency_code is not None:
@@ -297,8 +400,18 @@ async def update_expense(
             await db.delete(old_split)
         await db.flush()
 
+        deductions_result = await db.execute(
+            select(func.coalesce(func.sum(ExpenseFundDeduction.amount), Decimal("0")))
+            .where(ExpenseFundDeduction.expense_id == expense.id)
+        )
+        total_deductions = deductions_result.scalar() or Decimal("0")
+        splittable_amount = expense.converted_amount - total_deductions
+
         members_map = {str(s.group_member_id): s.value for s in data.splits}
-        resolved = calculate_splits(expense.converted_amount, data.split_type.value, members_map)
+        if splittable_amount == 0:
+            resolved = {mid: Decimal("0") for mid in members_map}
+        else:
+            resolved = calculate_splits(splittable_amount, data.split_type.value, members_map)
 
         for s in data.splits:
             split = ExpenseSplit(
@@ -325,7 +438,7 @@ async def update_expense(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
     )
     expense = result.scalars().first()
@@ -355,14 +468,12 @@ async def delete_expense(
         {"description": expense.description, "amount": str(expense.amount)},
     )
 
-    # Delete linked fund transaction if any
-    if expense.fund_id:
-        ft_result = await db.execute(
-            select(FundTransaction).where(FundTransaction.expense_id == expense_id)
-        )
-        ft = ft_result.scalars().first()
-        if ft:
-            await db.delete(ft)
+    # Delete linked fund transactions
+    ft_result = await db.execute(
+        select(FundTransaction).where(FundTransaction.expense_id == expense_id)
+    )
+    for ft in ft_result.scalars().all():
+        await db.delete(ft)
 
     await db.delete(expense)
     await db.commit()
@@ -404,7 +515,7 @@ async def upload_receipt(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
     )
     expense = result.scalars().first()
@@ -440,7 +551,7 @@ async def delete_receipt(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
             selectinload(Expense.group),
-            selectinload(Expense.fund),
+            selectinload(Expense.fund_deductions).selectinload(ExpenseFundDeduction.fund),
         )
     )
     expense = result.scalars().first()

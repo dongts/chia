@@ -275,7 +275,7 @@ async def create_expense(
     expense_date: str | None = None,
     currency_code: str | None = None,
     exchange_rate: float | None = None,
-    fund_id: str | None = None,
+    fund_deductions: list[dict] | None = None,
 ) -> str:
     """Create an expense in a group. For equal splits, pass all member IDs with value=1.
 
@@ -294,7 +294,8 @@ async def create_expense(
         expense_date: Date of the expense in YYYY-MM-DD format. Defaults to today.
         currency_code: Currency code if different from group default.
         exchange_rate: Exchange rate to group currency if using a different currency.
-        fund_id: UUID of a fund to pay from. Creates a linked fund transaction automatically.
+        fund_deductions: List of fund deduction objects. Each has "fund_id" (UUID str) and "amount" (number).
+            Deducts partial amounts from group funds. Total deductions cannot exceed expense amount.
     """
     payload: dict = {
         "description": description,
@@ -309,8 +310,8 @@ async def create_expense(
         payload["currency_code"] = currency_code
     if exchange_rate:
         payload["exchange_rate"] = exchange_rate
-    if fund_id:
-        payload["fund_id"] = fund_id
+    if fund_deductions:
+        payload["fund_deductions"] = fund_deductions
 
     data = await _get_client(ctx).post(
         f"/api/v1/groups/{group_id}/expenses", json=payload

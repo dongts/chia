@@ -41,7 +41,7 @@ async def _get_fund_or_404(
     return fund
 
 
-async def _compute_balance(db: AsyncSession, fund_id: uuid.UUID) -> Decimal:
+async def compute_fund_balance(db: AsyncSession, fund_id: uuid.UUID) -> Decimal:
     result = await db.execute(
         select(
             func.coalesce(
@@ -75,7 +75,7 @@ async def _build_fund_read(db: AsyncSession, fund: Fund) -> FundRead:
         select(GroupMember.display_name).where(GroupMember.id == fund.holder_id)
     )
     holder_name = holder_result.scalar()
-    balance = await _compute_balance(db, fund.id)
+    balance = await compute_fund_balance(db, fund.id)
     count_result = await db.execute(
         select(func.count()).where(FundTransaction.fund_id == fund.id)
     )
