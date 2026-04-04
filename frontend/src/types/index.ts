@@ -68,12 +68,14 @@ export interface GroupMember {
 
 export interface MemberCreate {
   display_name: string;
+  nicknames?: string;
   initial_balance?: number | null;
 }
 
 export interface MemberUpdate {
   role?: MemberRole | null;
   display_name?: string | null;
+  nicknames?: string | null;
   initial_balance?: number | null;
 }
 
