@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -8,7 +9,6 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
-from app.config import settings
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import GroupMember, User
@@ -22,6 +22,7 @@ from app.schemas.expense_parse import (
     ParsingLevel,
 )
 from app.services.llm.provider import parse_expense_text
+from app.services.system_config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -87,14 +88,15 @@ async def parse_expense(
     db: AsyncSession = Depends(get_db),
 ):
     # Check LLM is configured
-    if not settings.llm_api_key:
-        raise HTTPException(status_code=503, detail="LLM parsing not configured")
+    LLM_PROVIDER_KEYS = ("GROQ_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "ANTHROPIC_API_KEY")
+    if not any(os.environ.get(k) for k in LLM_PROVIDER_KEYS):
+        raise HTTPException(status_code=503, detail="No LLM API keys configured")
 
     group = await get_group_or_404(db, group_id)
     current_member = await get_current_member(db, group_id, current_user.id)
 
-    parsing_level = (data.parsing_level or settings.llm_default_parsing_level).value \
-        if data.parsing_level else settings.llm_default_parsing_level
+    llm_model = await get_config(db, "llm.default_model")
+    parsing_level = data.parsing_level.value if data.parsing_level else await get_config(db, "llm.default_parsing_level")
 
     # Load members
     result = await db.execute(
@@ -131,6 +133,7 @@ async def parse_expense(
             text=data.text,
             members=members_data,
             group_currency=group.currency_code,
+            model=llm_model,
             parsing_level=parsing_level,
             categories=categories_data,
             funds=funds_data,

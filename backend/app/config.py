@@ -21,10 +21,6 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     sentry_dsn: str = ""
     sentry_traces_sample_rate: float = 0.2
-    llm_model: str = "groq/llama-3.1-8b-instant"
-    llm_api_key: str | None = None
-    llm_default_parsing_level: str = "basic"
-
     model_config = {"env_prefix": "CHIA_"}
 
 

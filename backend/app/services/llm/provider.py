@@ -5,12 +5,10 @@ from decimal import Decimal, InvalidOperation
 
 import litellm
 
-from app.config import settings
 from app.services.llm.prompts import build_system_prompt, build_user_prompt
 
 logger = logging.getLogger(__name__)
 
-# Suppress litellm's verbose logging
 litellm.suppress_debug_info = True
 
 
@@ -18,16 +16,13 @@ async def parse_expense_text(
     text: str,
     members: list[dict],
     group_currency: str,
+    model: str,
     parsing_level: str = "basic",
     categories: list[dict] | None = None,
     funds: list[dict] | None = None,
     today: date | None = None,
 ) -> dict:
-    """Call LLM to parse natural language expense text into structured data.
-
-    Returns the raw parsed dict from the LLM. The caller is responsible for
-    validating and mapping member/category/fund names to UUIDs.
-    """
+    """Call LLM to parse natural language expense text into structured data."""
     system_prompt = build_system_prompt(parsing_level)
     user_prompt = build_user_prompt(
         text=text,
@@ -40,13 +35,12 @@ async def parse_expense_text(
     )
 
     response = await litellm.acompletion(
-        model=settings.llm_model,
+        model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         response_format={"type": "json_object"},
-        api_key=settings.llm_api_key,
         timeout=30,
     )
 
@@ -58,7 +52,6 @@ async def parse_expense_text(
     except json.JSONDecodeError as e:
         raise ValueError(f"LLM returned invalid JSON: {e}") from e
 
-    # Coerce amount to Decimal if present
     if parsed.get("amount") is not None:
         try:
             parsed["amount"] = str(Decimal(str(parsed["amount"])))

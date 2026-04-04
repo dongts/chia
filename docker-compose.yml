@@ -29,8 +29,10 @@ services:
       DB_NAME: chia
       CHIA_JWT_SECRET: dev-secret
       CHIA_CORS_ORIGINS: '["http://localhost:5173"]'
-      CHIA_LLM_MODEL: ${CHIA_LLM_MODEL:-gemini/gemma-4-31b-it}
-      CHIA_LLM_API_KEY: ${CHIA_LLM_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

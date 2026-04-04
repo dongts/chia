@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.admin import require_superadmin
 from app.core.exceptions import BadRequest, NotFound
 from app.database import get_db
+from app.services.system_config import get_all_config, set_config, CONFIG_REGISTRY
 from app.models import (
     Category, Expense, ExpenseSplit, Group, GroupCurrency,
     GroupMember, GroupMemberLog, MemberRole, Notification, Settlement, User,
@@ -527,3 +528,26 @@ async def merge_users(
         "moved_groups": result["moved_groups"],
         "source_deleted": True,
     }
+
+
+# ── System Config ─────────────────────────────────────────────────────────────
+
+@router.get("/config")
+async def list_config(db: AsyncSession = Depends(get_db)):
+    return await get_all_config(db)
+
+
+class ConfigUpdateRequest(BaseModel):
+    value: str
+
+
+@router.patch("/config/{key:path}")
+async def update_config(
+    key: str,
+    data: ConfigUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    if key not in CONFIG_REGISTRY:
+        raise NotFound(f"Config key '{key}' not found")
+    await set_config(db, key, data.value)
+    return {"key": key, "value": data.value}
