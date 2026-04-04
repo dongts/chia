@@ -55,6 +55,7 @@ export default function GroupSettings() {
   const [addingCurrency, setAddingCurrency] = useState(false);
   const [renamingMemberId, setRenamingMemberId] = useState<string | null>(null);
   const [renamingValue, setRenamingValue] = useState("");
+  const [renamingNicknames, setRenamingNicknames] = useState("");
   const [savingRename, setSavingRename] = useState(false);
   const [activityLog, setActivityLog] = useState<MemberLogEntry[]>([]);
   const [logLimit, setLogLimit] = useState(20);
@@ -229,7 +230,7 @@ export default function GroupSettings() {
     if (!groupId || !renamingMemberId || !renamingValue.trim()) return;
     setSavingRename(true);
     try {
-      const updated = await updateMember(groupId, renamingMemberId, { display_name: renamingValue.trim() });
+      const updated = await updateMember(groupId, renamingMemberId, { display_name: renamingValue.trim(), nicknames: renamingNicknames.trim() });
       setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       setRenamingMemberId(null);
     } catch (err: unknown) {
@@ -596,22 +597,31 @@ export default function GroupSettings() {
                   </div>
                   <div className="min-w-0">
                     {renamingMemberId === m.id ? (
-                      <div className="flex items-center gap-1">
-                        <input type="text" value={renamingValue} onChange={(e) => setRenamingValue(e.target.value)}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <input type="text" value={renamingValue} onChange={(e) => setRenamingValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
+                            autoFocus placeholder="Display name"
+                            className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-primary" />
+                          <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
+                            className="p-1 text-primary hover:bg-primary-container/20 rounded-full disabled:opacity-50"><Check size={14} /></button>
+                          <button onClick={() => setRenamingMemberId(null)}
+                            className="p-1 text-outline hover:bg-surface-container rounded-full"><X size={14} /></button>
+                        </div>
+                        <input type="text" value={renamingNicknames} onChange={(e) => setRenamingNicknames(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
-                          autoFocus
-                          className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-primary" />
-                        <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
-                          className="p-1 text-primary hover:bg-primary-container/20 rounded-full disabled:opacity-50"><Check size={14} /></button>
-                        <button onClick={() => setRenamingMemberId(null)}
-                          className="p-1 text-outline hover:bg-surface-container rounded-full"><X size={14} /></button>
+                          placeholder="Nicknames (comma-separated)"
+                          className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-primary text-outline" />
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-medium text-on-surface truncate">{m.display_name}</p>
+                        <div>
+                          <p className="text-sm font-medium text-on-surface truncate">{m.display_name}</p>
+                          {m.nicknames && <p className="text-xs text-outline truncate">{m.nicknames}</p>}
+                        </div>
                         {isAdminOrOwner && (
-                          <button onClick={() => { setRenamingMemberId(m.id); setRenamingValue(m.display_name); }}
-                            className="p-0.5 text-outline-variant hover:text-on-surface-variant rounded" title="Rename"><Pencil size={12} /></button>
+                          <button onClick={() => { setRenamingMemberId(m.id); setRenamingValue(m.display_name); setRenamingNicknames(m.nicknames || ""); }}
+                            className="p-0.5 text-outline-variant hover:text-on-surface-variant rounded" title="Edit"><Pencil size={12} /></button>
                         )}
                       </div>
                     )}
