@@ -1,7 +1,11 @@
 import { useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-const Admin = lazy(() => import("./pages/Admin"));
+const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminGroups = lazy(() => import("./pages/admin/AdminGroups"));
+const AdminConfig = lazy(() => import("./pages/admin/AdminConfig"));
 import { useAuthStore } from "@/store/authStore";
 
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -104,14 +108,22 @@ export default function App() {
             <Route path="/groups/:groupId/reports" element={<GroupReports />} />
             <Route path="/groups/:groupId/reports/member/:memberId" element={<MemberAnalytics />} />
             <Route path="/profile" element={<Profile />} />
-            <Route
-              path="/admin"
-              element={
+          </Route>
+
+          {/* Admin routes — separate layout */}
+          <Route
+            element={
+              <RequireAuth>
                 <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-surface"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                  <Admin />
+                  <AdminLayout />
                 </Suspense>
-              }
-            />
+              </RequireAuth>
+            }
+          >
+            <Route path="/admin" element={<Suspense fallback={null}><AdminDashboard /></Suspense>} />
+            <Route path="/admin/users" element={<Suspense fallback={null}><AdminUsers /></Suspense>} />
+            <Route path="/admin/groups" element={<Suspense fallback={null}><AdminGroups /></Suspense>} />
+            <Route path="/admin/config" element={<Suspense fallback={null}><AdminConfig /></Suspense>} />
           </Route>
 
           {/* 404 */}
