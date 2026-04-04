@@ -33,3 +33,6 @@ api_router.include_router(payment_methods_router)
 
 from app.api.v1.funds import router as funds_router
 api_router.include_router(funds_router)
+
+from app.api.v1.expense_parse import router as expense_parse_router
+api_router.include_router(expense_parse_router)
