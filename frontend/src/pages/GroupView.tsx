@@ -389,7 +389,7 @@ export default function GroupView() {
       {/* ── Balance Summary Card ── */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
         <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
-          {myBalance > 0 ? "You are owed" : myBalance < 0 ? "You owe" : "Your balance"}
+          {myBalance > 0 ? "Your balance" : myBalance < 0 ? "You owe" : "Your balance"}
         </p>
         <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
           {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
