@@ -479,11 +479,6 @@ export default function GroupReports() {
                       </table>
                     </div>
 
-                    {sortedMembers.length > 20 && (
-                      <div className="px-5 py-3 text-xs text-on-surface-variant text-center border-t border-outline-variant/10">
-                        Showing 20 of {sortedMembers.length} members
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
