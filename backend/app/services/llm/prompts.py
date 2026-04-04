@@ -15,7 +15,8 @@ def build_system_prompt(parsing_level: str) -> str:
         "}\n\n"
         "Rules:\n"
         "- Match member names from the provided list. Use fuzzy matching (e.g. 'Al' -> 'Alice').\n"
-        "- If the user says 'I paid' or 'me', set payer_name to null (the frontend will default to current user).\n"
+        '- If the user says "I paid" or "me", set payer_name to "__self__".\n'
+        "- If you cannot determine who paid, set payer_name to null.\n"
         "- If no specific members are mentioned for splitting, set member_names to null (means all members).\n"
         '- For any field you cannot determine, return null.\n'
         "- Return ONLY valid JSON, no other text.\n"

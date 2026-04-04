@@ -132,3 +132,28 @@ class TestMatchCategoryName:
     def test_no_match(self):
         from app.api.v1.expense_parse import _match_category_name
         assert _match_category_name("Entertainment", self.categories) is None
+
+
+@pytest.mark.no_db
+class TestMatchFundName:
+    def setup_method(self):
+        self.funds = [
+            {"id": uuid.UUID("00000000-0000-0000-0000-000000000030"), "name": "Trip Fund"},
+            {"id": uuid.UUID("00000000-0000-0000-0000-000000000040"), "name": "Emergency Fund"},
+        ]
+
+    def test_exact_match(self):
+        from app.api.v1.expense_parse import _match_fund_name
+        assert _match_fund_name("Trip Fund", self.funds) == uuid.UUID("00000000-0000-0000-0000-000000000030")
+
+    def test_case_insensitive(self):
+        from app.api.v1.expense_parse import _match_fund_name
+        assert _match_fund_name("trip fund", self.funds) == uuid.UUID("00000000-0000-0000-0000-000000000030")
+
+    def test_partial_match(self):
+        from app.api.v1.expense_parse import _match_fund_name
+        assert _match_fund_name("emergency", self.funds) == uuid.UUID("00000000-0000-0000-0000-000000000040")
+
+    def test_no_match(self):
+        from app.api.v1.expense_parse import _match_fund_name
+        assert _match_fund_name("Savings", self.funds) is None

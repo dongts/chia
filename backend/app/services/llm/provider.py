@@ -51,7 +51,12 @@ async def parse_expense_text(
     )
 
     content = response.choices[0].message.content
-    parsed = json.loads(content)
+    if not content:
+        raise ValueError("LLM returned empty response")
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"LLM returned invalid JSON: {e}") from e
 
     # Coerce amount to Decimal if present
     if parsed.get("amount") is not None:

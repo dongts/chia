@@ -3,13 +3,12 @@ import uuid
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
 from app.config import settings
-from app.core.exceptions import BadRequest
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import GroupMember, User
@@ -76,11 +75,7 @@ async def parse_expense(
 ):
     # Check LLM is configured
     if not settings.llm_api_key:
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=503,
-            content={"detail": "LLM parsing not configured"},
-        )
+        raise HTTPException(status_code=503, detail="LLM parsing not configured")
 
     group = await get_group_or_404(db, group_id)
     current_member = await get_current_member(db, group_id, current_user.id)
@@ -130,15 +125,15 @@ async def parse_expense(
         )
     except Exception as e:
         logger.warning("LLM parse failed: %s", e)
-        raise BadRequest("Could not parse expense text. Please fill the form manually.")
+        raise HTTPException(status_code=422, detail="Could not parse expense text. Please fill the form manually.")
 
     # Map names to UUIDs
     paid_by_member_id = None
-    if raw.get("payer_name"):
-        paid_by_member_id = _match_member_name(raw["payer_name"], members_data)
-    elif raw.get("payer_name") is None:
-        # "I paid" / "me" → default to current user's member
+    payer_name = raw.get("payer_name")
+    if payer_name == "__self__":
         paid_by_member_id = current_member.id
+    elif payer_name:
+        paid_by_member_id = _match_member_name(payer_name, members_data)
 
     # Map split member names
     splits = None

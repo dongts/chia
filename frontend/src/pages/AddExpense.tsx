@@ -210,8 +210,10 @@ export default function AddExpense() {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 503) {
         setNlHidden(true);
+        window.alert("AI parsing is not configured.");
+      } else {
+        window.alert("Couldn't understand that. Please fill the form manually.");
       }
-      window.alert("Couldn't understand that. Please fill the form manually.");
     } finally {
       setNlParsing(false);
     }
