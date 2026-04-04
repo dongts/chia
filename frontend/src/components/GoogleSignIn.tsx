@@ -33,19 +33,6 @@ export default function GoogleSignIn({ onCredential, disabled }: Props) {
   useEffect(() => {
     if (!clientId || !buttonRef.current) return;
 
-    // Load Google Identity Services script
-    const existing = document.getElementById("google-gsi-script");
-    if (!existing) {
-      const script = document.createElement("script");
-      script.id = "google-gsi-script";
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.onload = renderButton;
-      document.head.appendChild(script);
-    } else {
-      renderButton();
-    }
-
     function renderButton() {
       if (!window.google || !buttonRef.current) return;
 
@@ -63,6 +50,28 @@ export default function GoogleSignIn({ onCredential, disabled }: Props) {
         width: buttonRef.current.offsetWidth,
         text: "signin_with",
       });
+    }
+
+    // Load Google Identity Services script
+    const existing = document.getElementById("google-gsi-script");
+    if (!existing) {
+      const script = document.createElement("script");
+      script.id = "google-gsi-script";
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.onload = renderButton;
+      document.head.appendChild(script);
+    } else if (window.google) {
+      renderButton();
+    } else {
+      // Script tag exists but hasn't finished loading yet — wait for it
+      const interval = setInterval(() => {
+        if (window.google) {
+          clearInterval(interval);
+          renderButton();
+        }
+      }, 100);
+      return () => clearInterval(interval);
     }
   }, [clientId, onCredential]);
 
