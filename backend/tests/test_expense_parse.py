@@ -91,9 +91,9 @@ class TestMatchMemberName:
 
     def setup_method(self):
         self.members = [
-            {"id": uuid.UUID("00000000-0000-0000-0000-000000000001"), "display_name": "Alice"},
-            {"id": uuid.UUID("00000000-0000-0000-0000-000000000002"), "display_name": "Bob"},
-            {"id": uuid.UUID("00000000-0000-0000-0000-000000000003"), "display_name": "Charlie"},
+            {"id": uuid.UUID("00000000-0000-0000-0000-000000000001"), "display_name": "Alice", "nicknames": "Ali, Al"},
+            {"id": uuid.UUID("00000000-0000-0000-0000-000000000002"), "display_name": "Bob", "nicknames": ""},
+            {"id": uuid.UUID("00000000-0000-0000-0000-000000000003"), "display_name": "Charlie", "nicknames": "Chuck"},
         ]
 
     def test_exact_match(self):
@@ -106,7 +106,15 @@ class TestMatchMemberName:
 
     def test_prefix_match(self):
         from app.api.v1.expense_parse import _match_member_name
-        assert _match_member_name("Ali", self.members) == uuid.UUID("00000000-0000-0000-0000-000000000001")
+        assert _match_member_name("Cha", self.members) == uuid.UUID("00000000-0000-0000-0000-000000000003")
+
+    def test_nickname_match(self):
+        from app.api.v1.expense_parse import _match_member_name
+        assert _match_member_name("Chuck", self.members) == uuid.UUID("00000000-0000-0000-0000-000000000003")
+
+    def test_nickname_case_insensitive(self):
+        from app.api.v1.expense_parse import _match_member_name
+        assert _match_member_name("al", self.members) == uuid.UUID("00000000-0000-0000-0000-000000000001")
 
     def test_no_match(self):
         from app.api.v1.expense_parse import _match_member_name

@@ -57,6 +57,7 @@ export type MemberRole = "owner" | "admin" | "member";
 export interface GroupMember {
   id: string;
   display_name: string;
+  nicknames: string;
   role: MemberRole;
   user_id: string | null;
   is_active: boolean;

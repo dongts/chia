@@ -28,16 +28,29 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/groups/{group_id}/expenses", tags=["expenses"])
 
 
+def _get_member_names(m: dict) -> list[str]:
+    """Get all searchable names for a member (display_name + nicknames)."""
+    names = [m["display_name"].lower()]
+    if m.get("nicknames"):
+        for nick in m["nicknames"].split(","):
+            nick = nick.strip().lower()
+            if nick:
+                names.append(nick)
+    return names
+
+
 def _match_member_name(name: str, members: list[dict]) -> uuid.UUID | None:
-    """Find a member by exact or case-insensitive name match."""
+    """Find a member by exact or case-insensitive name/nickname match."""
     name_lower = name.strip().lower()
+    # Exact match on display_name or nickname
     for m in members:
-        if m["display_name"].lower() == name_lower:
+        if name_lower in _get_member_names(m):
             return m["id"]
     # Partial prefix match as fallback
     for m in members:
-        if m["display_name"].lower().startswith(name_lower):
-            return m["id"]
+        for mname in _get_member_names(m):
+            if mname.startswith(name_lower):
+                return m["id"]
     return None
 
 
@@ -90,7 +103,7 @@ async def parse_expense(
         .order_by(GroupMember.joined_at)
     )
     db_members = result.scalars().all()
-    members_data = [{"id": m.id, "display_name": m.display_name} for m in db_members]
+    members_data = [{"id": m.id, "display_name": m.display_name, "nicknames": m.nicknames} for m in db_members]
 
     # Load categories (for smart/full levels)
     categories_data = None
@@ -141,9 +154,12 @@ async def parse_expense(
     if raw_member_names and isinstance(raw_member_names, list):
         matched_ids = []
         for name in raw_member_names:
-            mid = _match_member_name(name, members_data)
-            if mid:
-                matched_ids.append(mid)
+            if name == "__self__":
+                matched_ids.append(current_member.id)
+            else:
+                mid = _match_member_name(name, members_data)
+                if mid:
+                    matched_ids.append(mid)
         if matched_ids:
             splits = [SplitInput(group_member_id=mid, value=Decimal("1")) for mid in matched_ids]
 

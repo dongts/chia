@@ -55,6 +55,7 @@ async def add_member(
     member = GroupMember(
         group_id=group_id,
         display_name=data.display_name,
+        nicknames=data.nicknames,
         role=MemberRole.member,
         initial_balance=data.initial_balance or 0,
     )
@@ -102,6 +103,11 @@ async def update_member(
         target.display_name = data.display_name
         if old_name != data.display_name:
             await log_member_event(db, group_id, member_id, "renamed", f'"{old_name}" → "{data.display_name}"', current.id)
+
+    if data.nicknames is not None:
+        if target.id != current.id:
+            require_role(current, MemberRole.owner, MemberRole.admin)
+        target.nicknames = data.nicknames
 
     if data.initial_balance is not None:
         require_role(current, MemberRole.owner, MemberRole.admin)

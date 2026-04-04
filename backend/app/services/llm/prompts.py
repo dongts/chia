@@ -15,7 +15,9 @@ def build_system_prompt(parsing_level: str) -> str:
         "}\n\n"
         "Rules:\n"
         "- Match member names from the provided list. Use fuzzy matching (e.g. 'Al' -> 'Alice').\n"
-        '- If the user says "I paid" or "me", set payer_name to "__self__".\n'
+        "- Members may have nicknames listed in parentheses. Match against both display name and nicknames.\n"
+        '- If the user refers to themselves using any language (e.g. "I", "me", "tôi", "mình", "ich", "yo", "je", "我"), '
+        'set payer_name to "__self__". Also use "__self__" in member_names when the user includes themselves in the split.\n'
         "- If you cannot determine who paid, set payer_name to null.\n"
         "- If no specific members are mentioned for splitting, set member_names to null (means all members).\n"
         '- For any field you cannot determine, return null.\n'
@@ -62,7 +64,13 @@ def build_user_prompt(
 ) -> str:
     parts = []
 
-    member_list = ", ".join(m["display_name"] for m in members)
+    def _format_member(m: dict) -> str:
+        name = m["display_name"]
+        if m.get("nicknames"):
+            return f'{name} ({m["nicknames"]})'
+        return name
+
+    member_list = ", ".join(_format_member(m) for m in members)
     parts.append(f"Members: {member_list}")
     parts.append(f"Group currency: {group_currency}")
 

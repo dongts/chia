@@ -25,6 +25,7 @@ class GroupMember(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     display_name: Mapped[str] = mapped_column(String(100))
+    nicknames: Mapped[str] = mapped_column(String(500), default="", server_default="")
     role: Mapped[MemberRole] = mapped_column(Enum(MemberRole), default=MemberRole.member)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     initial_balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"), server_default="0")
