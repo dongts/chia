@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Sparkles } from "lucide-react";
 import { createExpense, uploadReceipt } from "@/api/expenses";
 import { parseExpense } from "@/api/expenseParse";
 import { getGroup } from "@/api/groups";
@@ -285,11 +285,13 @@ export default function AddExpense() {
       </div>
 
       {!nlHidden && (
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 mb-6">
-          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-            Describe your expense
+        <div className="bg-gradient-to-r from-primary-container/10 via-tertiary-container/10 to-primary-container/10 rounded-2xl shadow-editorial p-6 mb-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_3s_ease-in-out_infinite]" />
+          <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 flex items-center gap-1.5 relative">
+            <Sparkles size={14} className="text-primary animate-pulse" />
+            <span className="bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent">AI-Powered Input</span>
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
             <input
               type="text"
               value={nlText}
@@ -301,16 +303,20 @@ export default function AddExpense() {
                 }
               }}
               placeholder='e.g. "dinner 45.50 Alice paid split with Bob"'
-              className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
+              className="flex-1 bg-surface-container-lowest/80 border border-primary/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary/40 transition-colors"
               disabled={nlParsing}
             />
             <button
               type="button"
               onClick={handleNlParse}
               disabled={nlParsing || !nlText.trim()}
-              className="px-4 py-3 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="px-4 py-3 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              {nlParsing ? "Parsing..." : "Parse"}
+              {nlParsing ? (
+                <><div className="w-3.5 h-3.5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" /> Parsing...</>
+              ) : (
+                <><Sparkles size={14} /> Parse</>
+              )}
             </button>
           </div>
         </div>

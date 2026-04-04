@@ -128,3 +128,8 @@ input[type="checkbox"], input[type="radio"] {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 179, 65, 0.2);
 }
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
