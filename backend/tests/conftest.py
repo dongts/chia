@@ -24,7 +24,12 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def setup_db():
+async def setup_db(request):
+    # Skip database setup for tests marked with no_db
+    if "no_db" in request.keywords:
+        yield
+        return
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
