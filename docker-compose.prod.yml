@@ -63,6 +63,8 @@ services:
       CHIA_SENTRY_DSN: ${SENTRY_DSN:-}
       CHIA_ENV: ${CHIA_ENV:-production}
       CHIA_UPLOAD_DIR: /data/uploads
+      CHIA_LLM_MODEL: ${CHIA_LLM_MODEL:-gemini/gemma-4}
+      CHIA_LLM_API_KEY: ${CHIA_LLM_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy

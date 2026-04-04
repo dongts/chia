@@ -47,7 +47,7 @@ async def parse_expense_text(
         ],
         response_format={"type": "json_object"},
         api_key=settings.llm_api_key,
-        timeout=10,
+        timeout=30,
     )
 
     content = response.choices[0].message.content
