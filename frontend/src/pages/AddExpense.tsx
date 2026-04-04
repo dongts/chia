@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { createExpense, uploadReceipt } from "@/api/expenses";
+import { parseExpense } from "@/api/expenseParse";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
@@ -48,6 +49,10 @@ export default function AddExpense() {
   const [exactValues, setExactValues] = useState<Record<string, string>>({});
   const [percentValues, setPercentValues] = useState<Record<string, string>>({});
   const [shareValues, setShareValues] = useState<Record<string, string>>({});
+
+  const [nlText, setNlText] = useState("");
+  const [nlParsing, setNlParsing] = useState(false);
+  const [nlHidden, setNlHidden] = useState(false);
 
   function addFundDeduction() {
     setFundDeductions((prev) => [...prev, { fundId: "", amount: "" }]);
@@ -152,6 +157,66 @@ export default function AddExpense() {
     return null;
   }
 
+  const handleNlParse = async () => {
+    if (!groupId || !nlText.trim()) return;
+    setNlParsing(true);
+    try {
+      const draft = await parseExpense(groupId, nlText.trim());
+      if (draft.description) setDescription(draft.description);
+      if (draft.amount != null) setAmount(String(draft.amount));
+      if (draft.date) setDate(draft.date);
+      if (draft.paid_by_member_id) setPaidBy(draft.paid_by_member_id);
+      if (draft.category_id) setCategoryId(draft.category_id);
+      if (draft.currency_code) setCurrencyCode(draft.currency_code);
+      if (draft.split_type) setSplitType(draft.split_type as SplitType);
+
+      // Pre-fill equal split checkboxes from returned splits
+      if (draft.splits && draft.splits.length > 0) {
+        if (!draft.split_type || draft.split_type === "equal") {
+          const checked: Record<string, boolean> = {};
+          members.forEach((m) => { checked[m.id] = false; });
+          draft.splits.forEach((s) => { checked[s.group_member_id] = true; });
+          setEqualChecked(checked);
+        } else if (draft.split_type === "exact") {
+          const exact: Record<string, string> = {};
+          members.forEach((m) => { exact[m.id] = ""; });
+          draft.splits.forEach((s) => { exact[s.group_member_id] = String(s.value); });
+          setExactValues(exact);
+        } else if (draft.split_type === "percentage") {
+          const pct: Record<string, string> = {};
+          members.forEach((m) => { pct[m.id] = ""; });
+          draft.splits.forEach((s) => { pct[s.group_member_id] = String(s.value); });
+          setPercentValues(pct);
+        } else if (draft.split_type === "shares") {
+          const shares: Record<string, string> = {};
+          members.forEach((m) => { shares[m.id] = "0"; });
+          draft.splits.forEach((s) => { shares[s.group_member_id] = String(s.value); });
+          setShareValues(shares);
+        }
+      }
+
+      // Pre-fill fund deductions
+      if (draft.fund_deductions && draft.fund_deductions.length > 0) {
+        setFundDeductions(
+          draft.fund_deductions.map((fd) => ({
+            fundId: fd.fund_id,
+            amount: String(fd.amount),
+          }))
+        );
+      }
+
+      setNlText("");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr.response?.status === 503) {
+        setNlHidden(true);
+      }
+      window.alert("Couldn't understand that. Please fill the form manually.");
+    } finally {
+      setNlParsing(false);
+    }
+  };
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!groupId) return;
@@ -216,6 +281,38 @@ export default function AddExpense() {
         </button>
         <h1 className="text-xl font-bold text-on-surface">Add Expense</h1>
       </div>
+
+      {!nlHidden && (
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 mb-6">
+          <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
+            Describe your expense
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={nlText}
+              onChange={(e) => setNlText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleNlParse();
+                }
+              }}
+              placeholder='e.g. "dinner 45.50 Alice paid split with Bob"'
+              className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
+              disabled={nlParsing}
+            />
+            <button
+              type="button"
+              onClick={handleNlParse}
+              disabled={nlParsing || !nlText.trim()}
+              className="px-4 py-3 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {nlParsing ? "Parsing..." : "Parse"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Details Card */}
