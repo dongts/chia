@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ImagePlus, Trash2, Loader2, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, Trash2, Loader2, X, Lock, Unlock } from "lucide-react";
 import { getExpense, updateExpense, uploadReceipt, deleteReceipt } from "@/api/expenses";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
@@ -43,6 +43,7 @@ export default function EditExpense() {
   const [exactValues, setExactValues] = useState<Record<string, string>>({});
   const [percentValues, setPercentValues] = useState<Record<string, string>>({});
   const [shareValues, setShareValues] = useState<Record<string, string>>({});
+  const [splitTypeLocked, setSplitTypeLocked] = useState(true);
 
   function addFundDeduction() {
     setFundDeductions((prev) => [...prev, { fundId: "", amount: "" }]);
@@ -369,18 +370,34 @@ export default function EditExpense() {
 
         {/* Split Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Split type</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Split type</h2>
+            {splitTypeLocked ? (
+              <button type="button" onClick={() => setSplitTypeLocked(false)}
+                className="flex items-center gap-1 text-xs text-outline hover:text-primary transition-colors">
+                <Lock size={11} /> Change
+              </button>
+            ) : (
+              <button type="button" onClick={() => { setSplitTypeLocked(true); setSplitType(expense!.splits[0]?.split_type as SplitType ?? "equal"); }}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
+                <Unlock size={11} /> Cancel
+              </button>
+            )}
+          </div>
           <div className="flex gap-1 bg-surface-container rounded-xl p-1">
             {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setSplitType(t)}
+                onClick={() => !splitTypeLocked && setSplitType(t)}
+                disabled={splitTypeLocked && splitType !== t}
                 className={cn(
                   "flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-colors",
                   splitType === t
                     ? "bg-surface-container-lowest text-on-surface shadow-editorial"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    : splitTypeLocked
+                      ? "text-outline/40 cursor-not-allowed"
+                      : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
                 {t}
