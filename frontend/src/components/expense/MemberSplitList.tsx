@@ -16,6 +16,7 @@ interface MemberSplitListProps {
   exactValues: Record<string, string>;
   onExactChange: (memberId: string, value: string) => void;
   totalAmount?: string;
+  splittableAmount?: string;
   currencyCode?: string;
   // Percentage
   percentValues: Record<string, string>;
@@ -28,7 +29,7 @@ interface MemberSplitListProps {
 export default function MemberSplitList({
   members, splitType,
   equalChecked, onEqualToggle, onSelectAll, onSelectNone,
-  exactValues, onExactChange, totalAmount, currencyCode,
+  exactValues, onExactChange, totalAmount, splittableAmount, currencyCode,
   percentValues, onPercentChange,
   shareValues, onShareChange,
 }: MemberSplitListProps) {
@@ -60,6 +61,24 @@ export default function MemberSplitList({
     : sorted;
 
   const selectedCount = members.filter((m) => equalChecked[m.id] ?? true).length;
+  const amt = parseFloat(splittableAmount || totalAmount || "0");
+  const totalShares = Object.values(shareValues).reduce((a, v) => a + parseFloat(v || "0"), 0);
+
+  function getPerPersonAmount(memberId: string): number | null {
+    if (!amt || amt <= 0) return null;
+    if (splitType === "equal") {
+      return selectedCount > 0 && (equalChecked[memberId] ?? true) ? amt / selectedCount : null;
+    }
+    if (splitType === "percentage") {
+      const pct = parseFloat(percentValues[memberId] || "0");
+      return pct > 0 ? (amt * pct) / 100 : null;
+    }
+    if (splitType === "shares") {
+      const share = parseFloat(shareValues[memberId] || "0");
+      return share > 0 && totalShares > 0 ? (amt * share) / totalShares : null;
+    }
+    return null;
+  }
 
   return (
     <div>
@@ -119,7 +138,12 @@ export default function MemberSplitList({
                     <span className={cn("text-sm font-medium truncate", checked ? "text-on-surface" : "text-outline")}>
                       {m.display_name}
                     </span>
-                    {checked && <Check size={16} className="ml-auto text-primary flex-shrink-0" />}
+                    {checked && getPerPersonAmount(m.id) != null && (
+                      <span className="ml-auto text-xs text-primary font-medium flex-shrink-0 mr-1">
+                        {formatAmount(getPerPersonAmount(m.id)!, currencyCode)}
+                      </span>
+                    )}
+                    {checked && <Check size={16} className="text-primary flex-shrink-0" />}
                   </button>
                 )}
 
@@ -143,6 +167,9 @@ export default function MemberSplitList({
                       {m.display_name[0]?.toUpperCase()}
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
+                    {getPerPersonAmount(m.id) != null && (
+                      <span className="text-xs text-primary font-medium">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
+                    )}
                     <div className="flex items-center gap-1">
                       <input type="number" min="0" max="100" step="0.01"
                         value={percentValues[m.id] ?? ""}
@@ -160,6 +187,9 @@ export default function MemberSplitList({
                       {m.display_name[0]?.toUpperCase()}
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
+                    {getPerPersonAmount(m.id) != null && (
+                      <span className="text-xs text-primary font-medium">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
+                    )}
                     <div className="flex items-center gap-1">
                       <button type="button"
                         onClick={() => onShareChange(m.id, String(Math.max(0, parseFloat(shareValues[m.id] || "0") - 1)))}

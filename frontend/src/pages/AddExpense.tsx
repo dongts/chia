@@ -591,6 +591,7 @@ export default function AddExpense() {
             exactValues={exactValues}
             onExactChange={(id, v) => setExactValues((prev) => ({ ...prev, [id]: v }))}
             totalAmount={amount}
+            splittableAmount={String(splittableAmount)}
             currencyCode={group?.currency_code}
             percentValues={percentValues}
             onPercentChange={(id, v) => setPercentValues((prev) => ({ ...prev, [id]: v }))}
