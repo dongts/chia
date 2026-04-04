@@ -101,7 +101,7 @@ export default function EditExpense() {
         m.forEach((mem) => {
           const existingSplit = exp.splits.find((s) => s.group_member_id === mem.id);
           checked[mem.id] = !!existingSplit;
-          exact[mem.id] = existingSplit ? String(existingSplit.resolved_amount) : "";
+          exact[mem.id] = existingSplit ? String(parseFloat(String(existingSplit.resolved_amount))) : "";
           pct[mem.id] = existingSplit ? String(existingSplit.value) : "";
           shares[mem.id] = existingSplit ? String(existingSplit.value) : "0";
         });

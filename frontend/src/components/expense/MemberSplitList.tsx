@@ -153,11 +153,11 @@ export default function MemberSplitList({
                       {m.display_name[0]?.toUpperCase()}
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
-                    <input type="number" min="0" step="0.01"
+                    <input type="number" min="0" step="any"
                       value={exactValues[m.id] ?? ""}
                       onChange={(e) => onExactChange(m.id, e.target.value)}
-                      placeholder="0.00"
-                      className="w-24 border border-outline-variant/15 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
+                      placeholder="0"
+                      className="w-32 border border-outline-variant/15 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                   </div>
                 )}
 

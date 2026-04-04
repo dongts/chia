@@ -541,6 +541,11 @@ export default function GroupView() {
                               {expense.receipt_url && (
                                 <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
+                              {expense.splits[0]?.split_type && expense.splits[0].split_type !== "equal" && (
+                                <span className="text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium capitalize">
+                                  {expense.splits[0].split_type}
+                                </span>
+                              )}
                               {expense.fund_deductions?.length > 0 && expense.fund_deductions.map((d) => (
                                 <span key={d.id} className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
                                   {d.fund_name}
