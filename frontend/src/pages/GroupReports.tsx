@@ -123,7 +123,7 @@ export default function GroupReports() {
     return list;
   }, [summary, sortColumn, sortDir, memberSearch]);
 
-  const visibleMembers = sortedMembers.slice(0, 20);
+  const visibleMembers = sortedMembers;
 
   function handleSort(col: "name" | "balance") {
     if (sortColumn === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -292,11 +292,6 @@ export default function GroupReports() {
                       })}
                     </div>
 
-                    {sortedMembers.length > 20 && (
-                      <p className="text-xs text-on-surface-variant text-center mt-3">
-                        Showing 20 of {sortedMembers.length} members
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
