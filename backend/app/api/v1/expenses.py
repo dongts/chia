@@ -462,13 +462,16 @@ async def update_expense(
         {"description": expense.description, "amount": str(expense.amount)},
     )
 
+    expense_id_val = expense.id
     await db.commit()
-    db.expire(expense)
 
-    # Reload
+    # Clear session to avoid stale identity map entries causing lazy loads
+    db.expunge_all()
+
+    # Reload with completely fresh objects
     result = await db.execute(
         select(Expense)
-        .where(Expense.id == expense.id)
+        .where(Expense.id == expense_id_val)
         .options(
             selectinload(Expense.splits).selectinload(ExpenseSplit.member),
             selectinload(Expense.payer),
