@@ -463,6 +463,7 @@ async def update_expense(
     )
 
     await db.commit()
+    db.expire(expense)
 
     # Reload
     result = await db.execute(
