@@ -338,3 +338,22 @@ export interface MyGroupPaymentMethod {
   payment_method: PaymentMethod;
   enabled: boolean;
 }
+
+export interface FundDeductionDraft {
+  fund_id: string;
+  amount: number;
+}
+
+export interface ExpenseParseDraft {
+  description: string | null;
+  amount: number | null;
+  currency_code: string | null;
+  date: string | null;
+  paid_by_member_id: string | null;
+  category_id: string | null;
+  split_type: SplitType | null;
+  splits: SplitInput[] | null;
+  fund_deductions: FundDeductionDraft[] | null;
+  confidence: number;
+  raw_extraction: Record<string, unknown>;
+}
