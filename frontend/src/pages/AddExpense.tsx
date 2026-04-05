@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ImagePlus, X, Sparkles } from "lucide-react";
@@ -53,6 +53,8 @@ export default function AddExpense() {
   const [nlText, setNlText] = useState("");
   const [nlParsing, setNlParsing] = useState(false);
   const [nlHidden, setNlHidden] = useState(false);
+  const [nlExpanded, setNlExpanded] = useState(false);
+  const nlInputRef = useRef<HTMLInputElement>(null);
 
   function addFundDeduction() {
     setFundDeductions((prev) => [...prev, { fundId: "", amount: "" }]);
@@ -206,6 +208,7 @@ export default function AddExpense() {
       }
 
       setNlText("");
+      setNlExpanded(false);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 503) {
@@ -285,40 +288,62 @@ export default function AddExpense() {
       </div>
 
       {!nlHidden && (
-        <div className="bg-gradient-to-r from-primary-container/10 via-tertiary-container/10 to-primary-container/10 rounded-2xl shadow-editorial p-6 mb-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_3s_ease-in-out_infinite]" />
-          <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 flex items-center gap-1.5 relative">
-            <Sparkles size={14} className="text-primary animate-pulse" />
-            <span className="bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent">AI-Powered Input</span>
-          </label>
-          <div className="flex gap-2 relative">
-            <input
-              type="text"
-              value={nlText}
-              onChange={(e) => setNlText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleNlParse();
-                }
-              }}
-              placeholder='e.g. "dinner 45.50 Alice paid split with Bob"'
-              className="flex-1 bg-surface-container-lowest/80 border border-primary/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary/40 transition-colors"
-              disabled={nlParsing}
-            />
-            <button
-              type="button"
-              onClick={handleNlParse}
-              disabled={nlParsing || !nlText.trim()}
-              className="px-4 py-3 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        <div
+          className={cn(
+            "mb-6 transition-all duration-300 ease-out",
+            nlExpanded
+              ? "bg-gradient-to-r from-primary-container/10 via-tertiary-container/10 to-primary-container/10 rounded-2xl shadow-editorial p-5 relative overflow-hidden"
+              : "cursor-pointer"
+          )}
+        >
+          {nlExpanded && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_3s_ease-in-out_infinite]" />
+          )}
+
+          {!nlExpanded ? (
+            <div
+              onClick={() => { setNlExpanded(true); setTimeout(() => nlInputRef.current?.focus(), 100); }}
+              className="flex items-center gap-2.5 bg-surface-container-lowest/80 border border-outline-variant/20 rounded-xl px-4 py-3 hover:border-primary/30 transition-colors group"
             >
-              {nlParsing ? (
-                <><div className="w-3.5 h-3.5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" /> Parsing...</>
-              ) : (
-                <><Sparkles size={14} /> Parse</>
-              )}
-            </button>
-          </div>
+              <Sparkles size={15} className="text-primary/60 group-hover:text-primary transition-colors" />
+              <span className="text-sm text-outline group-hover:text-on-surface-variant transition-colors">Describe expense with AI...</span>
+            </div>
+          ) : (
+            <div className="relative">
+              <label className="text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Sparkles size={14} className="text-primary animate-pulse" />
+                <span className="bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent">AI-Powered Input</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  ref={nlInputRef}
+                  type="text"
+                  value={nlText}
+                  onChange={(e) => setNlText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); handleNlParse(); }
+                    if (e.key === "Escape" && !nlText.trim()) { setNlExpanded(false); }
+                  }}
+                  onBlur={() => { if (!nlText.trim() && !nlParsing) setNlExpanded(false); }}
+                  placeholder='e.g. "dinner 45.50 Alice paid split with Bob"'
+                  className="flex-1 bg-surface-container-lowest/80 border border-primary/20 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary/40 transition-colors"
+                  disabled={nlParsing}
+                />
+                <button
+                  type="button"
+                  onClick={handleNlParse}
+                  disabled={nlParsing || !nlText.trim()}
+                  className="px-4 py-3 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {nlParsing ? (
+                    <><div className="w-3.5 h-3.5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" /> Parsing...</>
+                  ) : (
+                    <><Sparkles size={14} /> Parse</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
