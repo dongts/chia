@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ImagePlus, X, Sparkles } from "lucide-react";
+import { ArrowLeft, X, Sparkles, FileText, Paperclip } from "lucide-react";
 import { createExpense, uploadReceipt } from "@/api/expenses";
 import { parseExpense } from "@/api/expenseParse";
 import { getGroup } from "@/api/groups";
@@ -376,27 +376,33 @@ export default function AddExpense() {
                 placeholder="📦"
                 compact
               />
-              {receiptPreview ? (
+              {receiptFile ? (
                 <button
                   type="button"
                   onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
                   className="w-12 h-12 flex-shrink-0 rounded-xl border border-primary/30 bg-primary-container/10 flex items-center justify-center text-primary hover:bg-error-container/20 hover:text-error hover:border-error/30 transition-colors relative overflow-hidden"
+                  title={receiptFile.name}
                 >
-                  <img src={receiptPreview} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                  {receiptPreview ? (
+                    <img src={receiptPreview} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                  ) : (
+                    <FileText size={18} className="text-primary/60 absolute" />
+                  )}
                   <X size={16} className="relative z-10" />
                 </button>
               ) : (
                 <label className="w-12 h-12 flex-shrink-0 rounded-xl bg-surface-container-high/50 flex items-center justify-center cursor-pointer hover:bg-surface-container-high/70 transition-colors text-outline hover:text-on-surface-variant">
-                  <ImagePlus size={18} />
+                  <Paperclip size={18} />
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                    capture="environment"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       setReceiptFile(file);
-                      setReceiptPreview(URL.createObjectURL(file));
+                      setReceiptPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
                     }}
                   />
                 </label>
@@ -486,9 +492,16 @@ export default function AddExpense() {
           </div>
 
           {/* Receipt preview (if uploaded) */}
-          {receiptPreview && (
+          {receiptFile && (
             <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
-              <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-32 object-contain bg-surface-container" />
+              {receiptPreview ? (
+                <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-32 object-contain bg-surface-container" />
+              ) : (
+                <div className="flex items-center gap-2 px-4 py-3 bg-surface-container">
+                  <FileText size={16} className="text-outline" />
+                  <span className="text-xs text-on-surface-variant truncate">{receiptFile.name}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

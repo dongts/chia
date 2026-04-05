@@ -6,7 +6,7 @@ from fastapi import UploadFile
 
 from app.config import settings
 
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"}
 
 
 def _get_s3_client():
