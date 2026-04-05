@@ -58,7 +58,7 @@ export default function MoneyInput({ value, onChange, placeholder = "0.00", requ
       onChange={(e) => handleChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors tabular-nums",
+        "w-full h-12 bg-surface-container-high/50 border-0 rounded-xl px-4 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors tabular-nums",
         className
       )}
     />

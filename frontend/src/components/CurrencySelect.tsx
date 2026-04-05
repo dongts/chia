@@ -13,6 +13,7 @@ interface CurrencySelectProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export default function CurrencySelect({
@@ -23,6 +24,7 @@ export default function CurrencySelect({
   placeholder = "Select currency",
   className = "",
   disabled = false,
+  compact = false,
 }: CurrencySelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -76,10 +78,19 @@ export default function CurrencySelect({
             setTimeout(() => inputRef.current?.focus(), 50);
           }
         }}
-        className="w-full flex items-center justify-between border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-60 bg-surface-container-lowest"
+        className={compact
+          ? "w-full h-12 flex items-center justify-center bg-surface-container-high/50 rounded-xl text-xs font-semibold text-on-surface hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+          : "w-full flex items-center justify-between border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-60 bg-surface-container-lowest"
+        }
       >
-        <span className={value ? "text-on-surface" : "text-outline"}>{displayText}</span>
-        <ChevronDown size={14} className="text-outline flex-shrink-0" />
+        {compact ? (
+          <span>{value || "---"}</span>
+        ) : (
+          <>
+            <span className={value ? "text-on-surface" : "text-outline"}>{displayText}</span>
+            <ChevronDown size={14} className="text-outline flex-shrink-0" />
+          </>
+        )}
       </button>
 
       {open && (

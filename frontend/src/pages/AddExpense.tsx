@@ -275,7 +275,7 @@ export default function AddExpense() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg lg:max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
@@ -347,158 +347,150 @@ export default function AddExpense() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Details Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Details</h2>
-
-          {/* Description */}
+      <form onSubmit={handleSubmit}>
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+        {/* Left Column */}
+        <div className="space-y-6">
+        {/* Compact Details Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5 space-y-3">
+          {/* Row 1: Description + Category + Receipt */}
           <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-              Description <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Dinner at Roma"
-              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
-            />
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-              Amount <span className="text-error">*</span>
-            </label>
-            <MoneyInput value={amount} onChange={setAmount} required />
-          </div>
-
-          {/* Currency */}
-          {allowedCurrencies.length > 0 && group && (
-            <div>
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Currency</label>
-              <CurrencySelect
-                value={currencyCode}
-                allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
-                extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main currency` }]}
-                onChange={(code) => {
-                  setCurrencyCode(code);
-                  if (code === group.currency_code) {
-                    setExchangeRate("");
-                  } else {
-                    const gc = allowedCurrencies.find((c) => c.currency_code === code);
-                    setExchangeRate(gc ? String(gc.exchange_rate) : "");
-                  }
-                }}
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Description</span>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Dinner, Taxi, Groceries..."
+                className="flex-1 min-w-0 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
               />
-            </div>
-          )}
-
-          {/* Exchange rate */}
-          {group && currencyCode && currencyCode !== group.currency_code && (
-            <div>
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-                Exchange rate
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-on-surface-variant whitespace-nowrap">1 {currencyCode} =</span>
-                <input
-                  type="number"
-                  min="0.000001"
-                  step="any"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
-                  placeholder="0.00"
-                  className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
-                />
-                <span className="text-sm text-on-surface-variant">{group.currency_code}</span>
-              </div>
-              {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
-                <p className="text-xs text-on-surface-variant mt-1.5">
-                  ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)} {group.currency_code}
-                </p>
+              <SelectDropdown
+                value={categoryId}
+                onChange={setCategoryId}
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  icon: c.icon,
+                }))}
+                placeholder="📦"
+                compact
+              />
+              {receiptPreview ? (
+                <button
+                  type="button"
+                  onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                  className="w-12 h-12 flex-shrink-0 rounded-xl border border-primary/30 bg-primary-container/10 flex items-center justify-center text-primary hover:bg-error-container/20 hover:text-error hover:border-error/30 transition-colors relative overflow-hidden"
+                >
+                  <img src={receiptPreview} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                  <X size={16} className="relative z-10" />
+                </button>
+              ) : (
+                <label className="w-12 h-12 flex-shrink-0 rounded-xl bg-surface-container-high/50 flex items-center justify-center cursor-pointer hover:bg-surface-container-high/70 transition-colors text-outline hover:text-on-surface-variant">
+                  <ImagePlus size={18} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setReceiptFile(file);
+                      setReceiptPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                </label>
               )}
-              <p className="text-xs text-outline mt-1">
-                Pre-filled from default rate. Edit if needed.
-              </p>
+            </div>
+          </div>
+
+          {/* Row 2: Currency + Amount */}
+          <div>
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Amount</span>
+            <div className="flex gap-2 mt-1">
+              <div className="w-20 flex-shrink-0">
+                {allowedCurrencies.length > 0 && group ? (
+                  <CurrencySelect
+                    value={currencyCode}
+                    allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
+                    extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main` }]}
+                    onChange={(code) => {
+                      setCurrencyCode(code);
+                      if (code === group.currency_code) {
+                        setExchangeRate("");
+                      } else {
+                        const gc = allowedCurrencies.find((c) => c.currency_code === code);
+                        setExchangeRate(gc ? String(gc.exchange_rate) : "");
+                      }
+                    }}
+                    compact
+                  />
+                ) : (
+                  <div className="h-12 bg-surface-container-high/50 rounded-xl px-3 flex items-center justify-center text-sm text-on-surface-variant font-medium">
+                    {group?.currency_code || "---"}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
+              </div>
+            </div>
+          </div>
+
+          {/* Exchange rate (conditional) */}
+          {group && currencyCode && currencyCode !== group.currency_code && (
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs text-on-surface-variant whitespace-nowrap">1 {currencyCode} =</span>
+              <input
+                type="number"
+                min="0.000001"
+                step="any"
+                value={exchangeRate}
+                onChange={(e) => setExchangeRate(e.target.value)}
+                placeholder="0.00"
+                className="w-24 bg-surface-container-high/50 border-0 rounded-lg px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+              />
+              <span className="text-xs text-on-surface-variant">{group.currency_code}</span>
+              {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
+                <span className="text-xs text-outline ml-auto">
+                  ≈ {formatAmount(parseFloat(amount) * parseFloat(exchangeRate), group.currency_code)}
+                </span>
+              )}
             </div>
           )}
 
-          {/* Date */}
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Date</label>
-            <DatePicker value={date} onChange={setDate} />
-          </div>
-
-          {/* Receipt Image */}
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-              Receipt <span className="text-outline font-normal">(optional)</span>
-            </label>
-            {receiptPreview ? (
-              <div className="space-y-2">
-                <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
-                  <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-48 object-contain bg-surface-container" />
-                  <button
-                    type="button"
-                    onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-surface-container/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="flex items-center gap-3 px-4 py-3 bg-surface-container-high/50 rounded-xl cursor-pointer hover:bg-surface-container-high/70 transition-colors">
-                <ImagePlus size={18} className="text-outline" />
-                <span className="text-sm text-on-surface-variant">Add receipt image</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setReceiptFile(file);
-                    setReceiptPreview(URL.createObjectURL(file));
-                  }}
+          {/* Row 3: Paid by + Date */}
+          <div className="flex gap-2">
+            <div className="flex-[3]">
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Paid by</span>
+              <div className="mt-1">
+                <SelectDropdown
+                  value={paidBy}
+                  onChange={setPaidBy}
+                  searchable={members.length > 5}
+                  options={members.map((m) => ({
+                    value: m.id,
+                    label: m.display_name,
+                    icon: m.display_name[0]?.toUpperCase(),
+                  }))}
+                  placeholder="Select person..."
                 />
-              </label>
-            )}
+              </div>
+            </div>
+            <div className="flex-[2]">
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Date</span>
+              <div className="mt-1">
+                <DatePicker value={date} onChange={setDate} />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Paid By Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Paid by</h2>
-          <SelectDropdown
-            value={paidBy}
-            onChange={setPaidBy}
-            searchable={members.length > 5}
-            options={members.map((m) => ({
-              value: m.id,
-              label: m.display_name,
-              icon: m.display_name[0]?.toUpperCase(),
-            }))}
-            placeholder="Select person..."
-          />
-        </div>
-
-        {/* Category Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Category</h2>
-          <SelectDropdown
-            value={categoryId}
-            onChange={setCategoryId}
-            options={categories.map((c) => ({
-              value: c.id,
-              label: c.name,
-              icon: c.icon,
-            }))}
-            placeholder="Select category..."
-          />
+          {/* Receipt preview (if uploaded) */}
+          {receiptPreview && (
+            <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
+              <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-32 object-contain bg-surface-container" />
+            </div>
+          )}
         </div>
 
         {/* Fund Deductions */}
@@ -585,6 +577,10 @@ export default function AddExpense() {
           </div>
         )}
 
+        </div>{/* End Left Column */}
+
+        {/* Right Column */}
+        <div className="space-y-6">
         {/* Split Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Split type</h2>
@@ -625,8 +621,11 @@ export default function AddExpense() {
           />
         </div>
 
+        </div>{/* End Right Column */}
+        </div>{/* End Grid */}
+
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2 pb-6">
+        <div className="flex gap-3 pt-2 pb-6 mt-6 lg:mt-8 lg:max-w-md lg:mx-auto">
           <button
             type="button"
             onClick={() => navigate(`/groups/${groupId}`)}

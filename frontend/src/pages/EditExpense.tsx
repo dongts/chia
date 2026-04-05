@@ -207,7 +207,7 @@ export default function EditExpense() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg lg:max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
@@ -219,69 +219,78 @@ export default function EditExpense() {
         <h1 className="text-xl font-bold text-on-surface">Edit Expense</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Details Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Details</h2>
-
-          {/* Description */}
+      <form onSubmit={handleSubmit}>
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+        {/* Left Column */}
+        <div className="space-y-6">
+        {/* Compact Details Card */}
+        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5 space-y-3">
+          {/* Row 1: Description + Category */}
           <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-              Description <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
-            />
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Description</span>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Dinner, Taxi, Groceries..."
+                className="flex-1 min-w-0 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
+              />
+              <SelectDropdown
+                value={categoryId}
+                onChange={setCategoryId}
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  icon: c.icon,
+                }))}
+                placeholder="📦"
+                compact
+              />
+            </div>
           </div>
 
-          {/* Amount */}
+          {/* Row 2: Currency + Amount */}
           <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">
-              Amount <span className="text-error">*</span>
-            </label>
-            <MoneyInput value={amount} onChange={setAmount} required />
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Amount</span>
+            <div className="flex gap-2 mt-1">
+              <div className="w-20 flex-shrink-0">
+                <div className="h-12 bg-surface-container-high/50 rounded-xl px-3 flex items-center justify-center text-sm text-on-surface-variant font-medium">
+                  {expense?.currency_code || "---"}
+                </div>
+              </div>
+              <div className="flex-1">
+                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
+              </div>
+            </div>
           </div>
 
-          {/* Date */}
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Date</label>
-            <DatePicker value={date} onChange={setDate} />
+          {/* Row 3: Paid by + Date */}
+          <div className="flex gap-2">
+            <div className="flex-[3]">
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Paid by</span>
+              <div className="mt-1">
+                <SelectDropdown
+                  value={paidBy}
+                  onChange={setPaidBy}
+                  searchable={members.length > 5}
+                  options={members.map((m) => ({
+                    value: m.id,
+                    label: m.display_name,
+                    icon: m.display_name[0]?.toUpperCase(),
+                  }))}
+                  placeholder="Select person..."
+                />
+              </div>
+            </div>
+            <div className="flex-[2]">
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Date</span>
+              <div className="mt-1">
+                <DatePicker value={date} onChange={setDate} />
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Paid By Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Paid by</h2>
-          <SelectDropdown
-            value={paidBy}
-            onChange={setPaidBy}
-            searchable={members.length > 5}
-            options={members.map((m) => ({
-              value: m.id,
-              label: m.display_name,
-              icon: m.display_name[0]?.toUpperCase(),
-            }))}
-            placeholder="Select person..."
-          />
-        </div>
-
-        {/* Category Card */}
-        <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Category</h2>
-          <SelectDropdown
-            value={categoryId}
-            onChange={setCategoryId}
-            options={categories.map((c) => ({
-              value: c.id,
-              label: c.name,
-              icon: c.icon,
-            }))}
-            placeholder="Select category..."
-          />
         </div>
 
         {/* Fund Deductions */}
@@ -368,6 +377,10 @@ export default function EditExpense() {
           </div>
         )}
 
+        </div>{/* End Left Column */}
+
+        {/* Right Column */}
+        <div className="space-y-6">
         {/* Split Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -491,8 +504,11 @@ export default function EditExpense() {
           )}
         </div>
 
+        </div>{/* End Right Column */}
+        </div>{/* End Grid */}
+
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2 pb-6">
+        <div className="flex gap-3 pt-2 pb-6 mt-6 lg:mt-8 lg:max-w-md lg:mx-auto">
           <button
             type="button"
             onClick={() => navigate(`/groups/${groupId}`)}

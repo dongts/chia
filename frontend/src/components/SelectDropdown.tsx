@@ -15,6 +15,7 @@ interface SelectDropdownProps {
   options: SelectOption[];
   placeholder?: string;
   searchable?: boolean;
+  compact?: boolean;
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export default function SelectDropdown({
   options,
   placeholder = "Select...",
   searchable = false,
+  compact = false,
   className,
 }: SelectDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -57,30 +59,44 @@ export default function SelectDropdown({
   return (
     <div ref={ref} className={cn("relative", className)}>
       {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => { setOpen(!open); setSearch(""); }}
-        className="w-full flex items-center gap-3 bg-surface-container-high/50 rounded-xl px-4 py-3 text-sm text-left hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-      >
-        {selected?.icon && (
-          <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-            {selected.icon}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <span className={selected ? "text-on-surface" : "text-outline"}>
-            {selected ? selected.label : placeholder}
-          </span>
-          {selected?.sublabel && (
-            <span className="text-xs text-outline ml-1.5">{selected.sublabel}</span>
+      {compact ? (
+        <button
+          type="button"
+          onClick={() => { setOpen(!open); setSearch(""); }}
+          className="w-12 h-12 flex items-center justify-center bg-surface-container-high/50 rounded-xl text-lg hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
+          title={selected?.label || placeholder}
+        >
+          {selected?.icon || placeholder}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { setOpen(!open); setSearch(""); }}
+          className="w-full h-12 flex items-center gap-3 bg-surface-container-high/50 rounded-xl px-4 text-sm text-left hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+        >
+          {selected?.icon && (
+            <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+              {selected.icon}
+            </div>
           )}
-        </div>
-        <ChevronDown size={16} className={cn("text-outline flex-shrink-0 transition-transform", open && "rotate-180")} />
-      </button>
+          <div className="flex-1 min-w-0">
+            <span className={selected ? "text-on-surface" : "text-outline"}>
+              {selected ? selected.label : placeholder}
+            </span>
+            {selected?.sublabel && (
+              <span className="text-xs text-outline ml-1.5">{selected.sublabel}</span>
+            )}
+          </div>
+          <ChevronDown size={16} className={cn("text-outline flex-shrink-0 transition-transform", open && "rotate-180")} />
+        </button>
+      )}
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-editorial-xl overflow-hidden max-h-64 flex flex-col">
+        <div className={cn(
+          "absolute top-full mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-editorial-xl overflow-hidden max-h-64 flex flex-col",
+          compact ? "right-0 min-w-48" : "left-0 right-0"
+        )}>
           {/* Search */}
           {searchable && (
             <div className="px-3 pt-3 pb-2 flex-shrink-0">

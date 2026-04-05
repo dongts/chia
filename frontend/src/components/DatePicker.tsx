@@ -97,7 +97,7 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between bg-surface-container-high/50 rounded-xl px-4 py-3 text-sm text-on-surface hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors text-left"
+        className="w-full h-12 flex items-center justify-between bg-surface-container-high/50 rounded-xl px-4 text-sm text-on-surface hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors text-left"
       >
         <span className={value ? "text-on-surface" : "text-outline"}>{displayText}</span>
         <Calendar size={16} className="text-outline flex-shrink-0" />
