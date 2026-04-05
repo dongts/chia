@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ImagePlus, Trash2, Loader2, X, Lock, Unlock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getExpense, updateExpense, uploadReceipt, deleteReceipt } from "@/api/expenses";
 import { resolveBackendUrl } from "@/api/client";
 import { getGroup } from "@/api/groups";
@@ -17,6 +18,7 @@ import SelectDropdown from "@/components/SelectDropdown";
 import MoneyInput from "@/components/MoneyInput";
 
 export default function EditExpense() {
+  const { t } = useTranslation("expense");
   const { groupId, expenseId } = useParams<{ groupId: string; expenseId: string }>();
   const navigate = useNavigate();
 
@@ -113,7 +115,7 @@ export default function EditExpense() {
         setPercentValues(pct);
         setShareValues(shares);
       })
-      .catch(() => window.alert("Failed to load expense"))
+      .catch(() => window.alert(t("failed_to_load", { ns: "common" })))
       .finally(() => setLoading(false));
   }, [groupId, expenseId]);
 
@@ -121,7 +123,7 @@ export default function EditExpense() {
     if (splitType === "equal") {
       const selected = members.filter((m) => equalChecked[m.id]);
       if (selected.length === 0) {
-        window.alert("Select at least one member for splitting");
+        window.alert(t("validation.select_member"));
         return null;
       }
       const each = 1 / selected.length;
@@ -134,7 +136,7 @@ export default function EditExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - splittableAmount) > 0.01) {
-        window.alert(`Exact amounts must sum to ${formatAmount(splittableAmount, expense?.currency_code ?? undefined)}. Currently: ${formatAmount(total, expense?.currency_code ?? undefined)}`);
+        window.alert(t("validation.exact_sum", { target: formatAmount(splittableAmount, expense?.currency_code ?? undefined), current: formatAmount(total, expense?.currency_code ?? undefined) }));
         return null;
       }
       return splits;
@@ -146,7 +148,7 @@ export default function EditExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - 100) > 0.01) {
-        window.alert(`Percentages must sum to 100. Currently: ${total.toFixed(2)}`);
+        window.alert(t("validation.percent_sum", { current: total.toFixed(2) }));
         return null;
       }
       return splits;
@@ -157,7 +159,7 @@ export default function EditExpense() {
         .map((m) => ({ group_member_id: m.id, value: parseFloat(shareValues[m.id] || "0") }))
         .filter((s) => s.value > 0);
       if (splits.length === 0) {
-        window.alert("Enter shares for at least one member");
+        window.alert(t("validation.shares_required"));
         return null;
       }
       return splits;
@@ -190,7 +192,7 @@ export default function EditExpense() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to update expense";
+        t("failed_to_load", { ns: "common" });
       window.alert(msg);
     } finally {
       setSubmitting(false);
@@ -217,7 +219,7 @@ export default function EditExpense() {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl font-bold text-on-surface">Edit Expense</h1>
+        <h1 className="text-xl font-bold text-on-surface">{t("edit_title")}</h1>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -228,14 +230,14 @@ export default function EditExpense() {
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5 space-y-3">
           {/* Row 1: Description + Category */}
           <div>
-            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Description</span>
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">{t("description")}</span>
             <div className="flex gap-2 mt-1">
               <input
                 type="text"
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Dinner, Taxi, Groceries..."
+                placeholder={t("description_placeholder")}
                 className="flex-1 min-w-0 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container-high/70 transition-colors"
               />
               <SelectDropdown
@@ -254,7 +256,7 @@ export default function EditExpense() {
 
           {/* Row 2: Currency + Amount */}
           <div>
-            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Amount</span>
+            <span className="text-[10px] font-medium text-outline uppercase tracking-wider">{t("amount")}</span>
             <div className="flex gap-2 mt-1">
               <div className="w-20 flex-shrink-0">
                 <div className="h-12 bg-surface-container-high/50 rounded-xl px-3 flex items-center justify-center text-sm text-on-surface-variant font-medium">
@@ -270,7 +272,7 @@ export default function EditExpense() {
           {/* Row 3: Paid by + Date */}
           <div className="flex gap-2">
             <div className="flex-[3]">
-              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Paid by</span>
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">{t("paid_by")}</span>
               <div className="mt-1">
                 <SelectDropdown
                   value={paidBy}
@@ -281,12 +283,12 @@ export default function EditExpense() {
                     label: m.display_name,
                     icon: m.display_name[0]?.toUpperCase(),
                   }))}
-                  placeholder="Select person..."
+                  placeholder={t("select_person")}
                 />
               </div>
             </div>
             <div className="flex-[2]">
-              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">Date</span>
+              <span className="text-[10px] font-medium text-outline uppercase tracking-wider">{t("date")}</span>
               <div className="mt-1">
                 <DatePicker value={date} onChange={setDate} />
               </div>
@@ -298,19 +300,19 @@ export default function EditExpense() {
         {funds.length > 0 && (
           <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Pay from funds</h2>
+              <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("fund_deductions")}</h2>
               <button
                 type="button"
                 onClick={addFundDeduction}
                 disabled={fundDeductions.length >= funds.length}
                 className="text-xs font-semibold text-primary hover:text-primary-dim disabled:opacity-40 transition-colors"
               >
-                + Add fund
+                {t("add_fund")}
               </button>
             </div>
 
             {fundDeductions.length === 0 && (
-              <p className="text-xs text-outline">No fund deductions — full amount will be split among members.</p>
+              <p className="text-xs text-outline">{t("no_fund_deductions")}</p>
             )}
 
             {fundDeductions.map((d, i) => {
@@ -327,7 +329,7 @@ export default function EditExpense() {
                       onChange={(e) => updateFundDeduction(i, "fundId", e.target.value)}
                       className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
                     >
-                      <option value="">Select fund...</option>
+                      <option value="">{t("select_fund")}</option>
                       {availableFunds.map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.name} (bal: {formatCurrency(f.balance, group?.currency_code || "VND")})
@@ -337,11 +339,11 @@ export default function EditExpense() {
                     <MoneyInput
                       value={d.amount}
                       onChange={(v) => updateFundDeduction(i, "amount", v)}
-                      placeholder="Amount from fund"
+                      placeholder={t("amount_from_fund")}
                     />
                     {deductionExceedsBalance && (
                       <p className="text-xs text-error">
-                        Exceeds fund balance ({formatCurrency(selectedFund.balance, group?.currency_code || "VND")})
+                        {t("exceeds_fund_balance", { balance: formatCurrency(selectedFund.balance, group?.currency_code || "VND") })}
                       </p>
                     )}
                   </div>
@@ -359,19 +361,19 @@ export default function EditExpense() {
             {fundDeductions.length > 0 && amount && (
               <div className="pt-2 border-t border-outline-variant/10">
                 <div className="flex justify-between text-xs">
-                  <span className="text-on-surface-variant">Total from funds:</span>
+                  <span className="text-on-surface-variant">{t("total_from_funds")}:</span>
                   <span className="font-semibold text-on-surface">
                     {formatCurrency(totalFundDeductions, group?.currency_code || "VND")}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs mt-1">
-                  <span className="text-on-surface-variant">Amount to split:</span>
+                  <span className="text-on-surface-variant">{t("amount_to_split")}:</span>
                   <span className={cn("font-semibold", splittableAmount < 0 ? "text-error" : "text-on-surface")}>
                     {formatCurrency(splittableAmount, group?.currency_code || "VND")}
                   </span>
                 </div>
                 {totalFundDeductions > (parseFloat(amount) || 0) && (
-                  <p className="text-xs text-error mt-1">Total fund deductions exceed expense amount!</p>
+                  <p className="text-xs text-error mt-1">{t("exceeds_expense")}</p>
                 )}
               </div>
             )}
@@ -385,16 +387,16 @@ export default function EditExpense() {
         {/* Split Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Split type</h2>
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("split_type")}</h2>
             {splitTypeLocked ? (
               <button type="button" onClick={() => setSplitTypeLocked(false)}
                 className="flex items-center gap-1 text-xs text-outline hover:text-primary transition-colors">
-                <Lock size={11} /> Change
+                <Lock size={11} /> {t("split_change")}
               </button>
             ) : (
               <button type="button" onClick={() => { setSplitTypeLocked(true); setSplitType(expense!.splits[0]?.split_type as SplitType ?? "equal"); }}
                 className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
-                <Unlock size={11} /> Cancel
+                <Unlock size={11} /> {t("split_cancel")}
               </button>
             )}
           </div>
@@ -440,7 +442,7 @@ export default function EditExpense() {
 
         {/* Receipt / Image Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Receipt / Image</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("receipt.upload")} / Image</h2>
           {receiptUrl ? (
             <div className="space-y-3">
               <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
@@ -454,13 +456,13 @@ export default function EditExpense() {
                 type="button"
                 onClick={async () => {
                   if (!groupId || !expenseId) return;
-                  if (!window.confirm("Remove receipt image?")) return;
+                  if (!window.confirm(t("receipt.delete"))) return;
                   setUploadingReceipt(true);
                   try {
                     await deleteReceipt(groupId, expenseId);
                     setReceiptUrl(null);
                   } catch {
-                    window.alert("Failed to remove receipt");
+                    window.alert(t("failed_to_load", { ns: "common" }));
                   } finally {
                     setUploadingReceipt(false);
                   }
@@ -480,7 +482,7 @@ export default function EditExpense() {
                 <ImagePlus size={24} className="text-outline" />
               )}
               <span className="text-xs text-on-surface-variant font-medium">
-                {uploadingReceipt ? "Uploading..." : "Click to upload receipt image"}
+                {uploadingReceipt ? t("receipt.uploading") : t("receipt.upload")}
               </span>
               <span className="text-[10px] text-outline">JPEG, PNG, or WebP</span>
               <input
@@ -495,7 +497,7 @@ export default function EditExpense() {
                     const updated = await uploadReceipt(groupId, expenseId, file);
                     setReceiptUrl(updated.receipt_url);
                   } catch {
-                    window.alert("Failed to upload receipt");
+                    window.alert(t("failed_to_load", { ns: "common" }));
                   } finally {
                     setUploadingReceipt(false);
                   }
@@ -515,14 +517,14 @@ export default function EditExpense() {
             onClick={() => navigate(`/groups/${groupId}`)}
             className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-3 rounded-full text-sm transition-colors"
           >
-            Cancel
+            {t("split_cancel")}
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
           >
-            {submitting ? "Saving..." : "Save Changes"}
+            {submitting ? t("saving") : t("save_changes")}
           </button>
         </div>
       </form>

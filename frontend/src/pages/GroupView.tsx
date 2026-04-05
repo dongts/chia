@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
   ArrowLeftRight, Landmark, UserPlus, ImageIcon,
@@ -68,6 +69,7 @@ function MemberSearchSelect({
   placeholder: string;
   excludeId?: string;
 }) {
+  const { t } = useTranslation("group");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -102,7 +104,7 @@ function MemberSearchSelect({
       {open && (
         <div className="absolute z-10 mt-1 w-full bg-surface-container-lowest rounded-xl shadow-editorial-xl border border-outline-variant/10 max-h-48 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-outline">No results</p>
+            <p className="px-3 py-2 text-sm text-outline">{t("no_results")}</p>
           ) : (
             filtered.map((m) => (
               <button
@@ -127,6 +129,7 @@ export default function GroupView() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation("group");
 
   const [group, setGroup] = useState<Group | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -224,7 +227,7 @@ export default function GroupView() {
       setFunds(fds);
       setSuggestedSettlements(suggested);
     } catch {
-      window.alert("Failed to load group data");
+      window.alert(t("failed_to_load", { ns: "common" }));
     } finally {
       setLoading(false);
     }
@@ -241,12 +244,12 @@ export default function GroupView() {
 
   async function handleDeleteExpense(expenseId: string) {
     if (!groupId) return;
-    if (!window.confirm("Delete this expense?")) return;
+    if (!window.confirm(t("expenses.confirm_delete"))) return;
     try {
       await deleteExpense(groupId, expenseId);
       setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
     } catch {
-      window.alert("Failed to delete expense");
+      window.alert(t("expenses.failed_delete"));
     }
   }
 
@@ -271,7 +274,7 @@ export default function GroupView() {
 
   async function handleTransfer() {
     if (!groupId || !transferFrom || !transferTo || !transferAmount) return;
-    if (transferFrom === transferTo) { window.alert("Cannot transfer to the same person"); return; }
+    if (transferFrom === transferTo) { window.alert(t("transfer_modal.cannot_same_person")); return; }
     setTransferring(true);
     try {
       if (editingSettlementId) {
@@ -295,7 +298,7 @@ export default function GroupView() {
       setTransferFrom(""); setTransferTo(""); setTransferAmount(""); setTransferNote("");
       setEditingSettlementId(null);
       await loadAll();
-    } catch { window.alert(editingSettlementId ? "Failed to update transfer" : "Failed to record transfer"); }
+    } catch { window.alert(editingSettlementId ? t("transfer_modal.failed_update") : t("transfer_modal.failed_record")); }
     finally { setTransferring(false); }
   }
 
@@ -352,13 +355,13 @@ export default function GroupView() {
           <div>
             <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-xs text-on-surface-variant">{group.member_count ?? "?"} members</span>
+              <span className="text-xs text-on-surface-variant">{group.member_count ?? "?"} {t("members")}</span>
               <span className="text-outline">·</span>
               <span className="text-xs font-medium text-outline">{group.currency_code}</span>
               {group.created_at && (
                 <>
                   <span className="text-outline">·</span>
-                  <span className="text-xs text-outline">Created {new Date(group.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <span className="text-xs text-outline">{t("created")} {new Date(group.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
                 </>
               )}
             </div>
@@ -369,28 +372,28 @@ export default function GroupView() {
           <button
             onClick={() => setShowAddMember(true)}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title="Add member"
+            title={t("add_member")}
           >
             <UserPlus size={18} />
           </button>
           <button
             onClick={copyInviteCode}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={copied ? "Copied!" : "Share invite link"}
+            title={copied ? t("copied") : t("share_invite_link")}
           >
             {copied ? <Check size={18} className="text-primary" /> : <Share2 size={18} />}
           </button>
           <Link
             to={`/groups/${groupId}/reports`}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title="Reports"
+            title={t("reports", { ns: "common" })}
           >
             <BarChart3 size={18} />
           </Link>
           <Link
             to={`/groups/${groupId}/settings`}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title="Settings"
+            title={t("settings.title")}
           >
             <Settings size={18} />
           </Link>
@@ -400,7 +403,7 @@ export default function GroupView() {
       {/* ── Balance Summary Card ── */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
         <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
-          {myBalance > 0 ? "Your balance" : myBalance < 0 ? "You owe" : "Your balance"}
+          {myBalance < 0 ? t("you_owe") : t("your_balance")}
         </p>
         <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
           {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
@@ -413,22 +416,22 @@ export default function GroupView() {
       {members.length <= 1 && expenses.length === 0 && (
         <div className="bg-primary-container/20 border border-primary-container/40 rounded-2xl p-5 text-center space-y-3">
           <div className="text-4xl">👋</div>
-          <p className="font-semibold text-on-surface">Get started by inviting people</p>
-          <p className="text-sm text-on-surface-variant">Share the invite link or add members to start splitting expenses together.</p>
+          <p className="font-semibold text-on-surface">{t("get_started")}</p>
+          <p className="text-sm text-on-surface-variant">{t("get_started_subtitle")}</p>
           <div className="flex items-center justify-center gap-3 pt-1">
             <button
               onClick={() => setShowAddMember(true)}
               className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-5 py-2.5 rounded-full text-sm transition-colors"
             >
               <UserPlus size={16} />
-              Add Member
+              {t("add_member")}
             </button>
             <button
               onClick={copyInviteCode}
               className="flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container text-on-surface font-medium px-5 py-2.5 rounded-full text-sm transition-colors shadow-editorial"
             >
               {copied ? <Check size={16} className="text-primary" /> : <Share2 size={16} />}
-              {copied ? "Copied!" : "Share Link"}
+              {copied ? t("copied") : t("share_link")}
             </button>
           </div>
         </div>
@@ -436,18 +439,18 @@ export default function GroupView() {
 
       {/* ── Tab Navigation ── */}
       <div className="flex gap-1 bg-surface-container rounded-full p-1">
-        {(["expenses", "balances", "settlements", "funds"] as Tab[]).map((t) => (
+        {(["expenses", "balances", "settlements", "funds"] as Tab[]).map((tabKey) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            onClick={() => setTab(tabKey)}
             className={cn(
               "flex-1 py-2 rounded-full text-sm font-medium capitalize transition-colors",
-              tab === t
+              tab === tabKey
                 ? "bg-primary text-on-primary shadow-editorial"
                 : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50"
             )}
           >
-            {t === "settlements" ? "Transfers" : t}
+            {t(`tabs.${tabKey}`)}
           </button>
         ))}
       </div>
@@ -485,7 +488,7 @@ export default function GroupView() {
                       onChange={(e) => setFilterCategory(e.target.value)}
                       className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="">All categories</option>
+                      <option value="">{t("filter.all_categories")}</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                       ))}
@@ -495,7 +498,7 @@ export default function GroupView() {
                       onChange={(e) => setFilterPaidBy(e.target.value)}
                       className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      <option value="">All members</option>
+                      <option value="">{t("filter.all_members")}</option>
                       {members.map((m) => (
                         <option key={m.id} value={m.id}>{m.display_name}</option>
                       ))}
@@ -505,7 +508,7 @@ export default function GroupView() {
                         onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
                         className="w-full text-xs text-primary font-medium py-1.5 rounded-lg hover:bg-primary-container/20 transition-colors"
                       >
-                        Clear filters
+                        {t("filter.clear")}
                       </button>
                     )}
                   </div>
@@ -521,7 +524,7 @@ export default function GroupView() {
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
               >
-                <option value="">All categories</option>
+                <option value="">{t("filter.all_categories")}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                 ))}
@@ -531,7 +534,7 @@ export default function GroupView() {
                 onChange={(e) => setFilterPaidBy(e.target.value)}
                 className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
               >
-                <option value="">All members</option>
+                <option value="">{t("filter.all_members")}</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>{m.display_name}</option>
                 ))}
@@ -541,7 +544,7 @@ export default function GroupView() {
                   onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
                   className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-full hover:bg-primary-container/20 transition-colors"
                 >
-                  Clear
+                  {t("filter.clear")}
                 </button>
               )}
             </div>
@@ -553,14 +556,14 @@ export default function GroupView() {
                 className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
               >
                 <ArrowLeftRight size={16} />
-                <span className="hidden sm:inline">Transfer</span>
+                <span className="hidden sm:inline">{t("actions.transfer")}</span>
               </button>
               <Link
                 to={`/groups/${groupId}/add-expense`}
                 className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
               >
                 <Plus size={16} />
-                <span className="hidden sm:inline">Add Expense</span>
+                <span className="hidden sm:inline">{t("actions.add_expense")}</span>
               </Link>
             </div>
           </div>
@@ -570,10 +573,10 @@ export default function GroupView() {
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
               <div className="text-5xl mb-4">🧾</div>
               <p className="font-semibold text-on-surface text-base">
-                {expenses.length === 0 ? "No expenses yet" : "No expenses match filters"}
+                {expenses.length === 0 ? t("expenses.empty_title") : t("expenses.filtered_empty_title")}
               </p>
               <p className="text-sm text-on-surface-variant mt-1">
-                {expenses.length === 0 ? "Add the first expense for this group" : "Try adjusting your filters"}
+                {expenses.length === 0 ? t("expenses.empty_subtitle") : t("expenses.filtered_empty_subtitle")}
               </p>
             </div>
           ) : (
@@ -582,10 +585,10 @@ export default function GroupView() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-outline-variant/10 text-left text-[11px] text-on-surface-variant uppercase tracking-wider">
-                    <th className="px-4 py-3 font-medium">Expense</th>
-                    <th className="px-4 py-3 font-medium hidden sm:table-cell">Paid by</th>
-                    <th className="px-4 py-3 font-medium hidden sm:table-cell">Date</th>
-                    <th className="px-4 py-3 font-medium text-right">Amount</th>
+                    <th className="px-4 py-3 font-medium">{t("expense_table.expense")}</th>
+                    <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.paid_by")}</th>
+                    <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.date")}</th>
+                    <th className="px-4 py-3 font-medium text-right">{t("expense_table.amount")}</th>
                     <th className="px-4 py-3 w-20"></th>
                   </tr>
                 </thead>
@@ -621,10 +624,10 @@ export default function GroupView() {
                               ))}
                             </div>
                             <p className="text-xs text-outline sm:hidden mt-0.5">
-                              {expense.payer_name ?? "Unknown"} · {new Date(expense.date).toLocaleDateString()}
+                              {expense.payer_name ?? t("expense_table.unknown_payer")} · {new Date(expense.date).toLocaleDateString()}
                             </p>
                           </td>
-                          <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? "Unknown"}</td>
+                          <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? t("expense_table.unknown_payer")}</td>
                           <td className="px-4 py-3 text-outline hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
                           <td className="px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
                             {expense.currency_code !== group.currency_code ? (
@@ -643,14 +646,14 @@ export default function GroupView() {
                               <Link
                                 to={`/groups/${groupId}/expenses/${expense.id}/edit`}
                                 className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                                title="Edit"
+                                title={t("edit", { ns: "common" })}
                               >
                                 <Pencil size={13} />
                               </Link>
                               <button
                                 onClick={() => handleDeleteExpense(expense.id)}
                                 className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                                title="Delete"
+                                title={t("delete", { ns: "common" })}
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -669,11 +672,11 @@ export default function GroupView() {
           {filteredExpenses.length > 0 && (
             <div className="text-center space-y-2">
               <p className="text-xs text-outline">
-                Showing {Math.min(visibleCount, filteredExpenses.length)} of {filteredExpenses.length} expenses
+                {t("expenses.showing", { shown: Math.min(visibleCount, filteredExpenses.length), total: filteredExpenses.length })}
               </p>
               {hasMore && (
                 <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
-                  <p className="text-xs text-outline animate-pulse">Loading more...</p>
+                  <p className="text-xs text-outline animate-pulse">{t("expenses.loading_more")}</p>
                 </div>
               )}
             </div>
@@ -690,7 +693,7 @@ export default function GroupView() {
           <div className="space-y-3">
             {balances.length === 0 ? (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-12 text-center">
-                <p className="text-on-surface-variant text-sm">No balances yet</p>
+                <p className="text-on-surface-variant text-sm">{t("balances.empty")}</p>
               </div>
             ) : (
               [...balances].sort((a, b) => a.member_name.localeCompare(b.member_name)).map((b) => {
@@ -745,8 +748,8 @@ export default function GroupView() {
           {settlements.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
               <div className="text-5xl mb-4">✅</div>
-              <p className="font-semibold text-on-surface text-base">No settlements recorded</p>
-              <p className="text-sm text-on-surface-variant mt-1">Settle up debts to see them here</p>
+              <p className="font-semibold text-on-surface text-base">{t("settlements.empty_title")}</p>
+              <p className="text-sm text-on-surface-variant mt-1">{t("settlements.empty_subtitle")}</p>
             </div>
           ) : (
             settlements.map((s) => (
@@ -785,7 +788,7 @@ export default function GroupView() {
                     "text-[10px] font-medium uppercase tracking-wide",
                     s.type === "transfer" ? "text-tertiary" : "text-primary"
                   )}>
-                    {s.type === "transfer" ? "Transfer" : "Settlement"}
+                    {s.type === "transfer" ? t("settlements.type_transfer") : t("settlements.type_settlement")}
                   </span>
                 </div>
                 <button
@@ -794,7 +797,7 @@ export default function GroupView() {
                     s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
                   )}
                   className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                  title="Edit"
+                  title={t("edit", { ns: "common" })}
                 >
                   <Pencil size={14} />
                 </button>
@@ -810,20 +813,20 @@ export default function GroupView() {
       {tab === "funds" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-on-surface">Group Funds</h3>
+            <h3 className="text-base font-bold text-on-surface">{t("funds.title")}</h3>
             <button
               onClick={() => setShowCreateFund(true)}
               className="flex items-center gap-1.5 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
             >
-              <Plus size={16} /> New Fund
+              <Plus size={16} /> {t("funds.new_fund")}
             </button>
           </div>
 
           {funds.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
               <div className="text-5xl mb-4">💰</div>
-              <p className="font-semibold text-on-surface text-base">No funds yet</p>
-              <p className="text-sm text-on-surface-variant mt-1">Create a shared fund for this group</p>
+              <p className="font-semibold text-on-surface text-base">{t("funds.empty_title")}</p>
+              <p className="text-sm text-on-surface-variant mt-1">{t("funds.empty_subtitle")}</p>
             </div>
           ) : (
             funds.map((fund) => (
@@ -841,12 +844,12 @@ export default function GroupView() {
                       <span className="font-semibold text-on-surface text-sm">{fund.name}</span>
                       {!fund.is_active && (
                         <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-medium uppercase tracking-wide">
-                          Closed
+                          {t("funds.closed")}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-on-surface-variant mt-1">
-                      Holder: {fund.holder_name} · {fund.transaction_count} transactions
+                      {t("funds.holder")}: {fund.holder_name} · {fund.transaction_count} {t("funds.transactions")}
                     </p>
                   </div>
                   <div className="text-right">
@@ -856,7 +859,7 @@ export default function GroupView() {
                     )}>
                       {formatCurrency(fund.balance, group.currency_code)}
                     </p>
-                    <p className="text-[10px] text-outline uppercase tracking-wide">Balance</p>
+                    <p className="text-[10px] text-outline uppercase tracking-wide">{t("funds.balance")}</p>
                   </div>
                 </div>
               </Link>
@@ -885,14 +888,14 @@ export default function GroupView() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface">
-                    {editingSettlementId ? "Edit Transfer" : transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
+                    {editingSettlementId ? t("transfer_modal.title_edit") : transferType === "settle_up" ? t("transfer_modal.title_settle_up") : t("transfer_modal.title_transfer")}
                   </h3>
                   {!editingSettlementId && (
                     <Link
                       to={`/groups/${groupId}/add-expense`}
                       className="text-xs text-outline hover:text-primary transition-colors"
                     >
-                      Want to add an expense instead?
+                      {t("transfer_modal.expense_hint")}
                     </Link>
                   )}
                 </div>
@@ -908,30 +911,30 @@ export default function GroupView() {
             {/* Modal body */}
             <div className="px-6 pb-6 pt-3 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">From</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("transfer_modal.from")}</label>
                 <MemberSearchSelect
                   value={transferFrom}
                   onChange={setTransferFrom}
                   members={members}
-                  placeholder="Search person..."
+                  placeholder={t("transfer_modal.search_person")}
                   excludeId={transferTo}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">To</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("transfer_modal.to")}</label>
                 <MemberSearchSelect
                   value={transferTo}
                   onChange={setTransferTo}
                   members={members}
-                  placeholder="Search person..."
+                  placeholder={t("transfer_modal.search_person")}
                   excludeId={transferFrom}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
-                  Amount ({group.currency_code})
+                  {t("transfer_modal.amount")} ({group.currency_code})
                 </label>
                 <MoneyInput
                   value={transferAmount}
@@ -941,13 +944,13 @@ export default function GroupView() {
 
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
-                  Note <span className="text-outline font-normal">(optional)</span>
+                  {t("transfer_modal.note")} <span className="text-outline font-normal">({t("transfer_modal.note_optional")})</span>
                 </label>
                 <input
                   type="text"
                   value={transferNote}
                   onChange={(e) => setTransferNote(e.target.value)}
-                  placeholder="e.g. Cash payment, bank transfer..."
+                  placeholder={t("transfer_modal.note_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>
@@ -956,7 +959,7 @@ export default function GroupView() {
               {transferTo && getMemberPaymentMethods(transferTo).length > 0 && (
                 <div className="pt-3 border-t border-outline-variant/10">
                   <p className="text-xs font-medium text-on-surface-variant mb-2">
-                    Payment info for {members.find((m) => m.id === transferTo)?.display_name}
+                    {t("transfer_modal.payment_info_for", { name: members.find((m) => m.id === transferTo)?.display_name })}
                   </p>
                   <PaymentMethodCards
                     methods={getMemberPaymentMethods(transferTo).map((pm) => pm.payment_method)}
@@ -972,14 +975,14 @@ export default function GroupView() {
                   onClick={() => setShowTransfer(false)}
                   className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  Cancel
+                  {t("transfer_modal.cancel")}
                 </button>
                 <button
                   onClick={handleTransfer}
                   disabled={transferring || !transferFrom || !transferTo || !transferAmount}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  {transferring ? "Saving..." : editingSettlementId ? "Save Changes" : transferType === "settle_up" ? "Settle Up" : "Record Transfer"}
+                  {transferring ? t("transfer_modal.saving") : editingSettlementId ? t("transfer_modal.save_changes") : transferType === "settle_up" ? t("transfer_modal.settle_up") : t("transfer_modal.record_transfer")}
                 </button>
               </div>
             </div>
@@ -998,7 +1001,7 @@ export default function GroupView() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 pt-6 pb-2">
-              <h3 className="text-lg font-bold text-on-surface">New Fund</h3>
+              <h3 className="text-lg font-bold text-on-surface">{t("fund_modal.title")}</h3>
               <button
                 onClick={() => setShowCreateFund(false)}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
@@ -1008,7 +1011,7 @@ export default function GroupView() {
             </div>
             <div className="px-6 pb-6 pt-3 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Name *</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("fund_modal.name_label")} *</label>
                 <input
                   type="text"
                   value={newFundName}
@@ -1019,24 +1022,24 @@ export default function GroupView() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
-                  Description <span className="text-outline font-normal">(optional)</span>
+                  {t("fund_modal.description_label")} <span className="text-outline font-normal">({t("fund_modal.description_optional")})</span>
                 </label>
                 <input
                   type="text"
                   value={newFundDescription}
                   onChange={(e) => setNewFundDescription(e.target.value)}
-                  placeholder="What is this fund for?"
+                  placeholder={t("fund_modal.description_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Holder</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("fund_modal.holder_label")}</label>
                 <select
                   value={newFundHolder}
                   onChange={(e) => setNewFundHolder(e.target.value)}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
                 >
-                  <option value="">Myself (default)</option>
+                  <option value="">{t("fund_modal.holder_default")}</option>
                   {members.filter((m) => m.is_active).map((m) => (
                     <option key={m.id} value={m.id}>{m.display_name}</option>
                   ))}
@@ -1047,7 +1050,7 @@ export default function GroupView() {
                   onClick={() => setShowCreateFund(false)}
                   className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  Cancel
+                  {t("fund_modal.cancel")}
                 </button>
                 <button
                   onClick={async () => {
@@ -1064,13 +1067,13 @@ export default function GroupView() {
                       setNewFundHolder("");
                       await loadAll();
                     } catch {
-                      window.alert("Failed to create fund");
+                      window.alert(t("fund_modal.failed_create"));
                     }
                   }}
                   disabled={!newFundName.trim()}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  Create Fund
+                  {t("fund_modal.create")}
                 </button>
               </div>
             </div>
@@ -1093,7 +1096,7 @@ export default function GroupView() {
                 <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center">
                   <UserPlus size={18} className="text-primary" />
                 </div>
-                <h3 className="text-lg font-bold text-on-surface">Add Member</h3>
+                <h3 className="text-lg font-bold text-on-surface">{t("add_member_modal.title")}</h3>
               </div>
               <button
                 onClick={() => setShowAddMember(false)}
@@ -1104,12 +1107,12 @@ export default function GroupView() {
             </div>
             <div className="px-6 pb-6 pt-3 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">Display name *</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("add_member_modal.name_label")} *</label>
                 <input
                   type="text"
                   value={newMemberName}
                   onChange={(e) => setNewMemberName(e.target.value)}
-                  placeholder="e.g. John"
+                  placeholder={t("add_member_modal.name_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -1118,7 +1121,7 @@ export default function GroupView() {
                         setAddingMember(true);
                         addMember(groupId, { display_name: newMemberName.trim() })
                           .then(() => { setShowAddMember(false); setNewMemberName(""); loadAll(); })
-                          .catch(() => window.alert("Failed to add member"))
+                          .catch(() => window.alert(t("add_member_modal.failed_add")))
                           .finally(() => setAddingMember(false));
                       }
                     }
@@ -1126,21 +1129,21 @@ export default function GroupView() {
                 />
               </div>
               <p className="text-xs text-on-surface-variant">
-                Or share the invite link so they can join themselves:
+                {t("add_member_modal.invite_hint")}
               </p>
               <button
                 onClick={copyInviteCode}
                 className="w-full flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2.5 rounded-full text-sm transition-colors"
               >
                 {copied ? <Check size={16} className="text-primary" /> : <Share2 size={16} />}
-                {copied ? "Link Copied!" : "Copy Invite Link"}
+                {copied ? t("link_copied") : t("copy_invite")}
               </button>
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowAddMember(false)}
                   className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  Cancel
+                  {t("add_member_modal.cancel")}
                 </button>
                 <button
                   onClick={async () => {
@@ -1152,7 +1155,7 @@ export default function GroupView() {
                       setNewMemberName("");
                       await loadAll();
                     } catch {
-                      window.alert("Failed to add member");
+                      window.alert(t("add_member_modal.failed_add"));
                     } finally {
                       setAddingMember(false);
                     }
@@ -1160,7 +1163,7 @@ export default function GroupView() {
                   disabled={!newMemberName.trim() || addingMember}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
-                  {addingMember ? "Adding..." : "Add Member"}
+                  {addingMember ? t("add_member_modal.adding") : t("add_member_modal.add")}
                 </button>
               </div>
             </div>

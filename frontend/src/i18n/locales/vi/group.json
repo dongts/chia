@@ -1,0 +1,236 @@
+{
+  "members": "thành viên",
+  "member": "thành viên",
+  "created": "Tạo lúc",
+  "your_balance": "Số dư của bạn",
+  "you_owe": "Bạn nợ",
+  "balance": "Số dư",
+  "get_started": "Bắt đầu bằng cách mời thành viên",
+  "get_started_subtitle": "Chia sẻ link mời hoặc thêm thành viên để bắt đầu chia chi phí cùng nhau.",
+  "add_member": "Thêm thành viên",
+  "share_link": "Chia sẻ link",
+  "share_invite_link": "Chia sẻ link mời",
+  "no_results": "Không có kết quả",
+  "copied": "Đã sao chép!",
+  "copy_invite": "Sao chép link mời",
+  "link_copied": "Đã sao chép link!",
+  "tabs": {
+    "expenses": "Chi phí",
+    "balances": "Số dư",
+    "settlements": "Chuyển khoản",
+    "funds": "Quỹ"
+  },
+  "filter": {
+    "all_categories": "Tất cả danh mục",
+    "all_members": "Tất cả thành viên",
+    "clear": "Xóa bộ lọc"
+  },
+  "expense_table": {
+    "expense": "Chi phí",
+    "paid_by": "Người trả",
+    "date": "Ngày",
+    "amount": "Số tiền",
+    "unknown_payer": "Không rõ"
+  },
+  "expenses": {
+    "empty_title": "Chưa có chi phí nào",
+    "empty_subtitle": "Thêm chi phí đầu tiên cho nhóm này",
+    "filtered_empty_title": "Không có chi phí phù hợp",
+    "filtered_empty_subtitle": "Thử thay đổi bộ lọc",
+    "showing": "Hiển thị {{shown}} / {{total}} chi phí",
+    "loading_more": "Đang tải thêm...",
+    "confirm_delete": "Xóa chi phí này?",
+    "failed_delete": "Không thể xóa chi phí"
+  },
+  "actions": {
+    "transfer": "Chuyển tiền",
+    "add_expense": "Thêm chi phí"
+  },
+  "balances": {
+    "empty": "Chưa có số dư nào"
+  },
+  "settlements": {
+    "empty_title": "Chưa có giao dịch nào",
+    "empty_subtitle": "Thanh toán công nợ để xem ở đây",
+    "type_transfer": "Chuyển khoản",
+    "type_settlement": "Thanh toán"
+  },
+  "funds": {
+    "title": "Quỹ nhóm",
+    "new_fund": "Tạo quỹ",
+    "empty_title": "Chưa có quỹ nào",
+    "empty_subtitle": "Tạo quỹ chung cho nhóm này",
+    "holder": "Người giữ quỹ",
+    "transactions": "giao dịch",
+    "balance": "Số dư",
+    "closed": "Đã đóng"
+  },
+  "transfer_modal": {
+    "title_edit": "Sửa giao dịch",
+    "title_settle_up": "Thanh toán",
+    "title_transfer": "Chuyển tiền",
+    "expense_hint": "Muốn thêm chi phí thay vì chuyển khoản?",
+    "from": "Từ",
+    "to": "Đến",
+    "amount": "Số tiền",
+    "note": "Ghi chú",
+    "note_optional": "tùy chọn",
+    "note_placeholder": "VD: Tiền mặt, chuyển khoản...",
+    "search_person": "Tìm người...",
+    "payment_info_for": "Thông tin thanh toán của {{name}}",
+    "cancel": "Hủy",
+    "save_changes": "Lưu thay đổi",
+    "settle_up": "Thanh toán",
+    "record_transfer": "Ghi nhận chuyển khoản",
+    "saving": "Đang lưu...",
+    "cannot_same_person": "Không thể chuyển cho chính mình",
+    "failed_update": "Không thể cập nhật giao dịch",
+    "failed_record": "Không thể ghi nhận chuyển khoản"
+  },
+  "fund_modal": {
+    "title": "Tạo quỹ mới",
+    "name_label": "Tên quỹ",
+    "description_label": "Mô tả",
+    "description_optional": "tùy chọn",
+    "description_placeholder": "Quỹ này dùng để làm gì?",
+    "holder_label": "Người giữ quỹ",
+    "holder_default": "Tôi giữ (mặc định)",
+    "cancel": "Hủy",
+    "create": "Tạo quỹ",
+    "failed_create": "Không thể tạo quỹ"
+  },
+  "add_member_modal": {
+    "title": "Thêm thành viên",
+    "name_label": "Tên hiển thị",
+    "name_placeholder": "VD: Hùng",
+    "invite_hint": "Hoặc chia sẻ link mời để họ tự tham gia:",
+    "cancel": "Hủy",
+    "add": "Thêm thành viên",
+    "adding": "Đang thêm...",
+    "failed_add": "Không thể thêm thành viên"
+  },
+  "settings": {
+    "title": "Cài đặt nhóm",
+    "general_info": "Thông tin chung",
+    "group_name": "Tên nhóm",
+    "description": "Mô tả",
+    "description_optional": "Tùy chọn",
+    "currency": "Tiền tệ",
+    "currency_readonly": "không thể thay đổi sau khi tạo",
+    "require_verified": "Yêu cầu tài khoản đã xác minh",
+    "require_verified_hint": "Chỉ người dùng đã xác minh email mới có thể tham gia",
+    "allow_log_behalf": "Cho phép ghi hộ",
+    "allow_log_behalf_hint": "Thành viên có thể thêm chi phí thay cho người khác",
+    "save": "Lưu cài đặt",
+    "saving": "Đang lưu...",
+    "saved": "Đã lưu cài đặt!",
+    "failed_save": "Không thể lưu cài đặt",
+    "failed_load": "Không thể tải cài đặt nhóm",
+    "invite_link": "Link mời",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "currencies": {
+      "title": "Tiền tệ được phép",
+      "main_hint": "Tiền tệ chính: {{code}}. Thêm tiền tệ khác với tỷ giá mặc định cho chi phí.",
+      "rate_label": "Tỷ giá → {{code}}",
+      "add": "Thêm",
+      "adding": "Đang thêm...",
+      "failed_add": "Không thể thêm tiền tệ",
+      "failed_update_rate": "Không thể cập nhật tỷ giá",
+      "confirm_remove": "Xóa {{code}} khỏi danh sách tiền tệ?",
+      "failed_remove": "Không thể xóa tiền tệ"
+    },
+    "payment_methods": {
+      "title": "Phương thức thanh toán của tôi",
+      "subtitle": "Chọn phương thức thanh toán hiển thị cho nhóm này",
+      "empty": "Chưa có phương thức thanh toán.",
+      "add_in_profile": "Thêm trong trang cá nhân",
+      "failed_update": "Không thể cập nhật hiển thị phương thức thanh toán"
+    },
+    "members": {
+      "title": "Thành viên",
+      "new_member_placeholder": "Tên thành viên mới",
+      "add": "Thêm thành viên",
+      "adding": "Đang thêm...",
+      "linked_account": "Đã liên kết tài khoản",
+      "guest_slot": "Tài khoản khách",
+      "display_name_placeholder": "Tên hiển thị",
+      "nicknames_placeholder": "Biệt danh (phân cách bằng dấu phẩy)",
+      "confirm_remove": "Xóa {{name}} khỏi nhóm?",
+      "failed_remove": "Không thể xóa thành viên",
+      "failed_rename": "Không thể đổi tên",
+      "failed_update_role": "Không thể cập nhật vai trò"
+    },
+    "initial_balances": {
+      "title": "Số dư ban đầu",
+      "hint": "Đặt số dư khởi điểm khi chuyển từ hệ thống khác. Dương = được nợ, âm = nợ người khác. Không được tính là giao dịch.",
+      "failed_update": "Không thể cập nhật số dư ban đầu"
+    },
+    "activity_log": {
+      "title": "Nhật ký hoạt động",
+      "show_more": "Xem thêm"
+    },
+    "danger_zone": {
+      "title": "Vùng nguy hiểm",
+      "hint": "Xóa nhóm sẽ xóa vĩnh viễn tất cả chi phí, thành viên và giao dịch.",
+      "delete": "Xóa nhóm",
+      "deleting": "Đang xóa...",
+      "confirm_delete": "Xóa vĩnh viễn \"{{name}}\"? Hành động này không thể hoàn tác.",
+      "failed_delete": "Không thể xóa nhóm"
+    }
+  },
+  "fund_detail": {
+    "back": "Về nhóm",
+    "holder": "Người giữ quỹ",
+    "closed": "Đã đóng",
+    "closed_notice": "Quỹ này đã đóng. Không thể thêm giao dịch mới.",
+    "contribute": "Nạp tiền",
+    "withdraw": "Rút tiền",
+    "contributions_by_member": "Đóng góp theo thành viên",
+    "transaction_history": "Lịch sử giao dịch",
+    "no_transactions": "Chưa có giao dịch nào",
+    "tx_type": {
+      "contribute": "Nạp tiền",
+      "withdraw": "Rút tiền",
+      "expense": "Chi phí",
+      "holder_change": "Đổi người giữ quỹ"
+    },
+    "by": "bởi",
+    "confirm_delete_tx": "Xóa giao dịch này?",
+    "failed_delete_tx": "Không thể xóa giao dịch",
+    "failed_create_tx": "Không thể tạo giao dịch",
+    "modal": {
+      "member_label": "Thành viên",
+      "member_placeholder": "Chọn thành viên",
+      "amount_label": "Số tiền",
+      "note_label": "Ghi chú",
+      "note_optional": "tùy chọn",
+      "cancel": "Hủy",
+      "add_contribution": "Thêm đóng góp",
+      "record_withdrawal": "Ghi nhận rút tiền",
+      "saving": "Đang lưu..."
+    }
+  },
+  "join": {
+    "invited_to": "Bạn được mời vào",
+    "members_count": "{{count}} thành viên · {{currency}}",
+    "choose_identity": "Bạn có phải là một trong những người này không?",
+    "join_as_new": "Tôi không có trong danh sách — tham gia với tên mới",
+    "join_first": "Tham gia nhóm",
+    "your_name_label": "Tên của bạn",
+    "your_name_placeholder": "Nhập tên của bạn",
+    "joining_as": "Tham gia với tên",
+    "change_name": "Đổi tên",
+    "join_button_guest": "Tham gia (khách)",
+    "join_button": "Tham gia nhóm",
+    "sign_in_hint": "Hoặc đăng nhập để có tài khoản lâu dài:",
+    "log_in": "Đăng nhập",
+    "sign_up": "Đăng ký",
+    "joining": "Đang tham gia nhóm...",
+    "success_title": "Bạn đã vào nhóm!",
+    "success_subtitle": "Đang chuyển hướng đến nhóm...",
+    "success_go_now": "Đến ngay",
+    "error_title": "Không thể tham gia",
+    "error_go_dashboard": "Về trang chính"
+  }
+}

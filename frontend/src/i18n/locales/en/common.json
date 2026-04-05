@@ -34,5 +34,41 @@
     "exact": "Exact",
     "percentage": "Percentage",
     "shares": "Shares"
+  },
+  "dashboard": "Dashboard",
+  "groups": "Groups",
+  "reports": "Reports",
+  "profile": "Profile",
+  "install_app": "Install App",
+  "log_out": "Log Out",
+  "notifications": "Notifications",
+  "mark_all_read": "Mark all read",
+  "all_caught_up": "You're all caught up!",
+  "install_banner": "Install Chia for a better experience",
+  "install_ios": "Install Chia: tap {{share}} then \"Add to Home Screen\"",
+  "install": "Install",
+  "split_expenses": "Split expenses",
+  "update_available": "Update available",
+  "update_available_detail": "A new version of Chia is ready.",
+  "update": "Update",
+  "not_found": {
+    "title": "Page not found",
+    "subtitle": "The page you're looking for doesn't exist or has been moved.",
+    "go_home": "Go Home"
+  },
+  "notification": {
+    "expense_added": "New expense: {{description}}",
+    "expense_updated": "Expense updated: {{description}}",
+    "expense_deleted": "Expense deleted: {{description}}",
+    "settlement_recorded": "Settlement recorded: {{amount}}",
+    "settlement_confirmed": "Settlement confirmed: {{amount}}",
+    "role_changed": "Role changed to {{role}} by {{member}}",
+    "member_joined": "{{member}} joined {{group}}",
+    "member_removed": "{{member}} was removed from {{group}}",
+    "group_updated": "Group \"{{group}}\" was updated"
+  },
+  "relative_time": {
+    "just_now": "Just now",
+    "yesterday": "Yesterday"
   }
 }

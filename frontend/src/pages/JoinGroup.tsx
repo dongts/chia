@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Sprout, ArrowRight, UserCheck, UserPlus, Pencil } from "lucide-react";
 import { joinGroup, previewGroup } from "@/api/groups";
 import type { GroupPreview } from "@/api/groups";
@@ -12,6 +13,7 @@ type Status = "loading" | "choose_identity" | "joining" | "success" | "error";
 export default function JoinGroup() {
   const { inviteCode } = useParams<{ inviteCode: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("group");
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { guestLogin } = useAuth();
 
@@ -28,10 +30,10 @@ export default function JoinGroup() {
 
   // Load preview (no auth needed)
   useEffect(() => {
-    if (!inviteCode) { setStatus("error"); setErrorMsg("Invalid invite link"); return; }
+    if (!inviteCode) { setStatus("error"); setErrorMsg(t("join.error_title")); return; }
     previewGroup(inviteCode)
       .then((p) => { setPreview(p); setStatus("choose_identity"); })
-      .catch(() => { setStatus("error"); setErrorMsg("Invalid or expired invite link"); });
+      .catch(() => { setStatus("error"); setErrorMsg(t("join.error_title")); });
   }, [inviteCode]);
 
   // When user selects a claim, pre-fill the display name
@@ -46,10 +48,10 @@ export default function JoinGroup() {
   async function ensureAuthenticated(): Promise<boolean> {
     if (isAuthenticated) return true;
     try {
-      await guestLogin(displayName || "Guest");
+      await guestLogin(displayName || t("join.join_button_guest"));
       return true;
     } catch {
-      setErrorMsg("Failed to create account");
+      setErrorMsg(t("join.error_title"));
       setStatus("error");
       return false;
     }
@@ -60,7 +62,7 @@ export default function JoinGroup() {
 
     // Validate
     if (joinAsNew && !displayName.trim()) {
-      window.alert("Please enter your name");
+      window.alert(t("join.your_name_placeholder"));
       return;
     }
 
@@ -80,7 +82,7 @@ export default function JoinGroup() {
       localStorage.removeItem("chia_pending_invite");
       setTimeout(() => navigate(`/groups/${group.id}`), 1200);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to join group";
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("join.error_title");
       setErrorMsg(msg);
       setStatus("error");
     }
@@ -105,9 +107,9 @@ export default function JoinGroup() {
         {/* Group name */}
         {preview && status !== "error" && (
           <>
-            <p className="text-xs text-outline uppercase tracking-wide mb-1">You're invited to</p>
+            <p className="text-xs text-outline uppercase tracking-wide mb-1">{t("join.invited_to")}</p>
             <h1 className="text-xl font-bold text-on-surface mb-1">{preview.name}</h1>
-            <p className="text-xs text-outline mb-6">{preview.member_count} members · {preview.currency_code}</p>
+            <p className="text-xs text-outline mb-6">{t("join.members_count", { count: preview.member_count, currency: preview.currency_code })}</p>
           </>
         )}
 
@@ -124,7 +126,7 @@ export default function JoinGroup() {
             {/* Unclaimed members */}
             {hasUnclaimed && (
               <>
-                <p className="text-sm font-medium text-on-surface mb-2">Are you one of these people?</p>
+                <p className="text-sm font-medium text-on-surface mb-2">{t("join.choose_identity")}</p>
                 <div className="border border-outline-variant/15 rounded-xl overflow-hidden divide-y divide-outline-variant/10 mb-3">
                   {preview.unclaimed_members.map((m) => {
                     const isSelected = selectedClaimId === m.id && !joinAsNew;
@@ -158,16 +160,16 @@ export default function JoinGroup() {
                 joinAsNew ? "bg-tertiary-container/50 text-on-tertiary-container" : "bg-surface-container text-on-surface-variant"
               )}><UserPlus size={16} /></div>
               <span className={cn("text-sm font-medium", joinAsNew ? "text-on-tertiary-container" : "text-on-surface")}>
-                {hasUnclaimed ? "I'm not on the list — join as someone new" : "Join this group"}
+                {hasUnclaimed ? t("join.join_as_new") : t("join.join_first")}
               </span>
             </button>
 
             {/* Name input — for new member or editing claimed name */}
             {joinAsNew && (
               <div className="mb-4">
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Your name</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">{t("join.your_name_label")}</label>
                 <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your name"
+                  placeholder={t("join.your_name_placeholder")}
                   autoFocus
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
@@ -178,12 +180,12 @@ export default function JoinGroup() {
               <div className="mb-4 bg-primary-container/20 rounded-xl px-4 py-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-on-primary-container">
-                    Joining as <strong>{editingName ? "" : displayName}</strong>
+                    {t("join.joining_as")} <strong>{editingName ? "" : displayName}</strong>
                   </p>
                   {!editingName && (
                     <button onClick={() => setEditingName(true)}
                       className="text-xs text-primary hover:text-primary flex items-center gap-1">
-                      <Pencil size={12} /> Change name
+                      <Pencil size={12} /> {t("join.change_name")}
                     </button>
                   )}
                 </div>
@@ -201,21 +203,21 @@ export default function JoinGroup() {
             <button onClick={handleJoin} disabled={!canJoin}
               className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3.5 px-6 rounded-full transition-colors shadow-editorial">
               <ArrowRight size={18} />
-              {!isAuthenticated ? "Join (as guest)" : "Join group"}
+              {!isAuthenticated ? t("join.join_button_guest") : t("join.join_button")}
             </button>
 
             {/* Auth options for unauthenticated users */}
             {!isAuthenticated && !authLoading && (
               <div className="mt-4 flex flex-col gap-2">
-                <p className="text-xs text-outline">Or sign in for a permanent account:</p>
+                <p className="text-xs text-outline">{t("join.sign_in_hint")}</p>
                 <div className="flex gap-2">
                   <Link to={`/login?redirect=/join/${inviteCode}`}
                     className="flex-1 text-center text-sm text-primary font-medium py-2.5 bg-surface-container hover:bg-surface-container-high rounded-full transition-colors">
-                    Log In
+                    {t("join.log_in")}
                   </Link>
                   <Link to={`/register?redirect=/join/${inviteCode}`}
                     className="flex-1 text-center text-sm text-primary font-medium py-2.5 bg-surface-container hover:bg-surface-container-high rounded-full transition-colors">
-                    Sign Up
+                    {t("join.sign_up")}
                   </Link>
                 </div>
               </div>
@@ -226,7 +228,7 @@ export default function JoinGroup() {
         {/* Joining */}
         {status === "joining" && (
           <>
-            <p className="text-sm text-on-surface-variant">Joining the group...</p>
+            <p className="text-sm text-on-surface-variant">{t("join.joining")}</p>
             <div className="mt-4 flex justify-center">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
@@ -236,10 +238,10 @@ export default function JoinGroup() {
         {/* Success */}
         {status === "success" && (
           <>
-            <h1 className="text-xl font-bold text-on-surface mb-2">You're in!</h1>
-            <p className="text-sm text-on-surface-variant">Redirecting to the group...</p>
+            <h1 className="text-xl font-bold text-on-surface mb-2">{t("join.success_title")}</h1>
+            <p className="text-sm text-on-surface-variant">{t("join.success_subtitle")}</p>
             {groupId && (
-              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-primary underline hover:text-primary">Go now</button>
+              <button onClick={() => navigate(`/groups/${groupId}`)} className="mt-4 text-sm text-primary underline hover:text-primary">{t("join.success_go_now")}</button>
             )}
           </>
         )}
@@ -247,10 +249,10 @@ export default function JoinGroup() {
         {/* Error */}
         {status === "error" && (
           <>
-            <h1 className="text-xl font-bold text-on-surface mb-2">Couldn't join</h1>
+            <h1 className="text-xl font-bold text-on-surface mb-2">{t("join.error_title")}</h1>
             <p className="text-sm text-error mb-4">{errorMsg}</p>
             <button onClick={() => navigate("/dashboard")} className="text-sm text-primary hover:underline hover:text-primary font-medium">
-              Go to Dashboard
+              {t("join.error_go_dashboard")}
             </button>
           </>
         )}

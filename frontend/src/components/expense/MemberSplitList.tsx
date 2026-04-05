@@ -3,6 +3,7 @@ import { Search, CheckCircle2, Circle, Check } from "lucide-react";
 import type { GroupMember, SplitType } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatAmount } from "@/utils/currency";
+import { useTranslation } from "react-i18next";
 
 interface MemberSplitListProps {
   members: GroupMember[];
@@ -33,6 +34,7 @@ export default function MemberSplitList({
   percentValues, onPercentChange,
   shareValues, onShareChange,
 }: MemberSplitListProps) {
+  const { t } = useTranslation("expense");
   const [search, setSearch] = useState("");
 
   // Sort: for equal mode keep stable order (alphabetical only) to avoid scroll jumps.
@@ -90,29 +92,29 @@ export default function MemberSplitList({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${members.length} members...`}
+            placeholder={t("search_members", { count: members.length })}
             className="w-full pl-8 pr-3 py-2 border border-outline-variant/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
         {splitType === "equal" && (
           <div className="flex gap-1 flex-shrink-0">
             <button type="button" onClick={onSelectAll}
-              className="text-xs text-primary font-medium px-2.5 py-2 rounded-lg border border-primary-container hover:bg-primary-container/20 transition-colors">All</button>
+              className="text-xs text-primary font-medium px-2.5 py-2 rounded-lg border border-primary-container hover:bg-primary-container/20 transition-colors">{t("all", { ns: "common" })}</button>
             <button type="button" onClick={onSelectNone}
-              className="text-xs text-on-surface-variant font-medium px-2.5 py-2 rounded-lg border border-outline-variant/15 hover:bg-surface-container transition-colors">None</button>
+              className="text-xs text-on-surface-variant font-medium px-2.5 py-2 rounded-lg border border-outline-variant/15 hover:bg-surface-container transition-colors">{t("none", { ns: "common" })}</button>
           </div>
         )}
       </div>
 
       {/* Counter */}
       {splitType === "equal" && (
-        <p className="text-xs text-outline mb-2">{selectedCount} of {members.length} selected</p>
+        <p className="text-xs text-outline mb-2">{t("selected_count", { selected: selectedCount, total: members.length })}</p>
       )}
 
       {/* Member list */}
       <div className="border border-outline-variant/15 rounded-xl overflow-hidden divide-y divide-outline-variant/10 max-h-80 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="text-sm text-outline text-center py-6">No members found</p>
+          <p className="text-sm text-outline text-center py-6">{t("no_members_found")}</p>
         ) : (
           filtered.map((m) => {
             const checked = equalChecked[m.id] ?? true;

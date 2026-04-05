@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon } from "lucide-react";
 import client from "@/api/client";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
@@ -24,11 +25,6 @@ interface MemberLogEntry {
   created_at: string;
 }
 
-const ROLE_LABELS: Record<MemberRole, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  member: "Member",
-};
 
 const ROLE_COLORS: Record<MemberRole, string> = {
   owner: "bg-primary-container/30 text-primary",
@@ -40,6 +36,13 @@ export default function GroupSettings() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation("group");
+
+  const ROLE_LABELS: Record<MemberRole, string> = {
+    owner: t("roles.owner", { ns: "common" }),
+    admin: t("roles.admin", { ns: "common" }),
+    member: t("roles.member", { ns: "common" }),
+  };
 
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -93,7 +96,7 @@ export default function GroupSettings() {
       setRequireVerified(g.require_verified_users);
       setAllowLogOnBehalf(g.allow_log_on_behalf);
     } catch {
-      window.alert("Failed to load group settings");
+      window.alert(t("settings.failed_load"));
     } finally {
       setLoading(false);
     }
@@ -116,9 +119,9 @@ export default function GroupSettings() {
         allow_log_on_behalf: allowLogOnBehalf,
       });
       setGroup(updated);
-      window.alert("Settings saved!");
+      window.alert(t("settings.saved"));
     } catch {
-      window.alert("Failed to save settings");
+      window.alert(t("settings.failed_save"));
     } finally {
       setSaving(false);
     }
@@ -141,21 +144,21 @@ export default function GroupSettings() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to update role";
+        t("settings.members.failed_update_role");
       window.alert(msg);
     }
   }
 
   async function handleRemoveMember(memberId: string, memberName: string) {
     if (!groupId) return;
-    if (!window.confirm(`Remove ${memberName} from the group?`)) return;
+    if (!window.confirm(t("settings.members.confirm_remove", { name: memberName }))) return;
     try {
       await removeMember(groupId, memberId);
       setMembers((prev) => prev.filter((m) => m.id !== memberId));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to remove member";
+        t("settings.members.failed_remove");
       window.alert(msg);
     }
   }
@@ -175,7 +178,7 @@ export default function GroupSettings() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to add currency";
+        t("settings.currencies.failed_add");
       window.alert(msg);
     } finally {
       setAddingCurrency(false);
@@ -190,18 +193,18 @@ export default function GroupSettings() {
       const updated = await updateGroupCurrency(groupId, currencyId, { exchange_rate: parsed });
       setCurrencies((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
     } catch {
-      window.alert("Failed to update exchange rate");
+      window.alert(t("settings.currencies.failed_update_rate"));
     }
   }
 
   async function handleDeleteCurrency(currencyId: string, code: string) {
     if (!groupId) return;
-    if (!window.confirm(`Remove ${code} from allowed currencies?`)) return;
+    if (!window.confirm(t("settings.currencies.confirm_remove", { code }))) return;
     try {
       await deleteGroupCurrency(groupId, currencyId);
       setCurrencies((prev) => prev.filter((c) => c.id !== currencyId));
     } catch {
-      window.alert("Failed to remove currency");
+      window.alert(t("settings.currencies.failed_remove"));
     }
   }
 
@@ -220,7 +223,7 @@ export default function GroupSettings() {
         )
       );
     } catch {
-      window.alert("Failed to update payment method visibility");
+      window.alert(t("settings.payment_methods.failed_update"));
     } finally {
       setTogglingId(null);
     }
@@ -234,7 +237,7 @@ export default function GroupSettings() {
       setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       setRenamingMemberId(null);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to rename";
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("settings.members.failed_rename");
       window.alert(msg);
     } finally { setSavingRename(false); }
   }
@@ -250,7 +253,7 @@ export default function GroupSettings() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to add member";
+        t("add_member_modal.failed_add");
       window.alert(msg);
     } finally {
       setAddingMember(false);
@@ -259,13 +262,13 @@ export default function GroupSettings() {
 
   async function handleDeleteGroup() {
     if (!groupId || !group) return;
-    if (!window.confirm(`Permanently delete "${group.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(t("settings.danger_zone.confirm_delete", { name: group.name }))) return;
     setDeleting(true);
     try {
       await deleteGroup(groupId);
       navigate("/dashboard");
     } catch {
-      window.alert("Failed to delete group");
+      window.alert(t("settings.danger_zone.failed_delete"));
       setDeleting(false);
     }
   }
@@ -324,16 +327,16 @@ export default function GroupSettings() {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl font-bold text-on-surface">Group Settings</h1>
+        <h1 className="text-xl font-bold text-on-surface">{t("settings.title")}</h1>
       </div>
 
       <div className="space-y-6">
         {/* General Info */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">General Info</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">{t("settings.general_info")}</h2>
           <form onSubmit={handleSave} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Group name</label>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.group_name")}</label>
               <input
                 type="text"
                 required
@@ -343,20 +346,20 @@ export default function GroupSettings() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Description</label>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.description")}</label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional"
+                placeholder={t("settings.description_optional")}
                 className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Currency</label>
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currency")}</label>
               <p className="text-sm text-on-surface-variant bg-surface-container-high/50 rounded-xl px-4 py-3">
                 {group.currency_code}{" "}
-                <span className="text-outline text-xs">(cannot be changed after creation)</span>
+                <span className="text-outline text-xs">({t("settings.currency_readonly")})</span>
               </p>
             </div>
 
@@ -364,8 +367,8 @@ export default function GroupSettings() {
             <div className="space-y-4 pt-4">
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-on-surface">Require verified users</p>
-                  <p className="text-xs text-outline mt-0.5">Only email-verified users can join</p>
+                  <p className="text-sm font-medium text-on-surface">{t("settings.require_verified")}</p>
+                  <p className="text-xs text-outline mt-0.5">{t("settings.require_verified_hint")}</p>
                 </div>
                 <button
                   type="button"
@@ -385,9 +388,9 @@ export default function GroupSettings() {
               </label>
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-on-surface">Allow log on behalf</p>
+                  <p className="text-sm font-medium text-on-surface">{t("settings.allow_log_behalf")}</p>
                   <p className="text-xs text-outline mt-0.5">
-                    Members can add expenses on behalf of others
+                    {t("settings.allow_log_behalf_hint")}
                   </p>
                 </div>
                 <button
@@ -413,14 +416,14 @@ export default function GroupSettings() {
               disabled={saving || !isOwner}
               className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors mt-2"
             >
-              {saving ? "Saving..." : "Save Settings"}
+              {saving ? t("settings.saving") : t("settings.save")}
             </button>
           </form>
         </section>
 
         {/* Invite Link */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-4">Invite Link</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-4">{t("settings.invite_link")}</h2>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs bg-surface-container-high/50 rounded-xl px-4 py-3 font-mono truncate text-on-surface-variant">
               {window.location.origin}{import.meta.env.BASE_URL}join/{group.invite_code}
@@ -435,17 +438,16 @@ export default function GroupSettings() {
               )}
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("settings.copied") : t("settings.copy")}
             </button>
           </div>
         </section>
 
         {/* Allowed Currencies */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Allowed Currencies</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">{t("settings.currencies.title")}</h2>
           <p className="text-xs text-outline mb-5">
-            Main currency: <span className="font-semibold text-on-surface-variant">{group.currency_code}</span>.
-            Add other currencies with default exchange rates for expenses.
+            {t("settings.currencies.main_hint", { code: group.currency_code })}
           </p>
 
           {/* Existing currencies */}
@@ -484,14 +486,14 @@ export default function GroupSettings() {
             <form onSubmit={handleAddCurrency} className="space-y-2">
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Currency</label>
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currency")}</label>
                   <CurrencySelect
                     value={newCurrencyCode}
                     onChange={setNewCurrencyCode}
                   />
                 </div>
                 <div className="w-28">
-                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">Rate → {group.currency_code}</label>
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currencies.rate_label", { code: group.currency_code })}</label>
                   <input
                     type="number"
                     min="0.000001"
@@ -508,8 +510,8 @@ export default function GroupSettings() {
                   disabled={addingCurrency || !newCurrencyCode.trim() || !newCurrencyRate}
                   className="flex items-center gap-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold px-4 py-3 rounded-full text-sm transition-colors whitespace-nowrap"
                 >
-                  <Plus size={14} />
-                  Add
+                  {addingCurrency ? null : <Plus size={14} />}
+                  {addingCurrency ? t("settings.currencies.adding") : t("settings.currencies.add")}
                 </button>
               </div>
             </form>
@@ -519,14 +521,14 @@ export default function GroupSettings() {
         {/* My Payment Methods */}
         {myMember?.user_id && (
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">My Payment Methods</h2>
-            <p className="text-xs text-outline mb-5">Choose which payment methods are visible to this group</p>
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">{t("settings.payment_methods.title")}</h2>
+            <p className="text-xs text-outline mb-5">{t("settings.payment_methods.subtitle")}</p>
 
             {myGroupPMs.length === 0 ? (
               <p className="text-sm text-on-surface-variant">
-                No payment methods saved yet.{" "}
+                {t("settings.payment_methods.empty")}{" "}
                 <Link to="/profile" className="text-primary hover:underline font-medium">
-                  Add one in your profile
+                  {t("settings.payment_methods.add_in_profile")}
                 </Link>
               </p>
             ) : (
@@ -564,7 +566,7 @@ export default function GroupSettings() {
 
         {/* Members */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">Members</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">{t("settings.members.title")}</h2>
 
           {/* Add member form */}
           {isAdminOrOwner && (
@@ -574,7 +576,7 @@ export default function GroupSettings() {
                 required
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
-                placeholder="New member name"
+                placeholder={t("settings.members.new_member_placeholder")}
                 className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
@@ -582,7 +584,7 @@ export default function GroupSettings() {
                 disabled={addingMember || !newMemberName.trim()}
                 className="bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold px-4 py-3 rounded-full text-sm transition-colors whitespace-nowrap"
               >
-                {addingMember ? "Adding..." : "Add Member"}
+                {addingMember ? t("settings.members.adding") : t("settings.members.add")}
               </button>
             </form>
           )}
@@ -601,7 +603,7 @@ export default function GroupSettings() {
                         <div className="flex items-center gap-1">
                           <input type="text" value={renamingValue} onChange={(e) => setRenamingValue(e.target.value)}
                             onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
-                            autoFocus placeholder="Display name"
+                            autoFocus placeholder={t("settings.members.display_name_placeholder")}
                             className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-primary" />
                           <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
                             className="p-1 text-primary hover:bg-primary-container/20 rounded-full disabled:opacity-50"><Check size={14} /></button>
@@ -610,7 +612,7 @@ export default function GroupSettings() {
                         </div>
                         <input type="text" value={renamingNicknames} onChange={(e) => setRenamingNicknames(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
-                          placeholder="Nicknames (comma-separated)"
+                          placeholder={t("settings.members.nicknames_placeholder")}
                           className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-primary text-outline" />
                       </div>
                     ) : (
@@ -626,9 +628,9 @@ export default function GroupSettings() {
                       </div>
                     )}
                     {m.user_id ? (
-                      <p className="text-xs text-outline">Linked account</p>
+                      <p className="text-xs text-outline">{t("settings.members.linked_account")}</p>
                     ) : (
-                      <p className="text-xs text-outline">Guest slot</p>
+                      <p className="text-xs text-outline">{t("settings.members.guest_slot")}</p>
                     )}
                   </div>
                 </div>
@@ -639,8 +641,8 @@ export default function GroupSettings() {
                       onChange={(e) => handleRoleChange(m.id, e.target.value as MemberRole)}
                       className="text-xs bg-surface-container-high/50 border-0 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary font-medium"
                     >
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
+                      <option value="admin">{t("roles.admin", { ns: "common" })}</option>
+                      <option value="member">{t("roles.member", { ns: "common" })}</option>
                     </select>
                   ) : (
                     <span
@@ -669,9 +671,9 @@ export default function GroupSettings() {
         {/* Initial Balances — for migrating from other systems */}
         {isAdminOrOwner && members.length > 0 && (
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Initial Balances</h2>
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">{t("settings.initial_balances.title")}</h2>
             <p className="text-xs text-outline mb-5">
-              Set starting balances when migrating from another system. Positive = owed to them, negative = they owe. These are not counted as transactions.
+              {t("settings.initial_balances.hint")}
             </p>
             <div className="space-y-2">
               {members.map((m) => (
@@ -692,7 +694,7 @@ export default function GroupSettings() {
                           const updated = await updateMember(groupId!, m.id, { initial_balance: val });
                           setMembers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
                         } catch {
-                          window.alert("Failed to update initial balance");
+                          window.alert(t("settings.initial_balances.failed_update"));
                           e.target.value = String(m.initial_balance ?? 0);
                         }
                       }}
@@ -709,7 +711,7 @@ export default function GroupSettings() {
         {/* Activity Log */}
         {activityLog.length > 0 && (
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
-            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">Activity Log</h2>
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-5">{t("settings.activity_log.title")}</h2>
             <div className="space-y-3">
               {activityLog.slice(0, logLimit).map((entry) => (
                 <div key={entry.id} className="flex items-start gap-3">
@@ -732,7 +734,7 @@ export default function GroupSettings() {
                 onClick={() => setLogLimit((prev) => prev + 20)}
                 className="mt-4 text-sm text-primary hover:text-primary-dim font-semibold"
               >
-                Show more
+                {t("settings.activity_log.show_more")}
               </button>
             )}
           </section>
@@ -741,9 +743,9 @@ export default function GroupSettings() {
         {/* Danger Zone */}
         {isOwner && (
           <section className="bg-error-container/10 rounded-2xl p-6">
-            <h2 className="text-xs font-semibold text-error uppercase tracking-wide mb-2">Danger Zone</h2>
+            <h2 className="text-xs font-semibold text-error uppercase tracking-wide mb-2">{t("settings.danger_zone.title")}</h2>
             <p className="text-sm text-on-surface-variant mb-4">
-              Deleting this group will permanently remove all expenses, members, and settlements.
+              {t("settings.danger_zone.hint")}
             </p>
             <button
               onClick={handleDeleteGroup}
@@ -751,7 +753,7 @@ export default function GroupSettings() {
               className="flex items-center gap-2 text-sm text-on-primary bg-error hover:bg-error/80 font-semibold px-5 py-2.5 rounded-full transition-colors disabled:opacity-60"
             >
               <Trash2 size={14} />
-              {deleting ? "Deleting..." : "Delete Group"}
+              {deleting ? t("settings.danger_zone.deleting") : t("settings.danger_zone.delete")}
             </button>
           </section>
         )}

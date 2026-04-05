@@ -1,0 +1,24 @@
+{
+  "tagline": "Split Expenses",
+  "hero_title_1": "Share costs,",
+  "hero_title_highlight": "effortlessly",
+  "hero_subtitle": "Track shared costs with friends, roommates, and travel companions — no sign-up required.",
+  "sign_up": "Sign Up",
+  "try_as_guest": "Try as Guest",
+  "log_in": "Log In",
+  "error_guest": "Failed to continue as guest",
+  "eco_splitting": {
+    "title": "Eco-Splitting",
+    "subtitle": "Split expenses with friends, roommates, and travel companions — no sign-up required."
+  },
+  "features": {
+    "vietqr_title": "VietQR",
+    "vietqr_subtitle": "Pay via QR with Vietnamese banks",
+    "smart_settle_title": "Smart Settle",
+    "smart_settle_subtitle": "Minimize transfers with debt simplification",
+    "group_reports_title": "Group Reports",
+    "group_reports_subtitle": "See who spent what, by category",
+    "multi_currency_title": "Multi-Currency",
+    "multi_currency_subtitle": "Log expenses in any currency with auto conversion"
+  }
+}

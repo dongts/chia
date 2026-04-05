@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, MoreVertical } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency } from "@/utils/currency";
@@ -139,6 +140,7 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
 export default function MemberAnalytics() {
   const { groupId, memberId } = useParams<{ groupId: string; memberId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("reports");
 
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,10 +217,10 @@ export default function MemberAnalytics() {
             to={`/groups/${groupId}/reports`}
             className="text-sm text-primary hover:underline"
           >
-            Back to Group Analytics
+            {t("back_to_analytics")}
           </Link>
         </div>
-        <h1 className="text-2xl font-bold text-on-surface ml-12">Member Analytics</h1>
+        <h1 className="text-2xl font-bold text-on-surface ml-12">{t("member_analytics")}</h1>
       </div>
 
       {/* ============ MOBILE HEADER (hidden on desktop) ============ */}
@@ -231,7 +233,7 @@ export default function MemberAnalytics() {
             >
               <ArrowLeft size={18} />
             </button>
-            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Member Details</p>
+            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("member_details")}</p>
           </div>
           <button className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant">
             <MoreVertical size={18} />
@@ -243,8 +245,8 @@ export default function MemberAnalytics() {
       {error && (
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-12 text-center">
           <p className="text-4xl mb-3">👤</p>
-          <p className="font-bold text-on-surface">Failed to load member analytics</p>
-          <p className="text-sm text-on-surface-variant mt-1">Please try again later.</p>
+          <p className="font-bold text-on-surface">{t("failed_to_load_member")}</p>
+          <p className="text-sm text-on-surface-variant mt-1">{t("try_again")}</p>
         </div>
       )}
 
@@ -259,28 +261,28 @@ export default function MemberAnalytics() {
               </div>
               <h2 className="text-2xl font-bold text-on-surface">{detail.member_name}</h2>
               <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mt-1">
-                Member
+                {t("member_role")}
               </p>
             </div>
 
             {/* Two stat cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Total Paid</p>
+                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("total_paid")}</p>
                 <p className="text-xl font-bold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-1">across all expenses</p>
+                <p className="text-xs text-on-surface-variant mt-1">{t("across_all_expenses")}</p>
               </div>
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Monthly Avg</p>
+                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("monthly_avg")}</p>
                 <p className="text-xl font-bold text-on-surface">{formatCurrency(monthlyAvg, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-1">per month</p>
+                <p className="text-xs text-on-surface-variant mt-1">{t("per_month")}</p>
               </div>
             </div>
 
             {/* Category Spending donut */}
             {detail.paid_by_category.length > 0 && (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">Category Spending</h2>
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("category_spending")}</h2>
                 <DonutChart categories={detail.paid_by_category} currencyCode={currency} />
               </div>
             )}
@@ -288,7 +290,7 @@ export default function MemberAnalytics() {
             {/* Activity History */}
             {allActivity.length > 0 && (
               <div>
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">Activity History</h2>
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">{t("activity_history")}</h2>
                 <div className="space-y-2">
                   {allActivity.map((item) => (
                     <div key={item.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
@@ -307,7 +309,7 @@ export default function MemberAnalytics() {
                           {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
                         </p>
                         <p className="text-[10px] text-outline uppercase font-semibold">
-                          {item.type === "paid" ? "Paid" : "Owed"}
+                          {item.type === "paid" ? t("paid") : t("owed")}
                         </p>
                       </div>
                     </div>
@@ -318,7 +320,7 @@ export default function MemberAnalytics() {
 
             {/* Settle Balance button */}
             <button className="w-full py-3.5 rounded-2xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 transition-colors">
-              Settle Balance
+              {t("settle_balance")}
             </button>
           </div>
 
@@ -332,7 +334,7 @@ export default function MemberAnalytics() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-on-surface">{detail.member_name}</h2>
-                  <p className="text-sm text-on-surface-variant mt-0.5">Member</p>
+                  <p className="text-sm text-on-surface-variant mt-0.5">{t("member_role")}</p>
                 </div>
               </div>
             </div>
@@ -340,17 +342,17 @@ export default function MemberAnalytics() {
             {/* Two stat cards */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Total Paid</p>
+                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("total_paid")}</p>
                 <p className="text-2xl font-bold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-2">across all expenses</p>
+                <p className="text-xs text-on-surface-variant mt-2">{t("across_all_expenses")}</p>
               </div>
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Net Balance</p>
+                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("net_balance")}</p>
                 <p className={cn("text-2xl font-bold", net >= 0 ? "text-primary" : "text-error")}>
                   {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
                 </p>
                 <p className="text-xs text-on-surface-variant mt-2">
-                  {net >= 0 ? "is owed back" : "owes to group"}
+                  {net >= 0 ? t("is_owed_back") : t("owes_to_group")}
                 </p>
               </div>
             </div>
@@ -359,9 +361,9 @@ export default function MemberAnalytics() {
             <div className="grid grid-cols-2 gap-4">
               {/* Left: Spending by Category donut */}
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">Spending by Category</h2>
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">{t("spending_by_category")}</h2>
                 {detail.paid_by_category.length === 0 ? (
-                  <p className="text-sm text-outline text-center py-8">No category data</p>
+                  <p className="text-sm text-outline text-center py-8">{t("no_category_data")}</p>
                 ) : (
                   <DonutChart categories={detail.paid_by_category} currencyCode={currency} />
                 )}
@@ -369,9 +371,9 @@ export default function MemberAnalytics() {
 
               {/* Right: Top Expenses Paid */}
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">Top Expenses Paid</h2>
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("top_expenses_paid")}</h2>
                 {detail.recent_paid.length === 0 ? (
-                  <p className="text-sm text-outline text-center py-8">No expenses</p>
+                  <p className="text-sm text-outline text-center py-8">{t("no_expenses_paid")}</p>
                 ) : (
                   <div className="space-y-2">
                     {detail.recent_paid.map((exp) => (
@@ -400,7 +402,7 @@ export default function MemberAnalytics() {
             {allActivity.length > 0 && (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
                 <div className="px-5 py-4">
-                  <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Activity History</h2>
+                  <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("activity_history")}</h2>
                 </div>
                 <div className="px-2 pb-3 space-y-1">
                   {allActivity.map((item) => (
@@ -420,7 +422,7 @@ export default function MemberAnalytics() {
                           {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
                         </p>
                         <p className="text-[10px] text-outline uppercase font-semibold">
-                          {item.type === "paid" ? "Paid" : "Owed"}
+                          {item.type === "paid" ? t("paid") : t("owed")}
                         </p>
                       </div>
                     </div>

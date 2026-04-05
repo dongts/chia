@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Search, ChevronUp, ChevronDown } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency } from "@/utils/currency";
@@ -59,6 +60,7 @@ function CategoryBar({ category, maxAmount, currencyCode }: { category: Category
 export default function GroupReports() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation("reports");
 
   const [summary, setSummary] = useState<GroupReportSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,8 +152,8 @@ export default function GroupReports() {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Analytics Report</p>
-              <h1 className="text-2xl font-bold text-on-surface">{groupName || "Group Report"}</h1>
+              <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("analytics_report")}</p>
+              <h1 className="text-2xl font-bold text-on-surface">{groupName || t("group_report")}</h1>
             </div>
           </div>
         </div>
@@ -166,7 +168,7 @@ export default function GroupReports() {
           >
             <ArrowLeft size={18} />
           </button>
-          <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Analytics Report</p>
+          <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("analytics_report")}</p>
         </div>
       </div>
 
@@ -174,7 +176,7 @@ export default function GroupReports() {
       {error && (
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-12 text-center">
           <p className="text-4xl mb-3">📊</p>
-          <p className="font-bold text-on-surface">Failed to load reports</p>
+          <p className="font-bold text-on-surface">{t("failed_to_load")}</p>
         </div>
       )}
 
@@ -183,8 +185,8 @@ export default function GroupReports() {
           {summary.expense_count === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-12 text-center">
               <p className="text-4xl mb-3">📊</p>
-              <p className="font-bold text-on-surface">No expenses yet</p>
-              <p className="text-sm text-on-surface-variant mt-1">Add some expenses to see reports.</p>
+              <p className="font-bold text-on-surface">{t("no_expenses")}</p>
+              <p className="text-sm text-on-surface-variant mt-1">{t("no_expenses_hint")}</p>
             </div>
           ) : (
             <>
@@ -197,9 +199,9 @@ export default function GroupReports() {
                   <div className="absolute bottom-4 -left-4 w-16 h-16 bg-white/5 rounded-full" />
                   <div className="absolute top-1/2 right-1/4 w-10 h-10 bg-white/5 rounded-full" />
                   <div className="relative z-10">
-                    <p className="text-[11px] font-semibold text-on-primary/70 uppercase tracking-wider mb-1">Total Group Spend</p>
+                    <p className="text-[11px] font-semibold text-on-primary/70 uppercase tracking-wider mb-1">{t("total_group_spend")}</p>
                     <p className="text-3xl font-bold text-on-primary leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
-                    <p className="text-xs text-on-primary/60 mt-1.5">{summary.expense_count} expense{summary.expense_count !== 1 ? "s" : ""} recorded</p>
+                    <p className="text-xs text-on-primary/60 mt-1.5">{summary.expense_count} {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}</p>
                   </div>
                 </div>
 
@@ -208,14 +210,14 @@ export default function GroupReports() {
                   {/* Top Contributor */}
                   {mostActiveMember && (
                     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5">Top Contributor</p>
+                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5">{t("top_contributor")}</p>
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                           {mostActiveMember.member_name[0]?.toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-on-surface truncate">{mostActiveMember.member_name}</p>
-                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} txns</p>
+                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} {t("txns")}</p>
                         </div>
                       </div>
                     </div>
@@ -224,12 +226,12 @@ export default function GroupReports() {
                   {/* Main Expense (top category) */}
                   {topCategory && (
                     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5">Main Expense</p>
+                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5">{t("main_expense")}</p>
                       <div className="flex items-center gap-2">
                         <span className="text-2xl flex-shrink-0">{topCategory.category_icon}</span>
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-on-surface truncate">{topCategory.category_name}</p>
-                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}% of total</p>
+                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}{t("of_total")}</p>
                         </div>
                       </div>
                     </div>
@@ -239,7 +241,7 @@ export default function GroupReports() {
                 {/* Category Breakdown */}
                 {sortedCategories.length > 0 && (
                   <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                    <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">Category Breakdown</h2>
+                    <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("category_breakdown")}</h2>
                     <div className="space-y-3.5">
                       {sortedCategories.map((cat) => (
                         <CategoryBar key={cat.category_id} category={cat} maxAmount={maxCategoryAmount} currencyCode={summary.currency_code} />
@@ -252,7 +254,7 @@ export default function GroupReports() {
                 {summary.per_member.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3 px-1">
-                      <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Member Balance</h2>
+                      <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("member_balance")}</h2>
                     </div>
 
                     {/* Search input (mobile) */}
@@ -260,7 +262,7 @@ export default function GroupReports() {
                       <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                       <input
                         type="text"
-                        placeholder="Search members..."
+                        placeholder={t("search_members")}
                         value={memberSearch}
                         onChange={(e) => setMemberSearch(e.target.value)}
                         className="w-full pl-8 pr-3 py-2 text-xs bg-surface-container-high/50 border-0 rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
@@ -302,25 +304,25 @@ export default function GroupReports() {
                 <div className="grid grid-cols-3 gap-4">
                   {/* Total Spent */}
                   <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Total Spent</p>
+                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("total_spent")}</p>
                     <p className="text-2xl sm:text-3xl font-bold text-on-surface leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
                     <p className="text-xs text-on-surface-variant mt-2 flex items-center gap-1">
                       <TrendingUp size={12} className="text-primary" />
-                      <span className="text-primary font-medium">+{summary.expense_count}</span> expense{summary.expense_count !== 1 ? "s" : ""} recorded
+                      <span className="text-primary font-medium">+{summary.expense_count}</span> {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}
                     </p>
                   </div>
 
                   {/* Most Active Member */}
                   {mostActiveMember && (
                     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Most Active Member</p>
+                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">{t("most_active_member")}</p>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary-container/30 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
                           {mostActiveMember.member_name[0]?.toUpperCase()}
                         </div>
                         <div>
                           <p className="text-base font-bold text-on-surface">{mostActiveMember.member_name}</p>
-                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} Transaction{mostActiveMember.expense_count !== 1 ? "s" : ""}</p>
+                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} {mostActiveMember.expense_count !== 1 ? t("transactions_plural") : t("transactions")}</p>
                         </div>
                       </div>
                     </div>
@@ -329,12 +331,12 @@ export default function GroupReports() {
                   {/* Top Category */}
                   {topCategory && (
                     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Top Category</p>
+                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3">{t("top_category")}</p>
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{topCategory.category_icon}</span>
                         <div>
                           <p className="text-base font-bold text-on-surface">{topCategory.category_name}</p>
-                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}% of total volume</p>
+                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}{t("of_total_volume")}</p>
                         </div>
                       </div>
                     </div>
@@ -346,7 +348,7 @@ export default function GroupReports() {
                   {/* Left: Category Breakdown (3 cols) */}
                   {sortedCategories.length > 0 && (
                     <div className="col-span-3 bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                      <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">Category Breakdown</h2>
+                      <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">{t("category_breakdown")}</h2>
                       <div className="space-y-4">
                         {sortedCategories.map((cat) => (
                           <CategoryBar key={cat.category_id} category={cat} maxAmount={maxCategoryAmount} currencyCode={summary.currency_code} />
@@ -357,7 +359,7 @@ export default function GroupReports() {
 
                   {/* Right: Recent Pulse (2 cols) */}
                   <div className={cn("bg-surface-container-lowest rounded-2xl shadow-editorial p-5", sortedCategories.length > 0 ? "col-span-2" : "col-span-5")}>
-                    <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">Recent Pulse</h2>
+                    <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("recent_pulse")}</h2>
                     <div className="space-y-3">
                       {/* Large Expense Flagged */}
                       {highestSpender && (
@@ -366,9 +368,9 @@ export default function GroupReports() {
                             <AlertTriangle size={16} className="text-error" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-on-surface">Large Expense Flagged</p>
+                            <p className="text-sm font-semibold text-on-surface">{t("large_expense_flagged")}</p>
                             <p className="text-xs text-on-surface-variant mt-0.5">
-                              {highestSpender.member_name} paid {formatCurrency(highestSpender.total_paid, summary.currency_code)} total
+                              {t("large_expense_detail", { name: highestSpender.member_name, amount: formatCurrency(highestSpender.total_paid, summary.currency_code) })}
                             </p>
                           </div>
                         </div>
@@ -380,9 +382,11 @@ export default function GroupReports() {
                           <Clock size={16} className="text-tertiary" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-on-surface">Settlement Pending</p>
+                          <p className="text-sm font-semibold text-on-surface">{t("settlement_pending")}</p>
                           <p className="text-xs text-on-surface-variant mt-0.5">
-                            {settlements.length} suggested settlement{settlements.length !== 1 ? "s" : ""} to resolve
+                            {settlements.length !== 1
+                              ? t("settlement_pending_detail_plural", { count: settlements.length })
+                              : t("settlement_pending_detail", { count: settlements.length })}
                           </p>
                         </div>
                       </div>
@@ -394,9 +398,9 @@ export default function GroupReports() {
                             <Lightbulb size={16} className="text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-on-surface">Savings Opportunity</p>
+                            <p className="text-sm font-semibold text-on-surface">{t("savings_opportunity")}</p>
                             <p className="text-xs text-on-surface-variant mt-0.5">
-                              {topCategory.category_icon} {topCategory.category_name} is your highest spend at {formatCurrency(topCategory.total_amount, summary.currency_code)}
+                              {t("savings_opportunity_detail", { icon: topCategory.category_icon, name: topCategory.category_name, amount: formatCurrency(topCategory.total_amount, summary.currency_code) })}
                             </p>
                           </div>
                         </div>
@@ -410,8 +414,8 @@ export default function GroupReports() {
                   <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
                     <div className="px-5 py-4 flex items-center justify-between">
                       <div>
-                        <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Member Breakdown</h2>
-                        <p className="text-xs text-outline mt-0.5">Click a member to see details</p>
+                        <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("member_breakdown")}</h2>
+                        <p className="text-xs text-outline mt-0.5">{t("click_member_detail")}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         {/* Search input */}
@@ -419,7 +423,7 @@ export default function GroupReports() {
                           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                           <input
                             type="text"
-                            placeholder="Search members..."
+                            placeholder={t("search_members")}
                             value={memberSearch}
                             onChange={(e) => setMemberSearch(e.target.value)}
                             className="pl-8 pr-3 py-1.5 text-xs bg-surface-container-high/50 border-0 rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary/30 w-44"
@@ -440,13 +444,13 @@ export default function GroupReports() {
                               onClick={() => handleSort("name")}
                               className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left cursor-pointer hover:text-on-surface transition-colors select-none"
                             >
-                              Name<SortIndicator col="name" />
+                              {t("name_column")}<SortIndicator col="name" />
                             </th>
                             <th
                               onClick={() => handleSort("balance")}
                               className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
                             >
-                              Balance<SortIndicator col="balance" />
+                              {t("balance_column")}<SortIndicator col="balance" />
                             </th>
                             <th className="px-3 py-3 w-10"></th>
                           </tr>

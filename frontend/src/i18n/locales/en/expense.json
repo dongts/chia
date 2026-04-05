@@ -45,5 +45,8 @@
     "exact_sum": "Exact amounts must sum to {{target}}. Currently: {{current}}",
     "percent_sum": "Percentages must add up to 100%. Currently: {{current}}%",
     "shares_required": "Enter shares for at least one member"
-  }
+  },
+  "search_members": "Search {{count}} members...",
+  "selected_count": "{{selected}} of {{total}} selected",
+  "no_members_found": "No members found"
 }

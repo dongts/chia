@@ -19,13 +19,7 @@ import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import CurrencySelect from "@/components/CurrencySelect";
 import { useAuthStore } from "@/store/authStore";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
+import { useTranslation } from "react-i18next";
 
 function AvatarStack({ count, max = 4 }: { count: number; max?: number }) {
   const shown = Math.min(count, max);
@@ -79,6 +73,7 @@ function MiniBarChart() {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation("dashboard");
   const [groups, setGroups] = useState<GroupListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -97,6 +92,13 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.display_name?.split(" ")[0] ?? "there";
 
+  function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return t("greeting_morning");
+    if (hour < 18) return t("greeting_afternoon");
+    return t("greeting_evening");
+  }
+
   useEffect(() => {
     loadGroups();
   }, []);
@@ -106,7 +108,7 @@ export default function Dashboard() {
       const data = await listGroups();
       setGroups(data);
     } catch {
-      window.alert("Failed to load groups");
+      window.alert(t("failed_to_load", { ns: "common" }));
     } finally {
       setLoading(false);
     }
@@ -126,7 +128,7 @@ export default function Dashboard() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to create group";
+        t("failed_to_load", { ns: "common" });
       window.alert(msg);
     } finally {
       setCreating(false);
@@ -165,14 +167,14 @@ export default function Dashboard() {
           <p className="text-sm text-on-surface-variant font-medium">
             {getGreeting()}, {firstName}
           </p>
-          <h1 className="text-2xl font-bold text-on-surface mt-0.5">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-on-surface mt-0.5">{t("dashboard", { ns: "common" })}</h1>
         </div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-colors shadow-editorial"
         >
           <Plus size={16} strokeWidth={2.5} />
-          New Group
+          {t("new_group")}
         </button>
       </div>
 
@@ -181,7 +183,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
           <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-6 pb-2">
-              <h2 className="text-lg font-bold text-on-surface">Create Group</h2>
+              <h2 className="text-lg font-bold text-on-surface">{t("create_group")}</h2>
               <button
                 onClick={() => setShowForm(false)}
                 className="w-8 h-8 rounded-full bg-surface-container-high/50 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
@@ -192,32 +194,32 @@ export default function Dashboard() {
             <form onSubmit={handleCreate} className="px-6 pb-6 pt-2 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Group name <span className="text-error">*</span>
+                  {t("group_name")} <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Italy Trip 2025"
+                  placeholder={t("group_name_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Description
+                  {t("description")}
                 </label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("description_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Currency
+                  {t("currency")}
                 </label>
                 <CurrencySelect value={currency} onChange={setCurrency} />
               </div>
@@ -227,14 +229,14 @@ export default function Dashboard() {
                   onClick={() => setShowForm(false)}
                   className="flex-1 bg-surface-container-high/50 text-on-surface font-semibold py-3 rounded-full text-sm hover:bg-surface-container-high transition-colors"
                 >
-                  Cancel
+                  {t("cancel", { ns: "common" })}
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors shadow-editorial"
                 >
-                  {creating ? "Creating..." : "Create Group"}
+                  {creating ? t("creating_group") : t("create_group")}
                 </button>
               </div>
             </form>
@@ -248,7 +250,7 @@ export default function Dashboard() {
           <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
             <div className="px-6 pt-8 pb-6 text-center space-y-4">
               <div className="text-5xl">🎉</div>
-              <h2 className="text-xl font-bold text-on-surface">Group Created!</h2>
+              <h2 className="text-xl font-bold text-on-surface">{t("group_created")}</h2>
               <p className="text-sm text-on-surface-variant">
                 <span className="font-semibold text-on-surface">{createdGroup.name}</span> is ready. Invite people to start splitting expenses.
               </p>
@@ -259,20 +261,20 @@ export default function Dashboard() {
                   className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold py-3 rounded-full text-sm transition-colors shadow-editorial"
                 >
                   {copiedLink ? <Check size={16} /> : <Share2 size={16} />}
-                  {copiedLink ? "Link Copied!" : "Copy Invite Link"}
+                  {copiedLink ? t("link_copied") : t("copy_invite")}
                 </button>
                 <button
                   onClick={() => { setCreatedGroup(null); navigate(`/groups/${createdGroup.id}`); }}
                   className="w-full flex items-center justify-center gap-2 bg-surface-container-high/50 hover:bg-surface-container-high text-on-surface font-semibold py-3 rounded-full text-sm transition-colors"
                 >
                   <UserPlus size={16} />
-                  Go to Group
+                  {t("go_to_group")}
                 </button>
                 <button
                   onClick={() => setCreatedGroup(null)}
                   className="w-full text-sm text-on-surface-variant hover:text-on-surface font-medium py-2 transition-colors"
                 >
-                  Stay on Dashboard
+                  {t("stay_on_dashboard")}
                 </button>
               </div>
             </div>
@@ -307,16 +309,16 @@ export default function Dashboard() {
               <Wallet size={40} className="text-primary" />
             </div>
           </div>
-          <h3 className="text-xl font-bold text-on-surface mb-2">No groups yet</h3>
+          <h3 className="text-xl font-bold text-on-surface mb-2">{t("no_groups_title")}</h3>
           <p className="text-sm text-on-surface-variant mb-8 max-w-xs mx-auto">
-            Create your first group to start splitting expenses with friends and family
+            {t("no_groups_subtitle")}
           </p>
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-semibold px-6 py-3 rounded-full text-sm transition-colors shadow-editorial"
           >
             <Plus size={16} strokeWidth={2.5} />
-            Create your first group
+            {t("create_group")}
           </button>
         </div>
       ) : (
@@ -326,7 +328,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
-                  Total Balance
+                  {t("total_balance")}
                 </p>
                 <span
                   className={cn(
@@ -358,18 +360,17 @@ export default function Dashboard() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Sparkles size={16} className="text-on-primary/80" />
-                    <p className="text-sm font-bold text-on-primary">Ready to settle?</p>
+                    <p className="text-sm font-bold text-on-primary">{t("settle_cta")}</p>
                   </div>
                   <p className="text-xs text-on-primary/70">
-                    You have {pendingPaymentCount} pending payment{pendingPaymentCount !== 1 ? "s" : ""} across{" "}
-                    {groupsWithDebt.length} group{groupsWithDebt.length !== 1 ? "s" : ""}
+                    {t("settle_cta_detail", { count: pendingPaymentCount, groups: groupsWithDebt.length })}
                   </p>
                 </div>
                 <Link
                   to={`/groups/${groupsWithDebt[0].id}`}
                   className="shrink-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-on-primary font-semibold px-5 py-2.5 rounded-full text-sm transition-colors flex items-center gap-1.5"
                 >
-                  Settle Now
+                  {t("settle_now")}
                   <ArrowRight size={14} />
                 </Link>
               </div>
@@ -380,7 +381,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-on-surface uppercase tracking-wider">
-                Your Groups
+                {t("your_groups")}
               </h2>
               <span className="text-xs text-on-surface-variant font-medium">
                 {groups.length} group{groups.length !== 1 ? "s" : ""}
@@ -419,7 +420,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <div>
                         <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                          Your Balance
+                          {t("total_balance")}
                         </p>
                         <p
                           className={cn(

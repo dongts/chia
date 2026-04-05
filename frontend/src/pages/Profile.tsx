@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { User, ArrowLeft, Shield, Link2, Pencil, Trash2, Plus, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import client from "@/api/client";
@@ -22,6 +23,7 @@ import { fetchVietBanks, buildVietQrUrl, type VietBank } from "@/utils/vietnamBa
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation("profile");
   const { setUser } = useAuthStore();
 
   const [displayName, setDisplayName] = useState(user?.display_name ?? "");
@@ -71,9 +73,9 @@ export default function Profile() {
       await client.patch("/users/me", { display_name: displayName });
       const updated = await getMe();
       setUser(updated);
-      window.alert("Display name updated!");
+      window.alert(t("display_name_updated"));
     } catch {
-      window.alert("Failed to update display name");
+      window.alert(t("failed_display_name"));
     } finally {
       setSavingName(false);
     }
@@ -91,11 +93,11 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert("Account upgraded! You can now log in with your email.");
+      window.alert(t("upgrade.success"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to upgrade account";
+        t("upgrade.failed");
       window.alert(msg);
     } finally {
       setUpgrading(false);
@@ -111,12 +113,12 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert("Account linked! You are now logged in as your verified account.");
+      window.alert(t("link.success"));
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to link account";
+        t("link.failed");
       window.alert(msg);
     } finally {
       setLinking(false);
@@ -131,12 +133,12 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert("Account linked via Google! You are now logged in as your verified account.");
+      window.alert(t("link.success_google"));
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Failed to link Google account";
+        t("link.failed_google");
       window.alert(msg);
     } finally {
       setLinking(false);
@@ -202,19 +204,19 @@ export default function Profile() {
       }
       resetForm();
     } catch {
-      window.alert("Failed to save payment method");
+      window.alert(t("payment_methods.failed_save"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDeletePaymentMethod(id: string) {
-    if (!window.confirm("Delete this payment method?")) return;
+    if (!window.confirm(t("payment_methods.confirm_delete"))) return;
     try {
       await deletePaymentMethod(id);
       setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id));
     } catch {
-      window.alert("Failed to delete payment method");
+      window.alert(t("payment_methods.failed_delete"));
     }
   }
 
@@ -223,7 +225,7 @@ export default function Profile() {
       const updated = await uploadQrImage(id, file);
       setPaymentMethods((prev) => prev.map((pm) => (pm.id === id ? updated : pm)));
     } catch {
-      window.alert("Failed to upload QR image");
+      window.alert(t("payment_methods.failed_upload_qr"));
     }
   }
 
@@ -235,7 +237,7 @@ export default function Profile() {
         <button onClick={() => navigate(-1)} className="text-outline hover:text-on-surface-variant">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-on-surface">Profile</h1>
+        <h1 className="text-2xl font-bold text-on-surface">{t("title")}</h1>
       </div>
 
       <div className="max-w-lg space-y-6">
@@ -259,7 +261,7 @@ export default function Profile() {
                 <p className="text-sm text-on-surface-variant">{user.email}</p>
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs text-on-tertiary-container bg-tertiary-container/20 px-2 py-0.5 rounded-full">
-                  Guest account
+                  {t("guest_badge")}
                 </span>
               )}
             </div>
@@ -267,7 +269,7 @@ export default function Profile() {
 
           <form onSubmit={handleSaveName} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-on-surface mb-1">Display name</label>
+              <label className="block text-sm font-medium text-on-surface mb-1">{t("display_name")}</label>
               <input
                 type="text"
                 required
@@ -278,7 +280,7 @@ export default function Profile() {
             </div>
             {user.is_verified && (
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Email</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">{t("email")}</label>
                 <p className="text-sm text-on-surface-variant bg-surface rounded-lg px-3 py-2.5">
                   {user.email}
                 </p>
@@ -289,7 +291,7 @@ export default function Profile() {
               disabled={savingName}
               className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
             >
-              {savingName ? "Saving..." : "Save Changes"}
+              {savingName ? t("saving") : t("save_changes")}
             </button>
           </form>
         </section>
@@ -299,14 +301,14 @@ export default function Profile() {
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
             <div className="flex items-center gap-2 mb-1">
               <Shield size={18} className="text-primary" />
-              <h2 className="text-base font-semibold text-on-surface">Upgrade to Full Account</h2>
+              <h2 className="text-base font-semibold text-on-surface">{t("upgrade.title")}</h2>
             </div>
             <p className="text-sm text-on-surface-variant mb-4">
-              Add an email and password to keep your data across devices and never lose access.
+              {t("upgrade.subtitle")}
             </p>
             <form onSubmit={handleUpgrade} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Email</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">{t("upgrade.email")}</label>
                 <input
                   type="email"
                   required
@@ -317,14 +319,14 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Password</label>
+                <label className="block text-sm font-medium text-on-surface mb-1">{t("upgrade.password")}</label>
                 <input
                   type="password"
                   required
                   minLength={8}
                   value={upgradePassword}
                   onChange={(e) => setUpgradePassword(e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder={t("upgrade.password_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -333,7 +335,7 @@ export default function Profile() {
                 disabled={upgrading}
                 className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
               >
-                {upgrading ? "Upgrading..." : "Upgrade Account"}
+                {upgrading ? t("upgrade.submitting") : t("upgrade.submit")}
               </button>
             </form>
           </section>
@@ -344,11 +346,10 @@ export default function Profile() {
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
             <div className="flex items-center gap-2 mb-1">
               <Link2 size={18} className="text-primary" />
-              <h2 className="text-base font-semibold text-on-surface">Link to Existing Account</h2>
+              <h2 className="text-base font-semibold text-on-surface">{t("link.title")}</h2>
             </div>
             <p className="text-sm text-on-surface-variant mb-4">
-              Already have an account? Sign in below to merge this guest account into your existing one.
-              All your groups, expenses, and balances will be transferred.
+              {t("link.subtitle")}
             </p>
 
             <div className="mb-4">
@@ -360,13 +361,13 @@ export default function Profile() {
                 <div className="w-full border-t border-outline-variant/15" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-surface-container-lowest px-3 text-outline font-medium">or use email</span>
+                <span className="bg-surface-container-lowest px-3 text-outline font-medium">{t("link.or_use_email")}</span>
               </div>
             </div>
 
             <form onSubmit={handleLinkAccount} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Email</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">{t("link.email")}</label>
                 <input
                   type="email"
                   required
@@ -377,13 +378,13 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">Password</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">{t("link.password")}</label>
                 <input
                   type="password"
                   required
                   value={linkPassword}
                   onChange={(e) => setLinkPassword(e.target.value)}
-                  placeholder="Your account password"
+                  placeholder={t("link.password_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -392,7 +393,7 @@ export default function Profile() {
                 disabled={linking}
                 className="w-full bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-3 rounded-full text-sm transition-colors"
               >
-                {linking ? "Linking..." : "Link Account"}
+                {linking ? t("link.submitting") : t("link.submit")}
               </button>
             </form>
           </section>
@@ -401,14 +402,14 @@ export default function Profile() {
         {/* Payment Methods */}
         <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-on-surface">Payment Methods</h2>
+            <h2 className="text-base font-semibold text-on-surface">{t("payment_methods.title")}</h2>
             {!showForm && (
               <button
                 onClick={openAddForm}
                 className="flex items-center gap-1.5 text-sm text-primary hover:text-primary font-medium"
               >
                 <Plus size={16} />
-                Add
+                {t("payment_methods.add")}
               </button>
             )}
           </div>
@@ -417,11 +418,11 @@ export default function Profile() {
           {showForm && (
             <form onSubmit={handleSavePaymentMethod} className="space-y-3 mb-5 p-4 rounded-xl bg-surface border border-outline-variant/15">
               <h3 className="text-sm font-semibold text-on-surface">
-                {editingId ? "Edit Payment Method" : "New Payment Method"}
+                {editingId ? t("payment_methods.edit_title") : t("payment_methods.new_title")}
               </h3>
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1">
-                  Label <span className="text-error">*</span>
+                  {t("payment_methods.label")} <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
@@ -433,7 +434,7 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1">Vietnamese Bank (VietQR)</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.viet_bank")}</label>
                 <select
                   value={formBankBin}
                   onChange={(e) => {
@@ -449,17 +450,17 @@ export default function Profile() {
                   }}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
                 >
-                  <option value="">Not a Vietnamese bank</option>
+                  <option value="">{t("payment_methods.viet_bank_no")}</option>
                   {vietBanks.map((b) => (
                     <option key={b.bin} value={b.bin}>{b.shortName} — {b.name}</option>
                   ))}
                 </select>
                 <p className="text-xs text-outline mt-1">
-                  {formBankBin ? "QR code with amount will be auto-generated via VietQR" : "Select a bank to enable VietQR, or leave empty for other banks"}
+                  {formBankBin ? t("payment_methods.viet_qr_hint") : t("payment_methods.bank_select_hint")}
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1">Bank Name</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.bank_name")}</label>
                 <input
                   type="text"
                   value={formBankName}
@@ -469,7 +470,7 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1">Account Number</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.account_number")}</label>
                 <input
                   type="text"
                   value={formAccountNumber}
@@ -479,39 +480,39 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1">Account Holder</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.account_holder")}</label>
                 <input
                   type="text"
                   value={formAccountHolder}
                   onChange={(e) => setFormAccountHolder(e.target.value)}
-                  placeholder="Full name"
+                  placeholder={t("payment_methods.account_holder_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-on-surface-variant mb-1">Note</label>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.note")}</label>
                 <input
                   type="text"
                   value={formNote}
                   onChange={(e) => setFormNote(e.target.value)}
-                  placeholder="Optional instructions"
+                  placeholder={t("payment_methods.note_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
               {/* QR section: auto-generated for VietQR banks, manual upload for others */}
               {formBankBin && formAccountNumber ? (
                 <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">QR Preview (auto-generated)</label>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.qr_preview")}</label>
                   <img
                     src={buildVietQrUrl({ bankBin: formBankBin, accountNumber: formAccountNumber })}
                     alt="VietQR preview"
                     className="w-32 h-32 rounded-xl border border-outline-variant/15"
                   />
-                  <p className="text-xs text-primary mt-1">QR will be auto-generated with amount when others view it</p>
+                  <p className="text-xs text-primary mt-1">{t("payment_methods.qr_auto_hint")}</p>
                 </div>
               ) : !formBankBin ? (
                 <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">QR Code Image</label>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">{t("payment_methods.qr_image")}</label>
                   <input
                     ref={formQrInputRef}
                     type="file"
@@ -538,7 +539,7 @@ export default function Profile() {
                       className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary border border-outline-variant/15 hover:border-primary-container px-3 py-1.5 rounded-lg transition-colors"
                     >
                       <Upload size={14} />
-                      {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? "Change QR" : "Upload QR"}
+                      {formQrPreview || (editingId && paymentMethods.find((pm) => pm.id === editingId)?.qr_image_url) ? t("payment_methods.change_qr") : t("payment_methods.upload_qr")}
                     </button>
                   </div>
                 </div>
@@ -549,14 +550,14 @@ export default function Profile() {
                   disabled={saving}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold py-2.5 rounded-full text-sm transition-colors"
                 >
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? t("payment_methods.saving") : t("payment_methods.save")}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
                   className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold py-2.5 rounded-full text-sm transition-colors"
                 >
-                  Cancel
+                  {t("payment_methods.cancel")}
                 </button>
               </div>
             </form>
@@ -565,7 +566,7 @@ export default function Profile() {
           {/* List */}
           {paymentMethods.length === 0 && !showForm ? (
             <p className="text-sm text-outline text-center py-4">
-              No payment methods yet. Add one so group members know how to pay you.
+              {t("payment_methods.empty")}
             </p>
           ) : (
             <ul className="space-y-3">
@@ -627,7 +628,7 @@ export default function Profile() {
                           className="mt-1 w-14 text-center text-xs text-outline hover:text-primary transition-colors"
                           title="Upload QR image"
                         >
-                          {pm.qr_image_url ? "Change" : "Upload"}
+                          {pm.qr_image_url ? t("payment_methods.change") : t("payment_methods.upload")}
                         </button>
                       </>
                     )}
@@ -656,7 +657,7 @@ export default function Profile() {
                       type="button"
                       onClick={() => openEditForm(pm)}
                       className="text-outline hover:text-tertiary transition-colors"
-                      title="Edit"
+                      title={t("edit", { ns: "common" })}
                     >
                       <Pencil size={15} />
                     </button>
@@ -664,7 +665,7 @@ export default function Profile() {
                       type="button"
                       onClick={() => handleDeletePaymentMethod(pm.id)}
                       className="text-outline hover:text-error transition-colors"
-                      title="Delete"
+                      title={t("delete", { ns: "common" })}
                     >
                       <Trash2 size={15} />
                     </button>

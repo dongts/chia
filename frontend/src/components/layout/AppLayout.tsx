@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { listGroups } from "@/api/groups";
@@ -59,6 +60,7 @@ function getNotificationText(notification: Notification): string {
 }
 
 export default function AppLayout() {
+  const { t } = useTranslation("common");
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,7 +105,7 @@ export default function AppLayout() {
                 {" "}then <strong>"Add to Home Screen"</strong>
               </p>
             ) : (
-              <p className="text-sm font-medium truncate">Install Chia for a better experience</p>
+              <p className="text-sm font-medium truncate">{t("install_banner")}</p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -112,7 +114,7 @@ export default function AppLayout() {
                 onClick={async () => { await install(); }}
                 className="bg-white text-primary font-semibold text-sm px-4 py-1.5 rounded-full hover:bg-primary-container/30 transition-colors"
               >
-                Install
+                {t("install")}
               </button>
             )}
             <button onClick={dismissBanner} className="text-white/70 hover:text-white p-1">
@@ -147,7 +149,7 @@ export default function AppLayout() {
               </div>
               <div>
                 <span className="font-bold text-on-surface text-base">Chia</span>
-                <p className="text-[10px] text-outline uppercase tracking-wider leading-none">Split expenses</p>
+                <p className="text-[10px] text-outline uppercase tracking-wider leading-none">{t("split_expenses")}</p>
               </div>
             </Link>
             <button className="md:hidden text-on-surface-variant hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
@@ -168,7 +170,7 @@ export default function AppLayout() {
               )}
             >
               <LayoutGrid size={18} />
-              Dashboard
+              {t("dashboard")}
             </Link>
 
             <Link
@@ -182,14 +184,14 @@ export default function AppLayout() {
               )}
             >
               <User size={18} />
-              Profile
+              {t("profile")}
             </Link>
 
             {/* Groups list */}
             {groups.length > 0 && (
               <div className="mt-4 pt-4 border-t border-outline-variant/10">
                 <p className="text-[10px] font-semibold text-outline uppercase tracking-wider px-3 mb-2">
-                  Your Groups
+                  {t("groups")}
                 </p>
                 <ul className="space-y-0.5">
                   {groups.map((g) => (
@@ -230,7 +232,7 @@ export default function AppLayout() {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-primary bg-primary-container/15 hover:bg-primary-container/25 w-full font-medium transition-colors"
               >
                 <Download size={18} />
-                Install App
+                {t("install_app")}
               </button>
             )}
             <div className="flex items-center gap-2 px-3 py-1.5">
@@ -241,7 +243,7 @@ export default function AppLayout() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error-container/15 w-full transition-colors"
             >
               <LogOut size={18} />
-              Log Out
+              {t("log_out")}
             </button>
           </div>
         </aside>
@@ -295,7 +297,7 @@ export default function AppLayout() {
                   {notifOpen && (
                     <div className="absolute right-0 top-full mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-editorial-xl z-50 overflow-hidden">
                       <div className="px-5 py-3 flex items-center justify-between">
-                        <span className="text-sm font-bold text-on-surface">Notifications</span>
+                        <span className="text-sm font-bold text-on-surface">{t("notifications")}</span>
                         <div className="flex items-center gap-1">
                           {unreadCount > 0 && (
                             <button
@@ -303,7 +305,7 @@ export default function AppLayout() {
                               className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-lg hover:bg-primary-container/20 transition-colors flex items-center gap-1"
                             >
                               <Check size={12} />
-                              Mark all read
+                              {t("mark_all_read")}
                             </button>
                           )}
                           <button
@@ -317,7 +319,7 @@ export default function AppLayout() {
                       <div className="max-h-72 overflow-y-auto px-3 pb-3">
                         {notifications.length === 0 ? (
                           <p className="py-8 text-sm text-outline text-center">
-                            You're all caught up!
+                            {t("all_caught_up")}
                           </p>
                         ) : (
                           <div className="space-y-1">
@@ -394,7 +396,7 @@ export default function AppLayout() {
             )}
           >
             <LayoutGrid size={20} />
-            <span className="text-[10px] font-medium">Dashboard</span>
+            <span className="text-[10px] font-medium">{t("dashboard")}</span>
           </Link>
           {groups.length > 0 ? (
             <Link
@@ -407,7 +409,7 @@ export default function AppLayout() {
               )}
             >
               <Wallet size={20} />
-              <span className="text-[10px] font-medium">Groups</span>
+              <span className="text-[10px] font-medium">{t("groups")}</span>
             </Link>
           ) : (
             <Link
@@ -415,7 +417,7 @@ export default function AppLayout() {
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[60px] text-on-surface-variant"
             >
               <Wallet size={20} />
-              <span className="text-[10px] font-medium">Groups</span>
+              <span className="text-[10px] font-medium">{t("groups")}</span>
             </Link>
           )}
           <Link
@@ -428,7 +430,7 @@ export default function AppLayout() {
             )}
           >
             <User size={20} />
-            <span className="text-[10px] font-medium">Profile</span>
+            <span className="text-[10px] font-medium">{t("profile")}</span>
           </Link>
         </div>
       </nav>

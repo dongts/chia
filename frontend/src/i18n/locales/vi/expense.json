@@ -45,5 +45,8 @@
     "exact_sum": "Tổng phải bằng {{target}}. Hiện tại: {{current}}",
     "percent_sum": "Tổng phần trăm phải bằng 100%. Hiện tại: {{current}}%",
     "shares_required": "Nhập phần cho ít nhất một thành viên"
-  }
+  },
+  "search_members": "Tìm trong {{count}} thành viên...",
+  "selected_count": "{{selected}} / {{total}} được chọn",
+  "no_members_found": "Không tìm thấy thành viên"
 }

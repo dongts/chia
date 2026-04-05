@@ -1,0 +1,236 @@
+{
+  "members": "members",
+  "member": "member",
+  "created": "Created",
+  "your_balance": "Your balance",
+  "you_owe": "You owe",
+  "balance": "Balance",
+  "get_started": "Get started by inviting people",
+  "get_started_subtitle": "Share the invite link or add members to start splitting expenses together.",
+  "add_member": "Add Member",
+  "share_link": "Share Link",
+  "share_invite_link": "Share invite link",
+  "no_results": "No results",
+  "copied": "Copied!",
+  "copy_invite": "Copy Invite Link",
+  "link_copied": "Link Copied!",
+  "tabs": {
+    "expenses": "Expenses",
+    "balances": "Balances",
+    "settlements": "Transfers",
+    "funds": "Funds"
+  },
+  "filter": {
+    "all_categories": "All categories",
+    "all_members": "All members",
+    "clear": "Clear"
+  },
+  "expense_table": {
+    "expense": "Expense",
+    "paid_by": "Paid by",
+    "date": "Date",
+    "amount": "Amount",
+    "unknown_payer": "Unknown"
+  },
+  "expenses": {
+    "empty_title": "No expenses yet",
+    "empty_subtitle": "Add the first expense for this group",
+    "filtered_empty_title": "No expenses match filters",
+    "filtered_empty_subtitle": "Try adjusting your filters",
+    "showing": "Showing {{shown}} of {{total}} expenses",
+    "loading_more": "Loading more...",
+    "confirm_delete": "Delete this expense?",
+    "failed_delete": "Failed to delete expense"
+  },
+  "actions": {
+    "transfer": "Transfer",
+    "add_expense": "Add Expense"
+  },
+  "balances": {
+    "empty": "No balances yet"
+  },
+  "settlements": {
+    "empty_title": "No settlements recorded",
+    "empty_subtitle": "Settle up debts to see them here",
+    "type_transfer": "Transfer",
+    "type_settlement": "Settlement"
+  },
+  "funds": {
+    "title": "Group Funds",
+    "new_fund": "New Fund",
+    "empty_title": "No funds yet",
+    "empty_subtitle": "Create a shared fund for this group",
+    "holder": "Holder",
+    "transactions": "transactions",
+    "balance": "Balance",
+    "closed": "Closed"
+  },
+  "transfer_modal": {
+    "title_edit": "Edit Transfer",
+    "title_settle_up": "Settle Up",
+    "title_transfer": "Money Transfer",
+    "expense_hint": "Want to add an expense instead?",
+    "from": "From",
+    "to": "To",
+    "amount": "Amount",
+    "note": "Note",
+    "note_optional": "optional",
+    "note_placeholder": "e.g. Cash payment, bank transfer...",
+    "search_person": "Search person...",
+    "payment_info_for": "Payment info for {{name}}",
+    "cancel": "Cancel",
+    "save_changes": "Save Changes",
+    "settle_up": "Settle Up",
+    "record_transfer": "Record Transfer",
+    "saving": "Saving...",
+    "cannot_same_person": "Cannot transfer to the same person",
+    "failed_update": "Failed to update transfer",
+    "failed_record": "Failed to record transfer"
+  },
+  "fund_modal": {
+    "title": "New Fund",
+    "name_label": "Name",
+    "description_label": "Description",
+    "description_optional": "optional",
+    "description_placeholder": "What is this fund for?",
+    "holder_label": "Holder",
+    "holder_default": "Myself (default)",
+    "cancel": "Cancel",
+    "create": "Create Fund",
+    "failed_create": "Failed to create fund"
+  },
+  "add_member_modal": {
+    "title": "Add Member",
+    "name_label": "Display name",
+    "name_placeholder": "e.g. John",
+    "invite_hint": "Or share the invite link so they can join themselves:",
+    "cancel": "Cancel",
+    "add": "Add Member",
+    "adding": "Adding...",
+    "failed_add": "Failed to add member"
+  },
+  "settings": {
+    "title": "Group Settings",
+    "general_info": "General Info",
+    "group_name": "Group name",
+    "description": "Description",
+    "description_optional": "Optional",
+    "currency": "Currency",
+    "currency_readonly": "cannot be changed after creation",
+    "require_verified": "Require verified users",
+    "require_verified_hint": "Only email-verified users can join",
+    "allow_log_behalf": "Allow log on behalf",
+    "allow_log_behalf_hint": "Members can add expenses on behalf of others",
+    "save": "Save Settings",
+    "saving": "Saving...",
+    "saved": "Settings saved!",
+    "failed_save": "Failed to save settings",
+    "failed_load": "Failed to load group settings",
+    "invite_link": "Invite Link",
+    "copy": "Copy",
+    "copied": "Copied",
+    "currencies": {
+      "title": "Allowed Currencies",
+      "main_hint": "Main currency: {{code}}. Add other currencies with default exchange rates for expenses.",
+      "rate_label": "Rate → {{code}}",
+      "add": "Add",
+      "adding": "Adding...",
+      "failed_add": "Failed to add currency",
+      "failed_update_rate": "Failed to update exchange rate",
+      "confirm_remove": "Remove {{code}} from allowed currencies?",
+      "failed_remove": "Failed to remove currency"
+    },
+    "payment_methods": {
+      "title": "My Payment Methods",
+      "subtitle": "Choose which payment methods are visible to this group",
+      "empty": "No payment methods saved yet.",
+      "add_in_profile": "Add one in your profile",
+      "failed_update": "Failed to update payment method visibility"
+    },
+    "members": {
+      "title": "Members",
+      "new_member_placeholder": "New member name",
+      "add": "Add Member",
+      "adding": "Adding...",
+      "linked_account": "Linked account",
+      "guest_slot": "Guest slot",
+      "display_name_placeholder": "Display name",
+      "nicknames_placeholder": "Nicknames (comma-separated)",
+      "confirm_remove": "Remove {{name}} from the group?",
+      "failed_remove": "Failed to remove member",
+      "failed_rename": "Failed to rename",
+      "failed_update_role": "Failed to update role"
+    },
+    "initial_balances": {
+      "title": "Initial Balances",
+      "hint": "Set starting balances when migrating from another system. Positive = owed to them, negative = they owe. These are not counted as transactions.",
+      "failed_update": "Failed to update initial balance"
+    },
+    "activity_log": {
+      "title": "Activity Log",
+      "show_more": "Show more"
+    },
+    "danger_zone": {
+      "title": "Danger Zone",
+      "hint": "Deleting this group will permanently remove all expenses, members, and settlements.",
+      "delete": "Delete Group",
+      "deleting": "Deleting...",
+      "confirm_delete": "Permanently delete \"{{name}}\"? This cannot be undone.",
+      "failed_delete": "Failed to delete group"
+    }
+  },
+  "fund_detail": {
+    "back": "Back to group",
+    "holder": "Holder",
+    "closed": "Closed",
+    "closed_notice": "This fund is closed. No new transactions can be added.",
+    "contribute": "Contribute",
+    "withdraw": "Withdraw",
+    "contributions_by_member": "Contributions by member",
+    "transaction_history": "Transaction History",
+    "no_transactions": "No transactions yet",
+    "tx_type": {
+      "contribute": "Contribute",
+      "withdraw": "Withdraw",
+      "expense": "Expense",
+      "holder_change": "Holder Changed"
+    },
+    "by": "by",
+    "confirm_delete_tx": "Delete this transaction?",
+    "failed_delete_tx": "Failed to delete transaction",
+    "failed_create_tx": "Failed to create transaction",
+    "modal": {
+      "member_label": "Member",
+      "member_placeholder": "Select member",
+      "amount_label": "Amount",
+      "note_label": "Note",
+      "note_optional": "optional",
+      "cancel": "Cancel",
+      "add_contribution": "Add Contribution",
+      "record_withdrawal": "Record Withdrawal",
+      "saving": "Saving..."
+    }
+  },
+  "join": {
+    "invited_to": "You're invited to",
+    "members_count": "{{count}} members · {{currency}}",
+    "choose_identity": "Are you one of these people?",
+    "join_as_new": "I'm not on the list — join as someone new",
+    "join_first": "Join this group",
+    "your_name_label": "Your name",
+    "your_name_placeholder": "Enter your name",
+    "joining_as": "Joining as",
+    "change_name": "Change name",
+    "join_button_guest": "Join (as guest)",
+    "join_button": "Join group",
+    "sign_in_hint": "Or sign in for a permanent account:",
+    "log_in": "Log In",
+    "sign_up": "Sign Up",
+    "joining": "Joining the group...",
+    "success_title": "You're in!",
+    "success_subtitle": "Redirecting to the group...",
+    "success_go_now": "Go now",
+    "error_title": "Couldn't join",
+    "error_go_dashboard": "Go to Dashboard"
+  }
+}

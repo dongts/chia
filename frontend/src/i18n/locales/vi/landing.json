@@ -1,0 +1,24 @@
+{
+  "tagline": "Chia Chi Phí",
+  "hero_title_1": "Chia sẻ chi phí,",
+  "hero_title_highlight": "thật dễ dàng",
+  "hero_subtitle": "Theo dõi chi phí chung với bạn bè, bạn cùng phòng và đồng hành — không cần đăng ký.",
+  "sign_up": "Đăng ký",
+  "try_as_guest": "Dùng thử với vai trò Khách",
+  "log_in": "Đăng nhập",
+  "error_guest": "Không thể tiếp tục với vai trò khách",
+  "eco_splitting": {
+    "title": "Chia chi phí thân thiện",
+    "subtitle": "Chia sẻ chi phí với bạn bè, bạn cùng phòng và đồng hành — không cần đăng ký."
+  },
+  "features": {
+    "vietqr_title": "VietQR",
+    "vietqr_subtitle": "Thanh toán qua QR với ngân hàng Việt Nam",
+    "smart_settle_title": "Thanh toán thông minh",
+    "smart_settle_subtitle": "Giảm thiểu số lần chuyển khoản nhờ tối ưu hóa công nợ",
+    "group_reports_title": "Báo cáo nhóm",
+    "group_reports_subtitle": "Xem ai chi gì, theo từng danh mục",
+    "multi_currency_title": "Đa tiền tệ",
+    "multi_currency_subtitle": "Ghi chi phí bằng bất kỳ tiền tệ nào với quy đổi tự động"
+  }
+}

@@ -34,5 +34,41 @@
     "exact": "Chính xác",
     "percentage": "Phần trăm",
     "shares": "Theo phần"
+  },
+  "dashboard": "Trang chính",
+  "groups": "Nhóm",
+  "reports": "Báo cáo",
+  "profile": "Cá nhân",
+  "install_app": "Cài ứng dụng",
+  "log_out": "Đăng xuất",
+  "notifications": "Thông báo",
+  "mark_all_read": "Đánh dấu tất cả đã đọc",
+  "all_caught_up": "Bạn đã đọc hết thông báo!",
+  "install_banner": "Cài Chia để có trải nghiệm tốt hơn",
+  "install_ios": "Cài Chia: nhấn {{share}} rồi \"Thêm vào màn hình chính\"",
+  "install": "Cài đặt",
+  "split_expenses": "Chia chi phí",
+  "update_available": "Có bản cập nhật mới",
+  "update_available_detail": "Phiên bản mới của Chia đã sẵn sàng.",
+  "update": "Cập nhật",
+  "not_found": {
+    "title": "Không tìm thấy trang",
+    "subtitle": "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
+    "go_home": "Về trang chủ"
+  },
+  "notification": {
+    "expense_added": "Chi phí mới: {{description}}",
+    "expense_updated": "Chi phí đã cập nhật: {{description}}",
+    "expense_deleted": "Chi phí đã xóa: {{description}}",
+    "settlement_recorded": "Đã ghi thanh toán: {{amount}}",
+    "settlement_confirmed": "Đã xác nhận thanh toán: {{amount}}",
+    "role_changed": "Vai trò đã đổi thành {{role}} bởi {{member}}",
+    "member_joined": "{{member}} đã tham gia {{group}}",
+    "member_removed": "{{member}} đã bị xóa khỏi {{group}}",
+    "group_updated": "Nhóm \"{{group}}\" đã được cập nhật"
+  },
+  "relative_time": {
+    "just_now": "Vừa xong",
+    "yesterday": "Hôm qua"
   }
 }
