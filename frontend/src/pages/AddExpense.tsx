@@ -284,7 +284,15 @@ export default function AddExpense() {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl font-bold text-on-surface">Add Expense</h1>
+        <div>
+          <h1 className="text-xl font-bold text-on-surface">Add Expense</h1>
+          <button
+            onClick={() => navigate(`/groups/${groupId}`, { state: { openTransfer: true } })}
+            className="text-xs text-outline hover:text-primary transition-colors"
+          >
+            Just transferring money? Record a transfer instead
+          </button>
+        </div>
       </div>
 
       {!nlHidden && (

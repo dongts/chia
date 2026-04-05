@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
   ArrowLeftRight, Landmark, UserPlus, ImageIcon,
@@ -126,6 +126,7 @@ function MemberSearchSelect({
 export default function GroupView() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -248,6 +249,15 @@ export default function GroupView() {
       window.alert("Failed to delete expense");
     }
   }
+
+  // Open transfer modal if navigated with state
+  useEffect(() => {
+    if ((location.state as { openTransfer?: boolean })?.openTransfer) {
+      openTransferModal("transfer");
+      // Clear state so it doesn't re-open on refresh
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
 
   function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
     setTransferType(type);
@@ -873,9 +883,19 @@ export default function GroupView() {
                 <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center">
                   <ArrowLeftRight size={18} className="text-primary" />
                 </div>
-                <h3 className="text-lg font-bold text-on-surface">
-                  {editingSettlementId ? "Edit Transfer" : transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
-                </h3>
+                <div>
+                  <h3 className="text-lg font-bold text-on-surface">
+                    {editingSettlementId ? "Edit Transfer" : transferType === "settle_up" ? "Settle Up" : "Money Transfer"}
+                  </h3>
+                  {!editingSettlementId && (
+                    <Link
+                      to={`/groups/${groupId}/add-expense`}
+                      className="text-xs text-outline hover:text-primary transition-colors"
+                    >
+                      Want to add an expense instead?
+                    </Link>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setShowTransfer(false)}
