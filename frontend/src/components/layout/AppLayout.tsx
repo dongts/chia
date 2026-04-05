@@ -235,9 +235,6 @@ export default function AppLayout() {
                 {t("install_app")}
               </button>
             )}
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <LanguageSwitcher compact />
-            </div>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error-container/15 w-full transition-colors"
@@ -361,6 +358,9 @@ export default function AppLayout() {
                     </div>
                   )}
                 </div>
+
+                {/* Language */}
+                <LanguageSwitcher compact />
 
                 {/* Profile avatar */}
                 <Link
