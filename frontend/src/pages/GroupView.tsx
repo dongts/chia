@@ -447,24 +447,7 @@ export default function GroupView() {
       {tab === "expenses" && (
         <div className="space-y-4">
           {/* Action row */}
-          <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => openTransferModal("transfer")}
-                className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
-              >
-                <ArrowLeftRight size={16} />
-                Transfer
-              </button>
-              <Link
-                to={`/groups/${groupId}/add-expense`}
-                className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
-              >
-                <Plus size={16} />
-                Add Expense
-              </Link>
-          </div>
-
-          {/* Filter row */}
+          {/* Filters + Actions row */}
           <div className="flex items-center gap-2 flex-wrap">
             <Filter size={14} className="text-outline flex-shrink-0" />
             <select
@@ -495,6 +478,22 @@ export default function GroupView() {
                 Clear
               </button>
             )}
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => openTransferModal("transfer")}
+                className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
+              >
+                <ArrowLeftRight size={16} />
+                Transfer
+              </button>
+              <Link
+                to={`/groups/${groupId}/add-expense`}
+                className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
+              >
+                <Plus size={16} />
+                Add Expense
+              </Link>
+            </div>
           </div>
 
           {/* Expense list */}
