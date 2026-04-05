@@ -47,7 +47,7 @@ app.include_router(api_router)
 # Serve uploaded files locally when R2 is not configured
 if not settings.r2_bucket_name:
     os.makedirs(settings.upload_dir, exist_ok=True)
-    app.mount("/api/v1/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
+    app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/health")

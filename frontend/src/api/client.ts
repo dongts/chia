@@ -98,4 +98,17 @@ client.interceptors.response.use(
   }
 );
 
+/**
+ * Resolve a backend-relative URL (e.g. /uploads/xxx.jpg) to a full URL
+ * that works in both dev (proxy) and prod (separate API domain).
+ */
+export function resolveBackendUrl(path: string): string {
+  if (!path) return path;
+  // Already a full URL (e.g. R2 public URL)
+  if (path.startsWith("http")) return path;
+  // Strip /api/v1 suffix to get the API origin
+  const base = API_BASE.replace(/\/api\/v1\/?$/, "");
+  return base ? `${base}${path}` : path;
+}
+
 export default client;

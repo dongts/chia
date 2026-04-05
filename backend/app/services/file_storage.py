@@ -82,4 +82,4 @@ async def save_upload(file: UploadFile) -> str:
     os.makedirs(settings.upload_dir, exist_ok=True)
     with open(path, "wb") as f:
         f.write(content)
-    return f"/api/v1/uploads/{filename}"
+    return f"/uploads/{filename}"

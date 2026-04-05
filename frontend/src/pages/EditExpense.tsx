@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ImagePlus, Trash2, Loader2, X, Lock, Unlock } from "lucide-react";
 import { getExpense, updateExpense, uploadReceipt, deleteReceipt } from "@/api/expenses";
+import { resolveBackendUrl } from "@/api/client";
 import { getGroup } from "@/api/groups";
 import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
@@ -444,7 +445,7 @@ export default function EditExpense() {
             <div className="space-y-3">
               <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
                 <img
-                  src={receiptUrl}
+                  src={resolveBackendUrl(receiptUrl)}
                   alt="Receipt"
                   className="w-full max-h-64 object-contain bg-surface-container"
                 />
