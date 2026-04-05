@@ -17,7 +17,7 @@
   "tabs": {
     "expenses": "Chi phí",
     "balances": "Số dư",
-    "settlements": "Chuyển khoản",
+    "settlements": "Chuyển tiền",
     "funds": "Quỹ"
   },
   "filter": {
@@ -52,7 +52,7 @@
   "settlements": {
     "empty_title": "Chưa có giao dịch nào",
     "empty_subtitle": "Thanh toán công nợ để xem ở đây",
-    "type_transfer": "Chuyển khoản",
+    "type_transfer": "Chuyển tiền",
     "type_settlement": "Thanh toán"
   },
   "funds": {
@@ -69,23 +69,23 @@
     "title_edit": "Sửa giao dịch",
     "title_settle_up": "Thanh toán",
     "title_transfer": "Chuyển tiền",
-    "expense_hint": "Muốn thêm chi phí thay vì chuyển khoản?",
+    "expense_hint": "Muốn thêm chi phí thay vì chuyển tiền?",
     "from": "Từ",
     "to": "Đến",
     "amount": "Số tiền",
     "note": "Ghi chú",
     "note_optional": "tùy chọn",
-    "note_placeholder": "VD: Tiền mặt, chuyển khoản...",
+    "note_placeholder": "VD: Tiền mặt, chuyển tiền...",
     "search_person": "Tìm người...",
     "payment_info_for": "Thông tin thanh toán của {{name}}",
     "cancel": "Hủy",
     "save_changes": "Lưu thay đổi",
     "settle_up": "Thanh toán",
-    "record_transfer": "Ghi nhận chuyển khoản",
+    "record_transfer": "Ghi nhận chuyển tiền",
     "saving": "Đang lưu...",
     "cannot_same_person": "Không thể chuyển cho chính mình",
     "failed_update": "Không thể cập nhật giao dịch",
-    "failed_record": "Không thể ghi nhận chuyển khoản"
+    "failed_record": "Không thể ghi nhận chuyển tiền"
   },
   "fund_modal": {
     "title": "Tạo quỹ mới",

@@ -401,22 +401,22 @@ export default function EditExpense() {
             )}
           </div>
           <div className="flex gap-1 bg-surface-container rounded-xl p-1">
-            {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
+            {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((st) => (
               <button
-                key={t}
+                key={st}
                 type="button"
-                onClick={() => !splitTypeLocked && setSplitType(t)}
-                disabled={splitTypeLocked && splitType !== t}
+                onClick={() => !splitTypeLocked && setSplitType(st)}
+                disabled={splitTypeLocked && splitType !== st}
                 className={cn(
-                  "flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-colors",
-                  splitType === t
+                  "flex-1 py-2 rounded-lg text-xs font-semibold transition-colors",
+                  splitType === st
                     ? "bg-surface-container-lowest text-on-surface shadow-editorial"
                     : splitTypeLocked
                       ? "text-outline/40 cursor-not-allowed"
                       : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
-                {t}
+                {t(`split_types.${st}`, { ns: "common" })}
               </button>
             ))}
           </div>

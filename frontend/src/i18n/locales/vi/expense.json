@@ -1,8 +1,8 @@
 {
   "add_title": "Thêm chi phí",
   "edit_title": "Sửa chi phí",
-  "transfer_hint": "Chỉ chuyển tiền? Ghi nhận chuyển khoản thay vì chi phí",
-  "expense_hint": "Muốn thêm chi phí thay vì chuyển khoản?",
+  "transfer_hint": "Chỉ chuyển tiền? Ghi nhận chuyển tiền thay vì chi phí",
+  "expense_hint": "Muốn thêm chi phí thay vì chuyển tiền?",
   "description": "Mô tả",
   "description_placeholder": "VD: Ăn tối, Taxi, Đi chợ...",
   "amount": "Số tiền",

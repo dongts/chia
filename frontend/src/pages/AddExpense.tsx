@@ -608,19 +608,19 @@ export default function AddExpense() {
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("split_type")}</h2>
           <div className="flex gap-1 bg-surface-container rounded-xl p-1">
-            {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((t) => (
+            {(["equal", "exact", "percentage", "shares"] as SplitType[]).map((st) => (
               <button
-                key={t}
+                key={st}
                 type="button"
-                onClick={() => setSplitType(t)}
+                onClick={() => setSplitType(st)}
                 className={cn(
-                  "flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-colors",
-                  splitType === t
+                  "flex-1 py-2 rounded-lg text-xs font-semibold transition-colors",
+                  splitType === st
                     ? "bg-surface-container-lowest text-on-surface shadow-editorial"
                     : "text-on-surface-variant hover:text-on-surface"
                 )}
               >
-                {t}
+                {t(`split_types.${st}`, { ns: "common" })}
               </button>
             ))}
           </div>
