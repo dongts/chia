@@ -14,13 +14,7 @@
 
 # Frontend (optional — only used if frontend container is running)
 {$APP_DOMAIN:} {
-	handle /uploads/* {
-		reverse_proxy backend:8000
-	}
-
-	handle {
-		root * /srv/frontend
-		file_server
-		try_files {path} /index.html
-	}
+	root * /srv/frontend
+	file_server
+	try_files {path} /index.html
 }
