@@ -541,7 +541,7 @@ export default function GroupView() {
                               {expense.receipt_url && (
                                 <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
-                              {expense.splits[0]?.split_type && expense.splits[0].split_type !== "equal" && (
+                              {expense.splits[0]?.split_type && (
                                 <span className="text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium capitalize">
                                   {expense.splits[0].split_type}
                                 </span>
