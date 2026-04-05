@@ -5,6 +5,7 @@ import {
   LayoutGrid, Wallet, Check,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { listGroups } from "@/api/groups";
@@ -232,6 +233,9 @@ export default function AppLayout() {
                 Install App
               </button>
             )}
+            <div className="flex items-center gap-2 px-3 py-1.5">
+              <LanguageSwitcher compact />
+            </div>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-error hover:bg-error-container/15 w-full transition-colors"

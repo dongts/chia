@@ -1,0 +1,38 @@
+{
+  "app_name": "Chia",
+  "loading": "Loading...",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "add": "Add",
+  "close": "Close",
+  "clear": "Clear",
+  "search": "Search",
+  "confirm": "Confirm",
+  "back": "Back",
+  "next": "Next",
+  "done": "Done",
+  "or": "or",
+  "optional": "optional",
+  "all": "All",
+  "none": "None",
+  "yes": "Yes",
+  "no": "No",
+  "error": "Error",
+  "success": "Success",
+  "failed_to_load": "Failed to load data",
+  "no_results": "No results",
+  "copied": "Copied!",
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "split_types": {
+    "equal": "Equal",
+    "exact": "Exact",
+    "percentage": "Percentage",
+    "shares": "Shares"
+  }
+}

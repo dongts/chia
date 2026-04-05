@@ -1,0 +1,38 @@
+{
+  "app_name": "Chia",
+  "loading": "Đang tải...",
+  "save": "Lưu",
+  "cancel": "Hủy",
+  "delete": "Xóa",
+  "edit": "Sửa",
+  "add": "Thêm",
+  "close": "Đóng",
+  "clear": "Xóa bộ lọc",
+  "search": "Tìm kiếm",
+  "confirm": "Xác nhận",
+  "back": "Quay lại",
+  "next": "Tiếp",
+  "done": "Xong",
+  "or": "hoặc",
+  "optional": "tùy chọn",
+  "all": "Tất cả",
+  "none": "Không chọn",
+  "yes": "Có",
+  "no": "Không",
+  "error": "Lỗi",
+  "success": "Thành công",
+  "failed_to_load": "Không tải được dữ liệu",
+  "no_results": "Không có kết quả",
+  "copied": "Đã sao chép!",
+  "roles": {
+    "owner": "Chủ nhóm",
+    "admin": "Quản trị",
+    "member": "Thành viên"
+  },
+  "split_types": {
+    "equal": "Chia đều",
+    "exact": "Chính xác",
+    "percentage": "Phần trăm",
+    "shares": "Theo phần"
+  }
+}

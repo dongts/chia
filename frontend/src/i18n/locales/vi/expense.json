@@ -1,0 +1,49 @@
+{
+  "add_title": "Thêm chi phí",
+  "edit_title": "Sửa chi phí",
+  "transfer_hint": "Chỉ chuyển tiền? Ghi nhận chuyển khoản thay vì chi phí",
+  "expense_hint": "Muốn thêm chi phí thay vì chuyển khoản?",
+  "description": "Mô tả",
+  "description_placeholder": "VD: Ăn tối, Taxi, Đi chợ...",
+  "amount": "Số tiền",
+  "paid_by": "Người trả",
+  "date": "Ngày",
+  "select_person": "Chọn người...",
+  "split_type": "Cách chia",
+  "split_change": "Đổi",
+  "split_cancel": "Hủy",
+  "fund_deductions": "Trả từ quỹ",
+  "add_fund": "+ Thêm quỹ",
+  "no_fund_deductions": "Không trừ quỹ — toàn bộ số tiền sẽ chia cho các thành viên.",
+  "select_fund": "Chọn quỹ...",
+  "amount_from_fund": "Số tiền từ quỹ",
+  "total_from_funds": "Tổng từ quỹ",
+  "amount_to_split": "Số tiền chia",
+  "exceeds_fund_balance": "Vượt quá số dư quỹ ({{balance}})",
+  "exceeds_expense": "Tổng trừ quỹ vượt quá số tiền chi phí!",
+  "adding": "Đang thêm...",
+  "add_expense": "Thêm chi phí",
+  "saving": "Đang lưu...",
+  "save_changes": "Lưu thay đổi",
+  "ai_input": {
+    "collapsed": "Mô tả chi phí bằng AI...",
+    "label": "Nhập bằng AI",
+    "placeholder": "VD: \"ăn tối 450k tôi trả chia với Trang và Lan\"",
+    "parse": "Phân tích",
+    "parsing": "Đang phân tích...",
+    "error_parse": "Không hiểu được. Vui lòng điền form thủ công.",
+    "error_not_configured": "Chức năng AI chưa được cấu hình."
+  },
+  "receipt": {
+    "upload": "Thêm hóa đơn",
+    "delete": "Xóa hóa đơn",
+    "uploading": "Đang tải lên...",
+    "deleting": "Đang xóa..."
+  },
+  "validation": {
+    "select_member": "Chọn ít nhất một thành viên để chia đều",
+    "exact_sum": "Tổng phải bằng {{target}}. Hiện tại: {{current}}",
+    "percent_sum": "Tổng phần trăm phải bằng 100%. Hiện tại: {{current}}%",
+    "shares_required": "Nhập phần cho ít nhất một thành viên"
+  }
+}

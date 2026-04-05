@@ -1,0 +1,49 @@
+{
+  "add_title": "Add Expense",
+  "edit_title": "Edit Expense",
+  "transfer_hint": "Just transferring money? Record a transfer instead",
+  "expense_hint": "Want to add an expense instead?",
+  "description": "Description",
+  "description_placeholder": "e.g. Dinner, Taxi, Groceries...",
+  "amount": "Amount",
+  "paid_by": "Paid by",
+  "date": "Date",
+  "select_person": "Select person...",
+  "split_type": "Split type",
+  "split_change": "Change",
+  "split_cancel": "Cancel",
+  "fund_deductions": "Pay from funds",
+  "add_fund": "+ Add fund",
+  "no_fund_deductions": "No fund deductions — full amount will be split among members.",
+  "select_fund": "Select fund...",
+  "amount_from_fund": "Amount from fund",
+  "total_from_funds": "Total from funds",
+  "amount_to_split": "Amount to split",
+  "exceeds_fund_balance": "Exceeds fund balance ({{balance}})",
+  "exceeds_expense": "Total fund deductions exceed expense amount!",
+  "adding": "Adding...",
+  "add_expense": "Add Expense",
+  "saving": "Saving...",
+  "save_changes": "Save Changes",
+  "ai_input": {
+    "collapsed": "Describe expense with AI...",
+    "label": "AI-Powered Input",
+    "placeholder": "e.g. \"dinner 45.50 Alice paid split with Bob\"",
+    "parse": "Parse",
+    "parsing": "Parsing...",
+    "error_parse": "Couldn't understand that. Please fill the form manually.",
+    "error_not_configured": "AI parsing is not configured."
+  },
+  "receipt": {
+    "upload": "Add receipt",
+    "delete": "Delete receipt",
+    "uploading": "Uploading...",
+    "deleting": "Deleting..."
+  },
+  "validation": {
+    "select_member": "Select at least one member for equal split",
+    "exact_sum": "Exact amounts must sum to {{target}}. Currently: {{current}}",
+    "percent_sum": "Percentages must add up to 100%. Currently: {{current}}%",
+    "shares_required": "Enter shares for at least one member"
+  }
+}
