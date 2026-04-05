@@ -166,6 +166,7 @@ export default function GroupView() {
   // Filters
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPaidBy, setFilterPaidBy] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Infinite scroll
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -448,50 +449,108 @@ export default function GroupView() {
         <div className="space-y-4">
           {/* Action row */}
           {/* Filters + Actions row */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter size={14} className="text-outline flex-shrink-0" />
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
-            </select>
-            <select
-              value={filterPaidBy}
-              onChange={(e) => setFilterPaidBy(e.target.value)}
-              className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
-            >
-              <option value="">All members</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>{m.display_name}</option>
-              ))}
-            </select>
-            {(filterCategory || filterPaidBy) && (
+          <div className="flex items-center gap-2">
+            {/* Mobile: filter toggle button */}
+            <div className="relative md:hidden">
               <button
-                onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
-                className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-full hover:bg-primary-container/20 transition-colors"
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={cn(
+                  "flex items-center justify-center w-9 h-9 rounded-full transition-colors",
+                  (filterCategory || filterPaidBy)
+                    ? "bg-primary-container/20 text-primary"
+                    : "bg-surface-container text-outline hover:text-on-surface-variant"
+                )}
               >
-                Clear
+                <Filter size={15} />
+                {(filterCategory || filterPaidBy) && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full" />
+                )}
               </button>
-            )}
+              {filterOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
+                  <div className="absolute top-full left-0 mt-2 z-40 bg-surface-container-lowest rounded-xl shadow-editorial-xl p-3 space-y-2 min-w-56">
+                    <select
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">All categories</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={filterPaidBy}
+                      onChange={(e) => setFilterPaidBy(e.target.value)}
+                      className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">All members</option>
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>{m.display_name}</option>
+                      ))}
+                    </select>
+                    {(filterCategory || filterPaidBy) && (
+                      <button
+                        onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
+                        className="w-full text-xs text-primary font-medium py-1.5 rounded-lg hover:bg-primary-container/20 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Desktop: inline filters */}
+            <div className="hidden md:flex items-center gap-2">
+              <Filter size={14} className="text-outline flex-shrink-0" />
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                ))}
+              </select>
+              <select
+                value={filterPaidBy}
+                onChange={(e) => setFilterPaidBy(e.target.value)}
+                className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">All members</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.display_name}</option>
+                ))}
+              </select>
+              {(filterCategory || filterPaidBy) && (
+                <button
+                  onClick={() => { setFilterCategory(""); setFilterPaidBy(""); }}
+                  className="text-xs text-primary hover:text-primary-dim font-medium px-2 py-1 rounded-full hover:bg-primary-container/20 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Actions — always visible, pushed right */}
             <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={() => openTransferModal("transfer")}
                 className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
               >
                 <ArrowLeftRight size={16} />
-                Transfer
+                <span className="hidden sm:inline">Transfer</span>
               </button>
               <Link
                 to={`/groups/${groupId}/add-expense`}
                 className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
               >
                 <Plus size={16} />
-                Add Expense
+                <span className="hidden sm:inline">Add Expense</span>
               </Link>
             </div>
           </div>
