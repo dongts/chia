@@ -259,7 +259,7 @@ export default function FundDetailPage() {
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
                   {t("fund_detail.modal.amount_label")} ({currency}) *
                 </label>
-                <MoneyInput value={txAmount} onChange={setTxAmount} />
+                <MoneyInput value={txAmount} onChange={setTxAmount} currencyCode={currency} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1.5">

@@ -448,7 +448,7 @@ export default function AddExpense() {
                 )}
               </div>
               <div className="flex-1">
-                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
+                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" currencyCode={currencyCode} />
               </div>
             </div>
           </div>

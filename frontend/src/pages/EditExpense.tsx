@@ -264,7 +264,7 @@ export default function EditExpense() {
                 </div>
               </div>
               <div className="flex-1">
-                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" />
+                <MoneyInput value={amount} onChange={setAmount} required placeholder="0" currencyCode={expense?.currency_code ?? undefined} />
               </div>
             </div>
           </div>

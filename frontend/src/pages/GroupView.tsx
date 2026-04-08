@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
   ArrowLeftRight, Landmark, UserPlus, ImageIcon,
-  ArrowRight, X, Search, Filter, ChevronDown,
+  ArrowRight, X, Search, Filter, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
 import { getBalances, createSettlement, updateSettlement, listSettlements, getSuggestedSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
 import { listMembers, addMember } from "@/api/members";
-import { listGroupPaymentMethods } from "@/api/paymentMethods";
+import { listGroupPaymentMethods, listMyPaymentMethods, enablePaymentMethodInGroup } from "@/api/paymentMethods";
 import { listFunds, createFund } from "@/api/funds";
 import type { Group, GroupMember, Expense, Balance, Settlement, SuggestedSettlement, Category, GroupPaymentMethod, Fund } from "@/types";
 import MoneyInput from "@/components/MoneyInput";
@@ -138,7 +138,8 @@ export default function GroupView() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [groupPMs, setGroupPMs] = useState<GroupPaymentMethod[]>([]);
-  const [, setSuggestedSettlements] = useState<SuggestedSettlement[]>([]);
+  const [suggestedSettlements, setSuggestedSettlements] = useState<SuggestedSettlement[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [funds, setFunds] = useState<Fund[]>([]);
   const [showCreateFund, setShowCreateFund] = useState(false);
   const [newFundName, setNewFundName] = useState("");
@@ -226,6 +227,18 @@ export default function GroupView() {
       setGroupPMs(pms);
       setFunds(fds);
       setSuggestedSettlements(suggested);
+
+      // Auto-enable first payment method if user has none in this group
+      const myMember = mem.find((m) => m.user_id === currentUser?.id);
+      if (myMember && pms.filter((pm) => pm.member_id === myMember.id).length === 0) {
+        try {
+          const profilePMs = await listMyPaymentMethods();
+          if (profilePMs.length > 0) {
+            const enabled = await enablePaymentMethodInGroup(groupId, profilePMs[0].id);
+            setGroupPMs((prev) => [...prev, enabled]);
+          }
+        } catch { /* silently ignore */ }
+      }
     } catch {
       window.alert(t("failed_to_load", { ns: "common" }));
     } finally {
@@ -264,7 +277,7 @@ export default function GroupView() {
 
   function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
     setTransferType(type);
-    setTransferFrom(from ?? "");
+    setTransferFrom(from ?? myMemberId ?? "");
     setTransferTo(to ?? "");
     setTransferAmount(amount ? String(amount) : "");
     setTransferNote(note ?? "");
@@ -326,6 +339,11 @@ export default function GroupView() {
 
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
+
+  // Suggested settlements involving the current user
+  const mySuggestions = myMemberId
+    ? suggestedSettlements.filter((s) => s.from_member === myMemberId || s.to_member === myMemberId)
+    : [];
 
 
   if (loading) {
@@ -402,15 +420,58 @@ export default function GroupView() {
 
       {/* ── Balance Summary Card ── */}
       <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-4">
-        <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
-          {myBalance < 0 ? t("you_owe") : t("your_balance")}
-        </p>
-        <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
-          {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-medium text-on-surface-variant uppercase tracking-wide mb-1">
+              {myBalance < 0 ? t("you_owe") : t("your_balance")}
+            </p>
+            <p className={cn("text-lg font-bold", myBalance > 0 ? "text-primary" : myBalance < 0 ? "text-error" : "text-outline")}>
+              {myBalance > 0 ? "+" : ""}{formatCurrency(Math.abs(myBalance), group.currency_code)}
+            </p>
+          </div>
+          {mySuggestions.length > 0 && (
+            <button
+              onClick={() => setShowSuggestions(!showSuggestions)}
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-dim transition-colors"
+            >
+              {t("suggested_settlements.title")}
+              <ChevronRight size={14} className={cn("transition-transform", showSuggestions && "rotate-90")} />
+            </button>
+          )}
+        </div>
+        {showSuggestions && mySuggestions.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-outline-variant/10 space-y-2">
+            {mySuggestions.map((s, i) => {
+              const youPay = s.from_member === myMemberId;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-2 bg-surface-container/50 rounded-xl px-3 py-2"
+                >
+                  <div className="flex items-center gap-1.5 text-xs min-w-0">
+                    <span className={cn("font-semibold truncate", youPay ? "text-error" : "text-primary")}>
+                      {youPay ? t("suggested_settlements.you") : s.from_member_name}
+                    </span>
+                    <ArrowRight size={10} className="text-outline flex-shrink-0" />
+                    <span className={cn("font-semibold truncate", !youPay ? "text-error" : "text-primary")}>
+                      {!youPay ? t("suggested_settlements.you") : s.to_member_name}
+                    </span>
+                    <span className="font-bold text-on-surface ml-1 flex-shrink-0">
+                      {formatCurrency(s.amount, group.currency_code)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, s.amount)}
+                    className="flex-shrink-0 text-[11px] font-medium bg-primary hover:bg-primary-dim text-on-primary px-3 py-1 rounded-full transition-colors"
+                  >
+                    {t("suggested_settlements.settle")}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* Settlement suggestions removed — available in Balances tab */}
 
       {/* ── Onboarding CTA (empty group) ── */}
       {members.length <= 1 && expenses.length === 0 && (
@@ -745,6 +806,16 @@ export default function GroupView() {
          ══════════════════════════════════════════════════════════ */}
       {tab === "settlements" && (
         <div className="space-y-3">
+          {/* Action row */}
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => openTransferModal("transfer")}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
+            >
+              <ArrowLeftRight size={16} />
+              <span>{t("actions.transfer")}</span>
+            </button>
+          </div>
           {settlements.length === 0 ? (
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-16 text-center">
               <div className="text-5xl mb-4">✅</div>
@@ -939,6 +1010,7 @@ export default function GroupView() {
                 <MoneyInput
                   value={transferAmount}
                   onChange={setTransferAmount}
+                  currencyCode={group.currency_code}
                 />
               </div>
 

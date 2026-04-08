@@ -46,6 +46,11 @@
     "transfer": "Transfer",
     "add_expense": "Add Expense"
   },
+  "suggested_settlements": {
+    "title": "Settle up",
+    "you": "You",
+    "settle": "Settle"
+  },
   "balances": {
     "empty": "No balances yet"
   },

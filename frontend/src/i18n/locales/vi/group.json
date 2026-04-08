@@ -46,6 +46,11 @@
     "transfer": "Chuyển tiền",
     "add_expense": "Thêm chi phí"
   },
+  "suggested_settlements": {
+    "title": "Thanh toán",
+    "you": "Bạn",
+    "settle": "Trả"
+  },
   "balances": {
     "empty": "Chưa có số dư nào"
   },
