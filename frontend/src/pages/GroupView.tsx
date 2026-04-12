@@ -643,14 +643,14 @@ export default function GroupView() {
           ) : (
             /* ── Expense table ── */
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-              <table className="w-full text-sm table-fixed sm:table-auto">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-outline-variant/10 text-left text-[11px] text-on-surface-variant uppercase tracking-wider">
-                    <th className="px-3 sm:px-4 py-3 font-medium">{t("expense_table.expense")}</th>
+                    <th className="px-3 sm:px-4 py-3 font-medium w-full">{t("expense_table.expense")}</th>
                     <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.paid_by")}</th>
                     <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.date")}</th>
-                    <th className="px-2 sm:px-4 py-3 font-medium text-right w-[38%] sm:w-auto">{t("expense_table.amount")}</th>
-                    <th className="px-1 sm:px-4 py-3 w-14 sm:w-20"></th>
+                    <th className="px-2 sm:px-4 py-3 font-medium text-right">{t("expense_table.amount")}</th>
+                    <th className="px-1 sm:px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -666,7 +666,7 @@ export default function GroupView() {
                           key={expense.id}
                           className="border-b border-outline-variant/5 last:border-0 hover:bg-surface-container/40 transition-colors"
                         >
-                          <td className="px-3 sm:px-4 py-3 min-w-0">
+                          <td className="px-3 sm:px-4 py-3 max-w-0 w-full">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
                               <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors min-w-0">{expense.description}</Link>
