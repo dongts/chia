@@ -643,14 +643,14 @@ export default function GroupView() {
           ) : (
             /* ── Expense table ── */
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed sm:table-auto">
                 <thead>
                   <tr className="border-b border-outline-variant/10 text-left text-[11px] text-on-surface-variant uppercase tracking-wider">
-                    <th className="px-4 py-3 font-medium">{t("expense_table.expense")}</th>
+                    <th className="px-3 sm:px-4 py-3 font-medium">{t("expense_table.expense")}</th>
                     <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.paid_by")}</th>
                     <th className="px-4 py-3 font-medium hidden sm:table-cell">{t("expense_table.date")}</th>
-                    <th className="px-4 py-3 font-medium text-right">{t("expense_table.amount")}</th>
-                    <th className="px-4 py-3 w-20"></th>
+                    <th className="px-2 sm:px-4 py-3 font-medium text-right w-[38%] sm:w-auto">{t("expense_table.amount")}</th>
+                    <th className="px-1 sm:px-4 py-3 w-14 sm:w-20"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -666,31 +666,31 @@ export default function GroupView() {
                           key={expense.id}
                           className="border-b border-outline-variant/5 last:border-0 hover:bg-surface-container/40 transition-colors"
                         >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2.5">
+                          <td className="px-3 sm:px-4 py-3 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
-                              <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors">{expense.description}</Link>
+                              <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors min-w-0">{expense.description}</Link>
                               {expense.receipt_url && (
                                 <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
                               {expense.splits[0]?.split_type && (
-                                <span className="text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium capitalize">
+                                <span className="hidden sm:inline text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium capitalize flex-shrink-0">
                                   {expense.splits[0].split_type}
                                 </span>
                               )}
                               {expense.fund_deductions?.length > 0 && expense.fund_deductions.map((d) => (
-                                <span key={d.id} className="ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                                <span key={d.id} className="hidden sm:inline ml-1.5 text-[10px] bg-primary-container/30 text-primary px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
                                   {d.fund_name}
                                 </span>
                               ))}
                             </div>
-                            <p className="text-xs text-outline sm:hidden mt-0.5">
+                            <p className="text-xs text-outline sm:hidden mt-0.5 truncate">
                               {expense.payer_name ?? t("expense_table.unknown_payer")} · {new Date(expense.date).toLocaleDateString()}
                             </p>
                           </td>
                           <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? t("expense_table.unknown_payer")}</td>
                           <td className="px-4 py-3 text-outline hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
+                          <td className="px-2 sm:px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
                             {expense.currency_code !== group.currency_code ? (
                               <div>
                                 <span>{formatCurrency(Number(expense.amount), expense.currency_code)}</span>
@@ -702,7 +702,7 @@ export default function GroupView() {
                               formatCurrency(Number(expense.amount), group.currency_code)
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-1 sm:px-4 py-3">
                             <div className="flex gap-0.5 justify-end">
                               <Link
                                 to={`/groups/${groupId}/expenses/${expense.id}/edit`}
