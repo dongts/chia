@@ -84,3 +84,15 @@ class ExpenseUpdate(BaseModel):
     fund_deductions: Optional[list[FundDeductionInput]] = None
     split_type: Optional[SplitType] = None
     splits: Optional[list[SplitInput]] = None
+
+
+class ExpenseLogRead(BaseModel):
+    id: uuid.UUID
+    expense_id: uuid.UUID
+    actor_member_id: Optional[uuid.UUID] = None
+    actor_name: Optional[str] = None
+    action: str
+    changes: Optional[dict] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

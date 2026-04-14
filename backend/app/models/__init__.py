@@ -10,6 +10,7 @@ from app.models.group_member_log import GroupMemberLog
 from app.models.payment_method import PaymentMethod, GroupPaymentMethod
 from app.models.fund import Fund, FundTransaction, FundTransactionType
 from app.models.expense_fund_deduction import ExpenseFundDeduction
+from app.models.expense_log import ExpenseLog
 from app.models.system_config import SystemConfig
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "PaymentMethod", "GroupPaymentMethod",
     "Fund", "FundTransaction", "FundTransactionType",
     "ExpenseFundDeduction",
+    "ExpenseLog",
     "SystemConfig",
 ]

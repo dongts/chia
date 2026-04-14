@@ -1,3 +1,4 @@
+import logging
 import uuid
 from decimal import Decimal
 
@@ -12,13 +13,16 @@ from app.core.exceptions import BadRequest, Forbidden, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Expense, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
+from app.models import Expense, ExpenseLog, ExpenseSplit, Group, GroupCurrency, GroupMember, MemberRole, User
 from app.models.expense_fund_deduction import ExpenseFundDeduction
 from app.models.fund import Fund, FundTransaction, FundTransactionType
-from app.schemas.expense import ExpenseCreate, ExpenseRead, ExpenseUpdate, FundDeductionRead, SplitRead
+from app.schemas.expense import ExpenseCreate, ExpenseLogRead, ExpenseRead, ExpenseUpdate, FundDeductionRead, SplitRead
+from app.services.expense_logger import add_log, diff_snapshots, snapshot_expense
 from app.services.file_storage import save_upload
 from app.services.notification import notify_group
 from app.services.split_calculator import calculate_splits
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/groups/{group_id}/expenses", tags=["expenses"])
 
@@ -190,6 +194,24 @@ async def create_expense(
         )
         db.add(split)
 
+    add_log(
+        db,
+        expense_id=expense.id,
+        group_id=group_id,
+        actor_member_id=current.id,
+        action="created",
+        changes={
+            "description": data.description,
+            "amount": str(data.amount),
+            "currency_code": expense_currency,
+            "paid_by": str(data.paid_by),
+        },
+    )
+    logger.info(
+        "expense_create expense_id=%s group_id=%s creator_member_id=%s creator=%s",
+        expense.id, group_id, current.id, current.display_name,
+    )
+
     await notify_group(
         db, group_id, current_user.id, "expense_added",
         {"description": data.description, "amount": str(data.amount), "payer": current.display_name},
@@ -270,6 +292,43 @@ async def get_expense(
     return _build_expense_read(expense, group.currency_code)
 
 
+@router.get("/{expense_id}/logs", response_model=list[ExpenseLogRead])
+async def list_expense_logs(
+    group_id: uuid.UUID,
+    expense_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await get_group_or_404(db, group_id)
+    await get_current_member(db, group_id, current_user.id)
+
+    exists = await db.execute(
+        select(Expense.id).where(Expense.id == expense_id, Expense.group_id == group_id)
+    )
+    if not exists.scalar():
+        raise NotFound("Expense not found")
+
+    result = await db.execute(
+        select(ExpenseLog)
+        .where(ExpenseLog.expense_id == expense_id)
+        .options(selectinload(ExpenseLog.actor))
+        .order_by(ExpenseLog.created_at.asc())
+    )
+    logs = result.scalars().all()
+    return [
+        ExpenseLogRead(
+            id=log.id,
+            expense_id=log.expense_id,
+            actor_member_id=log.actor_member_id,
+            actor_name=log.actor.display_name if log.actor else None,
+            action=log.action,
+            changes=log.changes,
+            created_at=log.created_at,
+        )
+        for log in logs
+    ]
+
+
 @router.patch("/{expense_id}", response_model=ExpenseRead)
 async def update_expense(
     group_id: uuid.UUID,
@@ -283,15 +342,21 @@ async def update_expense(
     result = await db.execute(
         select(Expense)
         .where(Expense.id == expense_id, Expense.group_id == group_id)
-        .options(selectinload(Expense.splits))
+        .options(
+            selectinload(Expense.splits),
+            selectinload(Expense.fund_deductions),
+        )
     )
     expense = result.scalars().first()
     if not expense:
         raise NotFound("Expense not found")
 
-    # Permission: own expense or admin/owner
-    if expense.created_by != current.id:
-        require_role(current, MemberRole.owner, MemberRole.admin)
+    logger.info(
+        "expense_edit expense_id=%s group_id=%s editor_member_id=%s editor=%s creator_member_id=%s",
+        expense.id, group_id, current.id, current.display_name, expense.created_by,
+    )
+
+    before_snapshot = snapshot_expense(expense)
 
     if data.description is not None:
         expense.description = data.description
@@ -457,9 +522,27 @@ async def update_expense(
         for s in expense.splits:
             s.resolved_amount = resolved[str(s.group_member_id)]
 
+    await db.flush()
+    await db.refresh(expense, attribute_names=["splits", "fund_deductions"])
+    after_snapshot = snapshot_expense(expense)
+    changes = diff_snapshots(before_snapshot, after_snapshot)
+    if changes:
+        add_log(
+            db,
+            expense_id=expense.id,
+            group_id=group_id,
+            actor_member_id=current.id,
+            action="updated",
+            changes=changes,
+        )
+
     await notify_group(
         db, group_id, current_user.id, "expense_updated",
-        {"description": expense.description, "amount": str(expense.amount)},
+        {
+            "description": expense.description,
+            "amount": str(expense.amount),
+            "editor": current.display_name,
+        },
     )
 
     expense_id_val = expense.id
@@ -543,7 +626,16 @@ async def upload_receipt(
     except ValueError as e:
         raise BadRequest(str(e))
 
+    old_url = expense.receipt_url
     expense.receipt_url = url
+    add_log(
+        db,
+        expense_id=expense.id,
+        group_id=group_id,
+        actor_member_id=current.id,
+        action="receipt_uploaded",
+        changes={"receipt_url": {"from": old_url, "to": url}},
+    )
     await db.commit()
 
     result = await db.execute(
@@ -579,7 +671,16 @@ async def delete_receipt(
     if expense.created_by != current.id:
         require_role(current, MemberRole.owner, MemberRole.admin)
 
+    old_url = expense.receipt_url
     expense.receipt_url = None
+    add_log(
+        db,
+        expense_id=expense.id,
+        group_id=group_id,
+        actor_member_id=current.id,
+        action="receipt_deleted",
+        changes={"receipt_url": {"from": old_url, "to": None}},
+    )
     await db.commit()
 
     result = await db.execute(
