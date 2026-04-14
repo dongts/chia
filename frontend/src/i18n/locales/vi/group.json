@@ -38,6 +38,8 @@
     "filtered_empty_title": "Không có chi phí phù hợp",
     "filtered_empty_subtitle": "Thử thay đổi bộ lọc",
     "showing": "Hiển thị {{shown}} / {{total}} chi phí",
+    "showing_loaded": "Hiển thị {{shown}} chi phí",
+    "all_loaded": "Đã tải tất cả {{shown}} chi phí",
     "loading_more": "Đang tải thêm...",
     "confirm_delete": "Xóa chi phí này?",
     "failed_delete": "Không thể xóa chi phí"
@@ -52,7 +54,12 @@
     "settle": "Trả"
   },
   "balances": {
-    "empty": "Chưa có số dư nào"
+    "empty": "Chưa có số dư nào",
+    "sort_by": "Sắp xếp",
+    "sort_name_asc": "Tên (A→Z)",
+    "sort_name_desc": "Tên (Z→A)",
+    "sort_balance_desc": "Số dư (cao→thấp)",
+    "sort_balance_asc": "Số dư (thấp→cao)"
   },
   "settlements": {
     "empty_title": "Chưa có giao dịch nào",

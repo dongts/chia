@@ -41,6 +41,8 @@ interface MemberDetail {
   currency_code: string;
   total_paid: number;
   total_owed: number;
+  initial_balance: number;
+  net_balance: number;
   paid_by_category: CategoryAmount[];
   owed_by_category: CategoryAmount[];
   recent_paid: RecentPaid[];
@@ -157,7 +159,8 @@ export default function MemberAnalytics() {
       .finally(() => setLoading(false));
   }, [groupId, memberId]);
 
-  const net = detail ? detail.total_paid - detail.total_owed : 0;
+  const net = detail ? detail.net_balance : 0;
+  const initial = detail ? detail.initial_balance : 0;
   const currency = detail?.currency_code ?? "USD";
 
   // Monthly average: approximate months since we don't have a join date from this endpoint
@@ -279,6 +282,28 @@ export default function MemberAnalytics() {
               </div>
             </div>
 
+            {/* Net balance + initial balance summary */}
+            <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
+              <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("net_balance")}</p>
+              <p className={cn("text-2xl font-bold", net >= 0 ? "text-primary" : "text-error")}>
+                {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
+              </p>
+              <p className="text-xs text-on-surface-variant mt-1">
+                {net >= 0 ? t("is_owed_back") : t("owes_to_group")}
+              </p>
+              {initial !== 0 && (
+                <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("initial_balance")}</p>
+                    <p className="text-[10px] text-outline mt-0.5">{t("initial_balance_hint")}</p>
+                  </div>
+                  <span className={cn("text-sm font-bold", initial > 0 ? "text-primary" : "text-error")}>
+                    {initial > 0 ? "+" : ""}{formatCurrency(initial, currency)}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Category Spending donut */}
             {detail.paid_by_category.length > 0 && (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
@@ -354,6 +379,17 @@ export default function MemberAnalytics() {
                 <p className="text-xs text-on-surface-variant mt-2">
                   {net >= 0 ? t("is_owed_back") : t("owes_to_group")}
                 </p>
+                {initial !== 0 && (
+                  <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("initial_balance")}</p>
+                      <p className="text-[10px] text-outline mt-0.5">{t("initial_balance_hint")}</p>
+                    </div>
+                    <span className={cn("text-sm font-bold", initial > 0 ? "text-primary" : "text-error")}>
+                      {initial > 0 ? "+" : ""}{formatCurrency(initial, currency)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

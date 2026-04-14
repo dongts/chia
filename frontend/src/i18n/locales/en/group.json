@@ -38,6 +38,8 @@
     "filtered_empty_title": "No expenses match filters",
     "filtered_empty_subtitle": "Try adjusting your filters",
     "showing": "Showing {{shown}} of {{total}} expenses",
+    "showing_loaded": "Showing {{shown}} expenses",
+    "all_loaded": "All {{shown}} expenses loaded",
     "loading_more": "Loading more...",
     "confirm_delete": "Delete this expense?",
     "failed_delete": "Failed to delete expense"
@@ -52,7 +54,12 @@
     "settle": "Settle"
   },
   "balances": {
-    "empty": "No balances yet"
+    "empty": "No balances yet",
+    "sort_by": "Sort by",
+    "sort_name_asc": "Name (A→Z)",
+    "sort_name_desc": "Name (Z→A)",
+    "sort_balance_desc": "Balance (high→low)",
+    "sort_balance_asc": "Balance (low→high)"
   },
   "settlements": {
     "empty_title": "No settlements recorded",

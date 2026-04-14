@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
+from app.api.v1.settlements import _compute_balances
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, GroupMember, Category, User
@@ -65,6 +66,10 @@ async def report_summary(
         if s.group_member_id in members:
             owed_by_member[s.group_member_id] += s.resolved_amount
 
+    # Authoritative balances (includes initial_balance and settlements) — must
+    # match the Balances tab so analytics doesn't confuse the user.
+    computed_balances = await _compute_balances(db, group_id)
+
     per_member = []
     for mid, m in members.items():
         per_member.append({
@@ -72,6 +77,8 @@ async def report_summary(
             "member_name": m.display_name,
             "total_paid": float(paid_by_member.get(mid, Decimal("0")).quantize(Decimal("0.01"))),
             "total_owed": float(owed_by_member.get(mid, Decimal("0")).quantize(Decimal("0.01"))),
+            "initial_balance": float(m.initial_balance.quantize(Decimal("0.01"))),
+            "net_balance": float(computed_balances.get(mid, Decimal("0")).quantize(Decimal("0.01"))),
             "expense_count": expense_count_by_member.get(mid, 0),
         })
     per_member.sort(key=lambda x: x["total_paid"], reverse=True)
@@ -204,12 +211,17 @@ async def report_member_detail(
     total_paid = sum((e.converted_amount for e in paid_expenses), Decimal("0"))
     total_owed = sum((s.resolved_amount for s, _ in owed_splits), Decimal("0"))
 
+    computed_balances = await _compute_balances(db, group_id)
+    net_balance = computed_balances.get(member_id, Decimal("0"))
+
     return {
         "member_id": str(member_id),
         "member_name": member.display_name,
         "currency_code": group.currency_code,
         "total_paid": float(total_paid.quantize(Decimal("0.01"))),
         "total_owed": float(total_owed.quantize(Decimal("0.01"))),
+        "initial_balance": float(member.initial_balance.quantize(Decimal("0.01"))),
+        "net_balance": float(net_balance.quantize(Decimal("0.01"))),
         "paid_by_category": paid_categories,
         "owed_by_category": owed_categories,
         "recent_paid": recent_paid,

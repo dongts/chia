@@ -43,6 +43,8 @@
   "across_all_expenses": "tổng các chi phí",
   "per_month": "mỗi tháng",
   "net_balance": "Số dư ròng",
+  "initial_balance": "Số dư ban đầu",
+  "initial_balance_hint": "Số dư khi tham gia nhóm",
   "is_owed_back": "được hoàn lại",
   "owes_to_group": "nợ nhóm",
   "category_spending": "Chi tiêu theo danh mục",

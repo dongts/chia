@@ -6,8 +6,18 @@ export async function createExpense(groupId: string, data: ExpenseCreate): Promi
   return response.data;
 }
 
-export async function listExpenses(groupId: string): Promise<Expense[]> {
-  const response = await client.get<Expense[]>(`/groups/${groupId}/expenses`);
+export interface ListExpensesParams {
+  limit?: number;
+  offset?: number;
+  category_id?: string;
+  member_id?: string;
+}
+
+export async function listExpenses(
+  groupId: string,
+  params: ListExpensesParams = {}
+): Promise<Expense[]> {
+  const response = await client.get<Expense[]>(`/groups/${groupId}/expenses`, { params });
   return response.data;
 }
 

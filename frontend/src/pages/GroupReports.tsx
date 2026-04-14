@@ -15,6 +15,7 @@ interface CategorySummary {
 interface MemberSummary {
   member_id: string; member_name: string;
   total_paid: number; total_owed: number; expense_count: number;
+  initial_balance: number; net_balance: number;
 }
 interface GroupReportSummary {
   currency_code: string; total_spent: number; expense_count: number;
@@ -117,8 +118,8 @@ export default function GroupReports() {
           ? a.member_name.localeCompare(b.member_name)
           : b.member_name.localeCompare(a.member_name);
       }
-      const va = a.total_paid - a.total_owed;
-      const vb = b.total_paid - b.total_owed;
+      const va = a.net_balance;
+      const vb = b.net_balance;
       return sortDir === "asc" ? va - vb : vb - va;
     });
 
@@ -271,7 +272,7 @@ export default function GroupReports() {
 
                     <div className="space-y-2.5">
                       {visibleMembers.map((member) => {
-                        const net = member.total_paid - member.total_owed;
+                        const net = member.net_balance;
                         return (
                           <Link
                             key={member.member_id}
@@ -457,7 +458,7 @@ export default function GroupReports() {
                         </thead>
                         <tbody className="divide-y divide-outline-variant/10">
                           {visibleMembers.map((member) => {
-                            const net = member.total_paid - member.total_owed;
+                            const net = member.net_balance;
                             return (
                               <tr key={member.member_id}
                                 onClick={() => navigate(`/groups/${groupId}/reports/member/${member.member_id}`)}

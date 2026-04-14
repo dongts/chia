@@ -173,8 +173,13 @@ export default function GroupView() {
   const [filterPaidBy, setFilterPaidBy] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Infinite scroll
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Balances tab sorting
+  type BalanceSort = "name_asc" | "name_desc" | "balance_desc" | "balance_asc";
+  const [balanceSort, setBalanceSort] = useState<BalanceSort>("name_asc");
+
+  // Infinite scroll (server-side pagination)
+  const [expensesHasMore, setExpensesHasMore] = useState(true);
+  const [loadingMoreExpenses, setLoadingMoreExpenses] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -182,10 +187,52 @@ export default function GroupView() {
     loadAll();
   }, [groupId]);
 
-  // Reset visible count when filters change
+  // Re-fetch first page from server when filters change
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    if (!groupId || loading) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const exp = await listExpenses(groupId, {
+          limit: PAGE_SIZE,
+          offset: 0,
+          category_id: filterCategory || undefined,
+          member_id: filterPaidBy || undefined,
+        });
+        if (cancelled) return;
+        setExpenses(exp);
+        setExpensesHasMore(exp.length === PAGE_SIZE);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterCategory, filterPaidBy]);
+
+  async function loadMoreExpenses() {
+    if (!groupId || loadingMoreExpenses || !expensesHasMore) return;
+    setLoadingMoreExpenses(true);
+    try {
+      const next = await listExpenses(groupId, {
+        limit: PAGE_SIZE,
+        offset: expenses.length,
+        category_id: filterCategory || undefined,
+        member_id: filterPaidBy || undefined,
+      });
+      setExpenses((prev) => {
+        const seen = new Set(prev.map((e) => e.id));
+        const merged = [...prev];
+        for (const e of next) if (!seen.has(e.id)) merged.push(e);
+        return merged;
+      });
+      setExpensesHasMore(next.length === PAGE_SIZE);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingMoreExpenses(false);
+    }
+  }
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -194,14 +241,15 @@ export default function GroupView() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => prev + PAGE_SIZE);
+          loadMoreExpenses();
         }
       },
       { threshold: 0.1 }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [tab, filterCategory, filterPaidBy, expenses.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, expenses.length, expensesHasMore, loadingMoreExpenses]);
 
   async function loadAll() {
     if (!groupId) return;
@@ -209,7 +257,12 @@ export default function GroupView() {
     try {
       const [g, exp, bal, set, cats, mem, pms, fds, suggested] = await Promise.all([
         getGroup(groupId),
-        listExpenses(groupId),
+        listExpenses(groupId, {
+          limit: PAGE_SIZE,
+          offset: 0,
+          category_id: filterCategory || undefined,
+          member_id: filterPaidBy || undefined,
+        }),
         getBalances(groupId),
         listSettlements(groupId),
         listGroupCategories(groupId),
@@ -220,6 +273,7 @@ export default function GroupView() {
       ]);
       setGroup(g);
       setExpenses(exp);
+      setExpensesHasMore(exp.length === PAGE_SIZE);
       setBalances(bal);
       setSettlements(set);
       setCategories(cats);
@@ -327,15 +381,10 @@ export default function GroupView() {
   const myMemberId = members.find((m) => m.user_id === currentUser?.id)?.id;
 
 
-  // Filter expenses
-  const filteredExpenses = expenses.filter((e) => {
-    if (filterCategory && e.category_id !== filterCategory) return false;
-    if (filterPaidBy && e.paid_by !== filterPaidBy) return false;
-    return true;
-  });
-
-  const visibleExpenses = filteredExpenses.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredExpenses.length;
+  // Server-side filtering — `expenses` already reflects active filters
+  const filteredExpenses = expenses;
+  const visibleExpenses = filteredExpenses;
+  const hasMore = expensesHasMore;
 
   // Computed balance summaries — relative to current user
   const myBalance = myMemberId ? Number(balances.find((b) => b.member_id === myMemberId)?.balance ?? 0) : 0;
@@ -733,7 +782,9 @@ export default function GroupView() {
           {filteredExpenses.length > 0 && (
             <div className="text-center space-y-2">
               <p className="text-xs text-outline">
-                {t("expenses.showing", { shown: Math.min(visibleCount, filteredExpenses.length), total: filteredExpenses.length })}
+                {hasMore
+                  ? t("expenses.showing_loaded", { shown: filteredExpenses.length })
+                  : t("expenses.all_loaded", { shown: filteredExpenses.length })}
               </p>
               {hasMore && (
                 <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
@@ -750,14 +801,37 @@ export default function GroupView() {
          ══════════════════════════════════════════════════════════ */}
       {tab === "balances" && (
         <div className="space-y-6">
-          {/* Member balances — sorted alphabetically */}
+          {balances.length > 0 && (
+            <div className="flex items-center justify-end gap-2">
+              <label className="text-xs text-on-surface-variant">{t("balances.sort_by")}</label>
+              <select
+                value={balanceSort}
+                onChange={(e) => setBalanceSort(e.target.value as BalanceSort)}
+                className="bg-surface-container-high/50 border-0 rounded-full px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
+              >
+                <option value="name_asc">{t("balances.sort_name_asc")}</option>
+                <option value="name_desc">{t("balances.sort_name_desc")}</option>
+                <option value="balance_desc">{t("balances.sort_balance_desc")}</option>
+                <option value="balance_asc">{t("balances.sort_balance_asc")}</option>
+              </select>
+            </div>
+          )}
+          {/* Member balances */}
           <div className="space-y-3">
             {balances.length === 0 ? (
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial py-12 text-center">
                 <p className="text-on-surface-variant text-sm">{t("balances.empty")}</p>
               </div>
             ) : (
-              [...balances].sort((a, b) => a.member_name.localeCompare(b.member_name)).map((b) => {
+              [...balances].sort((a, b) => {
+                switch (balanceSort) {
+                  case "name_desc": return b.member_name.localeCompare(a.member_name);
+                  case "balance_desc": return Number(b.balance) - Number(a.balance);
+                  case "balance_asc": return Number(a.balance) - Number(b.balance);
+                  case "name_asc":
+                  default: return a.member_name.localeCompare(b.member_name);
+                }
+              }).map((b) => {
                 const bal = Number(b.balance);
                 const isPositive = bal > 0;
                 const isNegative = bal < 0;

@@ -43,6 +43,8 @@
   "across_all_expenses": "across all expenses",
   "per_month": "per month",
   "net_balance": "Net Balance",
+  "initial_balance": "Initial Balance",
+  "initial_balance_hint": "Starting balance when joining the group",
   "is_owed_back": "is owed back",
   "owes_to_group": "owes to group",
   "category_spending": "Category Spending",
