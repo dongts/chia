@@ -10,6 +10,7 @@ import { listMembers } from "@/api/members";
 import { listGroupCategories } from "@/api/categories";
 import { listGroupCurrencies } from "@/api/groupCurrencies";
 import { listFunds } from "@/api/funds";
+import { useAuthStore } from "@/store/authStore";
 import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput, Fund } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatCurrency } from "@/utils/currency";
@@ -23,6 +24,7 @@ export default function AddExpense() {
   const { t } = useTranslation("expense");
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const currentUser = useAuthStore((s) => s.user);
 
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -89,7 +91,8 @@ export default function AddExpense() {
         setCategories(c);
         setAllowedCurrencies(gc);
         if (m.length > 0) {
-          setPaidBy(m[0].id);
+          const selfMember = currentUser ? m.find((mem) => mem.user_id === currentUser.id) : null;
+          setPaidBy(selfMember?.id ?? m[0].id);
           const checked: Record<string, boolean> = {};
           const exact: Record<string, string> = {};
           const pct: Record<string, string> = {};
