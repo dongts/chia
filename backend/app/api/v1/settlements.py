@@ -24,7 +24,7 @@ from app.schemas.settlement import (
     SuggestedSettlement,
 )
 from app.services.debt_simplifier import simplify_debts
-from app.services.notification import notify_group
+from app.services.notification import notify_members, resolve_member_user_ids
 
 router = APIRouter(prefix="/groups/{group_id}", tags=["settlements"])
 
@@ -166,13 +166,15 @@ async def create_settlement(
     )
     member_names = {m.id: m.display_name for m in members_result.scalars().all()}
 
-    await notify_group(
-        db, group_id, current_user.id, "settlement_recorded",
+    affected_user_ids = await resolve_member_user_ids(db, [data.from_member, data.to_member])
+    await notify_members(
+        db, affected_user_ids, group_id, "settlement_recorded",
         {
             "from": member_names.get(data.from_member, "Unknown"),
             "to": member_names.get(data.to_member, "Unknown"),
             "amount": str(data.amount),
         },
+        exclude_user_id=current_user.id,
     )
 
     await db.commit()

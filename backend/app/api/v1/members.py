@@ -14,7 +14,6 @@ from app.database import get_db
 from app.models import GroupMember, GroupMemberLog, MemberRole, User
 from app.schemas.group_member import MemberCreate, MemberRead, MemberUpdate
 from app.services.member_log import log_member_event
-from app.services.notification import notify_group
 
 router = APIRouter(prefix="/groups/{group_id}/members", tags=["members"])
 
@@ -90,11 +89,6 @@ async def update_member(
         old_role = target.role
         target.role = data.role
         await log_member_event(db, group_id, member_id, "role_changed", f"{old_role.value} → {data.role.value}", current.id)
-        if target.user_id:
-            await notify_group(
-                db, group_id, current_user.id, "role_changed",
-                {"member_name": target.display_name, "old_role": old_role.value, "new_role": data.role.value},
-            )
 
     if data.display_name is not None:
         if target.id != current.id:
@@ -173,10 +167,6 @@ async def remove_member(
         raise BadRequest("Cannot remove the group owner")
     target.is_active = False
     await log_member_event(db, group_id, member_id, "removed", f"Removed by {current.display_name}", current.id)
-    await notify_group(
-        db, group_id, current_user.id, "member_removed",
-        {"member_name": target.display_name},
-    )
     await db.commit()
     return {"detail": "Member removed"}
 

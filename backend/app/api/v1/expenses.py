@@ -19,7 +19,7 @@ from app.models.fund import Fund, FundTransaction, FundTransactionType
 from app.schemas.expense import ExpenseCreate, ExpenseLogRead, ExpenseRead, ExpenseUpdate, FundDeductionRead, SplitRead
 from app.services.expense_logger import add_log, diff_snapshots, snapshot_expense
 from app.services.file_storage import save_upload
-from app.services.notification import notify_group
+from app.services.notification import notify_members, resolve_member_user_ids
 from app.services.split_calculator import calculate_splits
 
 logger = logging.getLogger(__name__)
@@ -212,9 +212,12 @@ async def create_expense(
         expense.id, group_id, current.id, current.display_name,
     )
 
-    await notify_group(
-        db, group_id, current_user.id, "expense_added",
+    involved_member_ids = {data.paid_by, *(s.group_member_id for s in data.splits)}
+    affected_user_ids = await resolve_member_user_ids(db, involved_member_ids)
+    await notify_members(
+        db, affected_user_ids, group_id, "expense_added",
         {"description": data.description, "amount": str(data.amount), "payer": current.display_name},
+        exclude_user_id=current_user.id,
     )
 
     await db.commit()
@@ -536,13 +539,16 @@ async def update_expense(
             changes=changes,
         )
 
-    await notify_group(
-        db, group_id, current_user.id, "expense_updated",
+    involved_member_ids = {expense.paid_by, *(s.group_member_id for s in expense.splits)}
+    affected_user_ids = await resolve_member_user_ids(db, involved_member_ids)
+    await notify_members(
+        db, affected_user_ids, group_id, "expense_updated",
         {
             "description": expense.description,
             "amount": str(expense.amount),
             "editor": current.display_name,
         },
+        exclude_user_id=current_user.id,
     )
 
     expense_id_val = expense.id
@@ -584,9 +590,15 @@ async def delete_expense(
     if expense.created_by != current.id:
         require_role(current, MemberRole.owner, MemberRole.admin)
 
-    await notify_group(
-        db, group_id, current_user.id, "expense_deleted",
+    splits_result = await db.execute(
+        select(ExpenseSplit.group_member_id).where(ExpenseSplit.expense_id == expense_id)
+    )
+    involved_member_ids = {expense.paid_by, *(mid for (mid,) in splits_result.all())}
+    affected_user_ids = await resolve_member_user_ids(db, involved_member_ids)
+    await notify_members(
+        db, affected_user_ids, group_id, "expense_deleted",
         {"description": expense.description, "amount": str(expense.amount)},
+        exclude_user_id=current_user.id,
     )
 
     # Delete linked fund transactions

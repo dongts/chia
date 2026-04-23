@@ -42,16 +42,6 @@ function getNotificationText(notification: Notification): string {
       return `Expense deleted: ${data.description ?? "Unknown"}`;
     case "settlement_recorded":
       return `Settlement recorded: ${data.amount ?? ""}`;
-    case "settlement_confirmed":
-      return `Settlement confirmed: ${data.amount ?? ""}`;
-    case "role_changed":
-      return `Role changed to ${data.new_role ?? "member"} by ${data.member_name ?? "someone"}`;
-    case "member_joined":
-      return `${data.member_name ?? "Someone"} joined ${data.group_name ?? "the group"}`;
-    case "member_removed":
-      return `${data.member_name ?? "Someone"} was removed from ${data.group_name ?? "the group"}`;
-    case "group_updated":
-      return `Group "${data.group_name ?? ""}" was updated`;
     default:
       return data.description
         ? String(data.description)
