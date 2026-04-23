@@ -53,7 +53,7 @@
   "no_transactions": "No transactions yet",
   "tab_affecting_balance": "Affecting balance",
   "tab_paid_by_member": "Paid by this member",
-  "tab_owed_by_member": "Owed by this member",
+  "tab_owed_by_member": "Expense",
   "of_total_amount": "of {{total}}",
   "kind_transfer": "Transfer",
   "kind_settle_up": "Settle up",
