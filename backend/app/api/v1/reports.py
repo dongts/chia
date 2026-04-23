@@ -1,5 +1,6 @@
 import uuid
 from collections import defaultdict
+from datetime import datetime, time, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
@@ -10,7 +11,9 @@ from app.api.v1.groups import get_current_member, get_group_or_404
 from app.api.v1.settlements import _compute_balances
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Expense, ExpenseSplit, GroupMember, Category, User
+from app.models import Expense, ExpenseSplit, GroupMember, Category, Settlement, User
+
+BALANCE_ACTIVITY_LIMIT = 100
 
 router = APIRouter(prefix="/groups/{group_id}/reports", tags=["reports"])
 
@@ -151,20 +154,14 @@ async def report_member_detail(
     )
     owed_splits = owed_result.all()
 
-    # Paid by category
-    paid_by_cat: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
-    for e in paid_expenses:
-        paid_by_cat[e.category_id] += e.converted_amount
-
-    paid_categories = []
-    for cid, amount in paid_by_cat.items():
-        cat = categories.get(cid)
-        paid_categories.append({
-            "category_name": cat.name if cat else "Unknown",
-            "category_icon": cat.icon if cat else "📦",
-            "total_amount": float(amount.quantize(Decimal("0.01"))),
-        })
-    paid_categories.sort(key=lambda x: x["total_amount"], reverse=True)
+    # Settlements touching this member (either direction)
+    settlements_result = await db.execute(
+        select(Settlement).where(
+            Settlement.group_id == group_id,
+            (Settlement.from_member == member_id) | (Settlement.to_member == member_id),
+        )
+    )
+    member_settlements = settlements_result.scalars().all()
 
     # Owed by category
     owed_by_cat: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
@@ -211,6 +208,50 @@ async def report_member_detail(
     total_paid = sum((e.converted_amount for e in paid_expenses), Decimal("0"))
     total_owed = sum((s.resolved_amount for s, _ in owed_splits), Decimal("0"))
 
+    # Balance activity: one row per transaction that moved this member's
+    # balance, signed to match _compute_balances (positive = balance up).
+    owed_share_by_expense: dict[uuid.UUID, Decimal] = {
+        split.expense_id: split.resolved_amount for split, _ in owed_splits
+    }
+    involved_expenses: dict[uuid.UUID, Expense] = {e.id: e for e in paid_expenses}
+    for _, expense in owed_splits:
+        involved_expenses.setdefault(expense.id, expense)
+    paid_ids = {e.id for e in paid_expenses}
+
+    activity: list[tuple[datetime, dict]] = []
+    for eid, expense in involved_expenses.items():
+        net_effect = Decimal("0")
+        if eid in paid_ids:
+            net_effect += expense.converted_amount
+        if eid in owed_share_by_expense:
+            net_effect -= owed_share_by_expense[eid]
+        cat = categories.get(expense.category_id)
+        sort_key = datetime.combine(expense.date, time.min)
+        activity.append((sort_key, {
+            "id": str(eid),
+            "kind": "expense",
+            "description": expense.description,
+            "category_name": cat.name if cat else "Unknown",
+            "category_icon": cat.icon if cat else "📦",
+            "net_effect": float(net_effect.quantize(Decimal("0.01"))),
+            "date": expense.date.isoformat(),
+        }))
+    for s in member_settlements:
+        signed = s.amount if s.from_member == member_id else -s.amount
+        settled_at = s.settled_at
+        sort_key = settled_at if settled_at.tzinfo else settled_at.replace(tzinfo=timezone.utc)
+        activity.append((sort_key.replace(tzinfo=None), {
+            "id": str(s.id),
+            "kind": s.type or "settle_up",
+            "description": s.description or "",
+            "category_name": None,
+            "category_icon": None,
+            "net_effect": float(signed.quantize(Decimal("0.01"))),
+            "date": settled_at.isoformat(),
+        }))
+    activity.sort(key=lambda pair: pair[0], reverse=True)
+    balance_activity = [entry for _, entry in activity[:BALANCE_ACTIVITY_LIMIT]]
+
     computed_balances = await _compute_balances(db, group_id)
     net_balance = computed_balances.get(member_id, Decimal("0"))
 
@@ -222,8 +263,8 @@ async def report_member_detail(
         "total_owed": float(total_owed.quantize(Decimal("0.01"))),
         "initial_balance": float(member.initial_balance.quantize(Decimal("0.01"))),
         "net_balance": float(net_balance.quantize(Decimal("0.01"))),
-        "paid_by_category": paid_categories,
         "owed_by_category": owed_categories,
         "recent_paid": recent_paid,
         "recent_owed": recent_owed,
+        "balance_activity": balance_activity,
     }
