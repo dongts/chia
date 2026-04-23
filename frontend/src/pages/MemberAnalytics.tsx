@@ -24,6 +24,17 @@ interface RecentPaid {
   date: string;
 }
 
+interface RecentOwed {
+  id: string;
+  description: string;
+  owed_amount: number;
+  total_amount: number;
+  currency_code: string;
+  category_name: string;
+  category_icon: string;
+  date: string;
+}
+
 type ActivityKind = "expense" | "transfer" | "settle_up";
 
 interface BalanceActivity {
@@ -46,6 +57,7 @@ interface MemberDetail {
   net_balance: number;
   owed_by_category: CategoryAmount[];
   recent_paid: RecentPaid[];
+  recent_owed: RecentOwed[];
   balance_activity: BalanceActivity[];
 }
 
@@ -238,26 +250,53 @@ function PaidRow({ item }: { item: RecentPaid }) {
   );
 }
 
+function OwedRow({ item, t }: { item: RecentOwed; t: (k: string, opts?: Record<string, unknown>) => string }) {
+  const isFullShare = Math.abs(item.owed_amount - item.total_amount) < 0.01;
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+      <div className="w-9 h-9 rounded-full bg-error-container/20 flex items-center justify-center text-lg flex-shrink-0">
+        {item.category_icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
+        <p className="text-xs text-outline">{item.category_name} · {formatDate(item.date)}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="text-sm font-bold text-on-surface tabular-nums">
+          {formatCurrency(item.owed_amount, item.currency_code)}
+        </p>
+        {!isFullShare && (
+          <p className="text-[10px] text-outline tabular-nums">
+            {t("of_total_amount", { total: formatCurrency(item.total_amount, item.currency_code) })}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Tabs ---
 
-type TransactionTab = "activity" | "paid";
+type TransactionTab = "activity" | "paid" | "owed";
 
 function TransactionTabs({
   balanceActivity,
   recentPaid,
+  recentOwed,
   currency,
   t,
 }: {
   balanceActivity: BalanceActivity[];
   recentPaid: RecentPaid[];
+  recentOwed: RecentOwed[];
   currency: string;
-  t: (k: string) => string;
+  t: (k: string, opts?: Record<string, unknown>) => string;
 }) {
   const [tab, setTab] = useState<TransactionTab>("activity");
 
   const tabButtonClass = (active: boolean) =>
     cn(
-      "flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors",
+      "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-colors px-2",
       active
         ? "bg-primary text-on-primary"
         : "text-on-surface-variant hover:bg-surface-container-high/40",
@@ -265,12 +304,15 @@ function TransactionTabs({
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-      <div className="p-2 flex gap-2 border-b border-outline-variant/20">
+      <div className="p-2 flex gap-1.5 border-b border-outline-variant/20">
         <button className={tabButtonClass(tab === "activity")} onClick={() => setTab("activity")}>
           {t("tab_affecting_balance")}
         </button>
         <button className={tabButtonClass(tab === "paid")} onClick={() => setTab("paid")}>
           {t("tab_paid_by_member")}
+        </button>
+        <button className={tabButtonClass(tab === "owed")} onClick={() => setTab("owed")}>
+          {t("tab_owed_by_member")}
         </button>
       </div>
       <div className="px-2 py-3 space-y-1">
@@ -285,6 +327,11 @@ function TransactionTabs({
           recentPaid.length === 0
             ? <p className="text-sm text-outline text-center py-8">{t("no_expenses_yet")}</p>
             : recentPaid.map((item) => <PaidRow key={item.id} item={item} />)
+        )}
+        {tab === "owed" && (
+          recentOwed.length === 0
+            ? <p className="text-sm text-outline text-center py-8">{t("no_expenses_yet")}</p>
+            : recentOwed.map((item) => <OwedRow key={item.id} item={item} t={t} />)
         )}
       </div>
     </div>
@@ -426,6 +473,7 @@ export default function MemberAnalytics() {
             <TransactionTabs
               balanceActivity={detail.balance_activity}
               recentPaid={detail.recent_paid}
+              recentOwed={detail.recent_owed}
               currency={currency}
               t={t}
             />
@@ -484,6 +532,7 @@ export default function MemberAnalytics() {
             <TransactionTabs
               balanceActivity={detail.balance_activity}
               recentPaid={detail.recent_paid}
+              recentOwed={detail.recent_owed}
               currency={currency}
               t={t}
             />

@@ -53,6 +53,8 @@
   "no_transactions": "Chưa có giao dịch",
   "tab_affecting_balance": "Ảnh hưởng số dư",
   "tab_paid_by_member": "Thành viên đã trả",
+  "tab_owed_by_member": "Thành viên phải trả",
+  "of_total_amount": "trên {{total}}",
   "kind_transfer": "Chuyển tiền",
   "kind_settle_up": "Thanh toán",
   "settle_balance": "Thanh toán"
