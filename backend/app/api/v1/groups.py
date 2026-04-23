@@ -21,7 +21,9 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 
 async def get_group_or_404(db: AsyncSession, group_id: uuid.UUID) -> Group:
-    result = await db.execute(select(Group).where(Group.id == group_id))
+    result = await db.execute(
+        select(Group).where(Group.id == group_id, Group.is_deleted.is_(False))
+    )
     group = result.scalars().first()
     if not group:
         raise NotFound("Group not found")
@@ -79,6 +81,7 @@ async def list_groups(
         .join(GroupMember, GroupMember.group_id == Group.id)
         .where(
             GroupMember.is_active.is_(True),
+            Group.is_deleted.is_(False),
             Group.id.in_(
                 select(GroupMember.group_id).where(
                     GroupMember.user_id == current_user.id,
@@ -210,10 +213,13 @@ async def delete_group(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Soft-delete a group. Only the owner can do this; data is preserved
+    so that accidental deletions can be recovered by an admin."""
     group = await get_group_or_404(db, group_id)
     member = await get_current_member(db, group_id, current_user.id)
     require_role(member, MemberRole.owner)
-    await db.delete(group)
+    group.is_deleted = True
+    group.deleted_at = func.now()
     await db.commit()
     return {"detail": "Group deleted"}
 
@@ -221,7 +227,9 @@ async def delete_group(
 @router.get("/preview/{invite_code}")
 async def preview_group(invite_code: str, db: AsyncSession = Depends(get_db)):
     """Preview a group from invite code — no auth required. Returns group name and unclaimed members."""
-    result = await db.execute(select(Group).where(Group.invite_code == invite_code))
+    result = await db.execute(
+        select(Group).where(Group.invite_code == invite_code, Group.is_deleted.is_(False))
+    )
     group = result.scalars().first()
     if not group:
         raise NotFound("Invalid invite code")
@@ -264,7 +272,9 @@ async def join_group(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Group).where(Group.invite_code == invite_code))
+    result = await db.execute(
+        select(Group).where(Group.invite_code == invite_code, Group.is_deleted.is_(False))
+    )
     group = result.scalars().first()
     if not group:
         raise NotFound("Invalid invite code")
