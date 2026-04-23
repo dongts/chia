@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, MoreVertical } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, MoreVertical } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
@@ -24,14 +24,15 @@ interface RecentPaid {
   date: string;
 }
 
-interface RecentOwed {
+type ActivityKind = "expense" | "transfer" | "settle_up";
+
+interface BalanceActivity {
   id: string;
+  kind: ActivityKind;
   description: string;
-  owed_amount: number;
-  total_amount: number;
-  currency_code: string;
-  category_name: string;
-  category_icon: string;
+  category_name: string | null;
+  category_icon: string | null;
+  net_effect: number;
   date: string;
 }
 
@@ -43,10 +44,9 @@ interface MemberDetail {
   total_owed: number;
   initial_balance: number;
   net_balance: number;
-  paid_by_category: CategoryAmount[];
   owed_by_category: CategoryAmount[];
   recent_paid: RecentPaid[];
-  recent_owed: RecentOwed[];
+  balance_activity: BalanceActivity[];
 }
 
 // --- Helpers ---
@@ -81,6 +81,18 @@ function formatCompact(amount: number, currencyCode: string = "USD"): string {
   return formatCurrency(amount, currencyCode);
 }
 
+function formatSigned(amount: number, currency: string): string {
+  if (amount === 0) return formatCurrency(0, currency);
+  const sign = amount > 0 ? "+" : "";
+  return `${sign}${formatCurrency(amount, currency)}`;
+}
+
+function amountColorClass(amount: number): string {
+  if (amount > 0) return "text-primary";
+  if (amount < 0) return "text-error";
+  return "text-on-surface-variant";
+}
+
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center py-16">
@@ -107,13 +119,11 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
 
   return (
     <div>
-      {/* Donut */}
       <div className="relative w-40 h-40 mx-auto mb-5">
         <div
           className="w-full h-full rounded-full"
           style={{ background: gradient }}
         />
-        {/* White center */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-24 h-24 rounded-full bg-surface-container-lowest flex items-center justify-center px-2">
             <span className="text-sm font-bold text-on-surface text-center leading-tight break-all">{formatCompact(total, currencyCode)}</span>
@@ -121,7 +131,6 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
         </div>
       </div>
 
-      {/* Legend */}
       <div className="space-y-2">
         {categories.map((cat, i) => (
           <div key={cat.category_name} className="flex items-center gap-2.5">
@@ -132,6 +141,151 @@ function DonutChart({ categories, currencyCode }: { categories: CategoryAmount[]
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Balance breakdown ---
+
+function BalanceBreakdown({
+  initial,
+  expenseEffect,
+  transferEffect,
+  net,
+  currency,
+  t,
+}: {
+  initial: number;
+  expenseEffect: number;
+  transferEffect: number;
+  net: number;
+  currency: string;
+  t: (k: string) => string;
+}) {
+  // Show only non-zero lines; if everything is zero, show the initial row alone.
+  const rows: { label: string; value: number }[] = [];
+  if (initial !== 0) rows.push({ label: t("balance_breakdown_initial"), value: initial });
+  if (expenseEffect !== 0) rows.push({ label: t("balance_breakdown_expenses"), value: expenseEffect });
+  if (transferEffect !== 0) rows.push({ label: t("balance_breakdown_transfers"), value: transferEffect });
+  if (rows.length === 0) rows.push({ label: t("balance_breakdown_initial"), value: 0 });
+
+  return (
+    <div className="mt-4 pt-4 border-t border-outline-variant/20 space-y-1.5">
+      {rows.map((row) => (
+        <div key={row.label} className="flex items-center justify-between text-xs">
+          <span className="text-on-surface-variant">{row.label}</span>
+          <span className={cn("font-semibold tabular-nums", amountColorClass(row.value))}>
+            {formatSigned(row.value, currency)}
+          </span>
+        </div>
+      ))}
+      <div className="flex items-center justify-between text-xs pt-1.5 border-t border-outline-variant/10">
+        <span className="font-semibold text-on-surface">{t("balance_breakdown_net")}</span>
+        <span className={cn("font-bold tabular-nums", amountColorClass(net))}>
+          {formatSigned(net, currency)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// --- Transaction rows ---
+
+function ActivityRow({ item, currency, t }: { item: BalanceActivity; currency: string; t: (k: string) => string }) {
+  const isTransfer = item.kind !== "expense";
+  const label = isTransfer
+    ? (item.kind === "transfer" ? t("kind_transfer") : t("kind_settle_up"))
+    : item.category_name ?? "";
+  const description = item.description || (isTransfer ? label : "");
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+      <div className={cn(
+        "w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0",
+        isTransfer ? "bg-tertiary-container/30 text-tertiary" : "bg-primary-container/20",
+      )}>
+        {isTransfer ? <ArrowRightLeft size={18} /> : item.category_icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-on-surface truncate">{description}</p>
+        <p className="text-xs text-outline">{label}{label ? " · " : ""}{formatDate(item.date)}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className={cn("text-sm font-bold tabular-nums", amountColorClass(item.net_effect))}>
+          {formatSigned(item.net_effect, currency)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PaidRow({ item }: { item: RecentPaid }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+      <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center text-lg flex-shrink-0">
+        {item.category_icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
+        <p className="text-xs text-outline">{item.category_name} · {formatDate(item.date)}</p>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <p className="text-sm font-bold text-on-surface tabular-nums">
+          {formatCurrency(item.amount, item.currency_code)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// --- Tabs ---
+
+type TransactionTab = "activity" | "paid";
+
+function TransactionTabs({
+  balanceActivity,
+  recentPaid,
+  currency,
+  t,
+}: {
+  balanceActivity: BalanceActivity[];
+  recentPaid: RecentPaid[];
+  currency: string;
+  t: (k: string) => string;
+}) {
+  const [tab, setTab] = useState<TransactionTab>("activity");
+
+  const tabButtonClass = (active: boolean) =>
+    cn(
+      "flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors",
+      active
+        ? "bg-primary text-on-primary"
+        : "text-on-surface-variant hover:bg-surface-container-high/40",
+    );
+
+  return (
+    <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
+      <div className="p-2 flex gap-2 border-b border-outline-variant/20">
+        <button className={tabButtonClass(tab === "activity")} onClick={() => setTab("activity")}>
+          {t("tab_affecting_balance")}
+        </button>
+        <button className={tabButtonClass(tab === "paid")} onClick={() => setTab("paid")}>
+          {t("tab_paid_by_member")}
+        </button>
+      </div>
+      <div className="px-2 py-3 space-y-1">
+        {tab === "activity" && (
+          balanceActivity.length === 0
+            ? <p className="text-sm text-outline text-center py-8">{t("no_transactions")}</p>
+            : balanceActivity.map((item) => (
+                <ActivityRow key={`${item.kind}-${item.id}`} item={item} currency={currency} t={t} />
+              ))
+        )}
+        {tab === "paid" && (
+          recentPaid.length === 0
+            ? <p className="text-sm text-outline text-center py-8">{t("no_expenses_yet")}</p>
+            : recentPaid.map((item) => <PaidRow key={item.id} item={item} />)
+        )}
       </div>
     </div>
   );
@@ -159,55 +313,26 @@ export default function MemberAnalytics() {
       .finally(() => setLoading(false));
   }, [groupId, memberId]);
 
-  const net = detail ? detail.net_balance : 0;
-  const initial = detail ? detail.initial_balance : 0;
   const currency = detail?.currency_code ?? "USD";
+  const net = detail?.net_balance ?? 0;
+  const initial = detail?.initial_balance ?? 0;
 
-  // Monthly average: approximate months since we don't have a join date from this endpoint
-  // Use earliest expense date as proxy, fallback to 1 month
-  const monthsSinceJoin = useMemo(() => {
-    if (!detail) return 1;
-    const dates = [
-      ...detail.recent_paid.map((e) => new Date(e.date).getTime()),
-      ...detail.recent_owed.map((e) => new Date(e.date).getTime()),
-    ];
-    if (dates.length === 0) return 1;
-    const earliest = Math.min(...dates);
-    const months = Math.max(1, Math.ceil((Date.now() - earliest) / (1000 * 60 * 60 * 24 * 30)));
-    return months;
-  }, [detail]);
-
-  const monthlyAvg = detail ? detail.total_paid / monthsSinceJoin : 0;
-
-  // Merge recent_paid and recent_owed for full activity history
-  const allActivity = useMemo(() => {
-    if (!detail) return [];
-    const paid = detail.recent_paid.map((e) => ({
-      id: e.id,
-      type: "paid" as const,
-      description: e.description,
-      category: e.category_name,
-      icon: e.category_icon,
-      amount: e.amount,
-      currency: e.currency_code,
-      date: e.date,
-    }));
-    const owed = detail.recent_owed.map((e) => ({
-      id: e.id + "-owed",
-      type: "owed" as const,
-      description: e.description,
-      category: e.category_name,
-      icon: e.category_icon,
-      amount: e.owed_amount,
-      currency: e.currency_code,
-      date: e.date,
-    }));
-    return [...paid, ...owed].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Derive the expenses vs transfers contribution from balance_activity so the
+  // breakdown always reconciles with the big number.
+  const { expenseEffect, transferEffect } = useMemo(() => {
+    if (!detail) return { expenseEffect: 0, transferEffect: 0 };
+    let exp = 0;
+    let xfer = 0;
+    for (const a of detail.balance_activity) {
+      if (a.kind === "expense") exp += a.net_effect;
+      else xfer += a.net_effect;
+    }
+    return { expenseEffect: exp, transferEffect: xfer };
   }, [detail]);
 
   return (
     <div>
-      {/* ============ DESKTOP HEADER (hidden on mobile) ============ */}
+      {/* ============ DESKTOP HEADER ============ */}
       <div className="hidden sm:block mb-8">
         <div className="flex items-center gap-3 mb-1">
           <button
@@ -226,7 +351,7 @@ export default function MemberAnalytics() {
         <h1 className="text-2xl font-bold text-on-surface ml-12">{t("member_analytics")}</h1>
       </div>
 
-      {/* ============ MOBILE HEADER (hidden on desktop) ============ */}
+      {/* ============ MOBILE HEADER ============ */}
       <div className="sm:hidden mb-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -257,7 +382,7 @@ export default function MemberAnalytics() {
         <>
           {/* ==================== MOBILE LAYOUT ==================== */}
           <div className="sm:hidden space-y-4">
-            {/* Centered avatar + name */}
+            {/* Profile */}
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-primary-container/30 flex items-center justify-center text-primary text-2xl font-bold mx-auto mb-3">
                 {detail.member_name[0]?.toUpperCase()}
@@ -268,82 +393,43 @@ export default function MemberAnalytics() {
               </p>
             </div>
 
-            {/* Two stat cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("total_paid")}</p>
-                <p className="text-xl font-bold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-1">{t("across_all_expenses")}</p>
-              </div>
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("monthly_avg")}</p>
-                <p className="text-xl font-bold text-on-surface">{formatCurrency(monthlyAvg, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-1">{t("per_month")}</p>
-              </div>
-            </div>
-
-            {/* Net balance + initial balance summary */}
+            {/* Card 1: Balance */}
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
               <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("net_balance")}</p>
-              <p className={cn("text-2xl font-bold", net >= 0 ? "text-primary" : "text-error")}>
-                {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
+              <p className={cn("text-3xl font-bold tabular-nums", amountColorClass(net))}>
+                {formatSigned(net, currency)}
               </p>
               <p className="text-xs text-on-surface-variant mt-1">
-                {net >= 0 ? t("is_owed_back") : t("owes_to_group")}
+                {net > 0 ? t("is_owed_back") : net < 0 ? t("owes_to_group") : t("settled_up")}
               </p>
-              {initial !== 0 && (
-                <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("initial_balance")}</p>
-                    <p className="text-[10px] text-outline mt-0.5">{t("initial_balance_hint")}</p>
-                  </div>
-                  <span className={cn("text-sm font-bold", initial > 0 ? "text-primary" : "text-error")}>
-                    {initial > 0 ? "+" : ""}{formatCurrency(initial, currency)}
-                  </span>
-                </div>
+              <BalanceBreakdown
+                initial={initial}
+                expenseEffect={expenseEffect}
+                transferEffect={transferEffect}
+                net={net}
+                currency={currency}
+                t={t}
+              />
+            </div>
+
+            {/* Card 2: Category of expense */}
+            <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
+              <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("category_of_expense")}</h2>
+              {detail.owed_by_category.length === 0 ? (
+                <p className="text-sm text-outline text-center py-8">{t("no_expenses_yet")}</p>
+              ) : (
+                <DonutChart categories={detail.owed_by_category} currencyCode={currency} />
               )}
             </div>
 
-            {/* Category Spending donut */}
-            {detail.paid_by_category.length > 0 && (
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("category_spending")}</h2>
-                <DonutChart categories={detail.paid_by_category} currencyCode={currency} />
-              </div>
-            )}
+            {/* Transactions tabs */}
+            <TransactionTabs
+              balanceActivity={detail.balance_activity}
+              recentPaid={detail.recent_paid}
+              currency={currency}
+              t={t}
+            />
 
-            {/* Activity History */}
-            {allActivity.length > 0 && (
-              <div>
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-3 px-1">{t("activity_history")}</h2>
-                <div className="space-y-2">
-                  {allActivity.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
-                      <div className={cn(
-                        "w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0",
-                        item.type === "paid" ? "bg-primary-container/20" : "bg-error-container/20"
-                      )}>
-                        {item.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
-                        <p className="text-xs text-outline">{item.category} · {formatDate(item.date)}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className={cn("text-sm font-bold", item.type === "paid" ? "text-primary" : "text-error")}>
-                          {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
-                        </p>
-                        <p className="text-[10px] text-outline uppercase font-semibold">
-                          {item.type === "paid" ? t("paid") : t("owed")}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Settle Balance button */}
             <button className="w-full py-3.5 rounded-2xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 transition-colors">
               {t("settle_balance")}
             </button>
@@ -351,7 +437,7 @@ export default function MemberAnalytics() {
 
           {/* ==================== DESKTOP LAYOUT ==================== */}
           <div className="hidden sm:block space-y-5">
-            {/* Profile section */}
+            {/* Profile */}
             <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-primary-container/30 flex items-center justify-center text-primary text-2xl font-bold flex-shrink-0">
@@ -364,108 +450,43 @@ export default function MemberAnalytics() {
               </div>
             </div>
 
-            {/* Two stat cards */}
+            {/* Two-column: Balance + Category of expense */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("total_paid")}</p>
-                <p className="text-2xl font-bold text-on-surface">{formatCurrency(detail.total_paid, currency)}</p>
-                <p className="text-xs text-on-surface-variant mt-2">{t("across_all_expenses")}</p>
-              </div>
               <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
                 <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">{t("net_balance")}</p>
-                <p className={cn("text-2xl font-bold", net >= 0 ? "text-primary" : "text-error")}>
-                  {net >= 0 ? "+" : ""}{formatCurrency(net, currency)}
+                <p className={cn("text-3xl font-bold tabular-nums", amountColorClass(net))}>
+                  {formatSigned(net, currency)}
                 </p>
-                <p className="text-xs text-on-surface-variant mt-2">
-                  {net >= 0 ? t("is_owed_back") : t("owes_to_group")}
+                <p className="text-xs text-on-surface-variant mt-1">
+                  {net > 0 ? t("is_owed_back") : net < 0 ? t("owes_to_group") : t("settled_up")}
                 </p>
-                {initial !== 0 && (
-                  <div className="mt-3 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("initial_balance")}</p>
-                      <p className="text-[10px] text-outline mt-0.5">{t("initial_balance_hint")}</p>
-                    </div>
-                    <span className={cn("text-sm font-bold", initial > 0 ? "text-primary" : "text-error")}>
-                      {initial > 0 ? "+" : ""}{formatCurrency(initial, currency)}
-                    </span>
-                  </div>
+                <BalanceBreakdown
+                  initial={initial}
+                  expenseEffect={expenseEffect}
+                  transferEffect={transferEffect}
+                  net={net}
+                  currency={currency}
+                  t={t}
+                />
+              </div>
+
+              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
+                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">{t("category_of_expense")}</h2>
+                {detail.owed_by_category.length === 0 ? (
+                  <p className="text-sm text-outline text-center py-8">{t("no_expenses_yet")}</p>
+                ) : (
+                  <DonutChart categories={detail.owed_by_category} currencyCode={currency} />
                 )}
               </div>
             </div>
 
-            {/* Two-column: Donut + Top Expenses */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Left: Spending by Category donut */}
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-5">{t("spending_by_category")}</h2>
-                {detail.paid_by_category.length === 0 ? (
-                  <p className="text-sm text-outline text-center py-8">{t("no_category_data")}</p>
-                ) : (
-                  <DonutChart categories={detail.paid_by_category} currencyCode={currency} />
-                )}
-              </div>
-
-              {/* Right: Top Expenses Paid */}
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-5">
-                <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4">{t("top_expenses_paid")}</h2>
-                {detail.recent_paid.length === 0 ? (
-                  <p className="text-sm text-outline text-center py-8">{t("no_expenses_paid")}</p>
-                ) : (
-                  <div className="space-y-2">
-                    {detail.recent_paid.map((exp) => (
-                      <div key={exp.id} className="bg-surface-container-high/30 rounded-xl px-4 py-3 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-base flex-shrink-0">
-                          {exp.category_icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-on-surface truncate">{exp.description}</p>
-                          <p className="text-xs text-outline">{formatDate(exp.date)}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-sm font-semibold text-on-surface">{formatCurrency(exp.amount, exp.currency_code)}</span>
-                          <span className="text-[10px] font-medium text-on-surface-variant bg-surface-container rounded-full px-2 py-0.5">
-                            {exp.category_name}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Activity History */}
-            {allActivity.length > 0 && (
-              <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-                <div className="px-5 py-4">
-                  <h2 className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("activity_history")}</h2>
-                </div>
-                <div className="px-2 pb-3 space-y-1">
-                  {allActivity.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
-                      <div className={cn(
-                        "w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0",
-                        item.type === "paid" ? "bg-primary-container/20" : "bg-error-container/20"
-                      )}>
-                        {item.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-on-surface truncate">{item.description}</p>
-                        <p className="text-xs text-outline">{item.category} · {formatDate(item.date)}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className={cn("text-sm font-bold", item.type === "paid" ? "text-primary" : "text-error")}>
-                          {item.type === "paid" ? "+" : "-"}{formatCurrency(item.amount, item.currency)}
-                        </p>
-                        <p className="text-[10px] text-outline uppercase font-semibold">
-                          {item.type === "paid" ? t("paid") : t("owed")}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Transactions tabs */}
+            <TransactionTabs
+              balanceActivity={detail.balance_activity}
+              recentPaid={detail.recent_paid}
+              currency={currency}
+              t={t}
+            />
           </div>
         </>
       )}
