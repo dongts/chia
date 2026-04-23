@@ -36,8 +36,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       );
       const unreadCount = notifications.filter((n) => !n.read).length;
       set({ notifications, unreadCount });
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.warn("Failed to mark notification read", err);
     }
   },
 
@@ -46,8 +46,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       await apiMarkAllRead();
       const notifications = get().notifications.map((n) => ({ ...n, read: true }));
       set({ notifications, unreadCount: 0 });
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.warn("Failed to mark all notifications read", err);
     }
   },
 }));
