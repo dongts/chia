@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon, Unlink, Mail, Smartphone, BadgeCheck } from "lucide-react";
 import client from "@/api/client";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
-import { listMembers, addMember, updateMember, removeMember } from "@/api/members";
+import { listMembers, addMember, updateMember, removeMember, unclaimMember } from "@/api/members";
 import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
 import { listMyGroupPaymentMethods, enablePaymentMethodInGroup, disablePaymentMethodInGroup } from "@/api/paymentMethods";
 import type { Group, GroupMember, GroupCurrencyRead, MemberRole, MyGroupPaymentMethod } from "@/types";
@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
 import { getCurrencyName } from "@/utils/currencies";
 
-type MemberLogAction = "joined" | "left" | "removed" | "role_changed" | "renamed" | "claimed";
+type MemberLogAction = "joined" | "left" | "removed" | "role_changed" | "renamed" | "claimed" | "unclaimed";
 
 interface MemberLogEntry {
   id: string;
@@ -290,6 +290,7 @@ export default function GroupSettings() {
   function ActionIcon({ action }: { action: MemberLogAction }) {
     const cls = "w-4 h-4 flex-shrink-0";
     if (action === "joined" || action === "claimed") return <UserPlus className={cls} />;
+    if (action === "unclaimed") return <Unlink className={cls} />;
     if (action === "left" || action === "removed") return <UserMinus className={cls} />;
     if (action === "role_changed") return <Shield className={cls} />;
     if (action === "renamed") return <Pencil className={cls} />;
@@ -298,11 +299,26 @@ export default function GroupSettings() {
 
   function actionColor(action: MemberLogAction): string {
     if (action === "joined" || action === "claimed") return "text-primary bg-primary-container/20";
+    if (action === "unclaimed") return "text-on-surface-variant bg-surface-container";
     if (action === "left") return "text-on-surface-variant bg-surface-container";
     if (action === "removed") return "text-error bg-error-container/20";
     if (action === "role_changed") return "text-tertiary bg-tertiary-container/20";
     if (action === "renamed") return "text-on-tertiary-container bg-tertiary-container/20";
     return "text-secondary bg-secondary-container/20";
+  }
+
+  async function handleUnclaimMember(memberId: string, displayLabel: string) {
+    if (!groupId) return;
+    if (!window.confirm(t("settings.members.confirm_unclaim", { name: displayLabel }))) return;
+    try {
+      const updated = await unclaimMember(groupId, memberId);
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        t("settings.members.failed_unclaim");
+      window.alert(msg);
+    }
   }
 
   if (loading) {
@@ -632,6 +648,36 @@ export default function GroupSettings() {
                     ) : (
                       <p className="text-xs text-outline">{t("settings.members.guest_slot")}</p>
                     )}
+                    {isAdminOrOwner && m.claimed_user && (
+                      <div className="mt-1 space-y-0.5 text-[11px] text-outline">
+                        {m.claimed_user.email ? (
+                          <p className="flex items-center gap-1 truncate">
+                            <Mail size={11} className="flex-shrink-0" />
+                            <span className="truncate">{m.claimed_user.email}</span>
+                            {m.claimed_user.is_verified && (
+                              <BadgeCheck size={11} className="text-primary flex-shrink-0" />
+                            )}
+                          </p>
+                        ) : (
+                          <p className="flex items-center gap-1">
+                            <Mail size={11} className="flex-shrink-0" />
+                            <span className="italic">{t("settings.members.no_email")}</span>
+                          </p>
+                        )}
+                        {m.claimed_user.oauth_providers.length > 0 && (
+                          <p className="flex items-center gap-1 truncate">
+                            <LinkIcon size={11} className="flex-shrink-0" />
+                            <span className="truncate">{m.claimed_user.oauth_providers.join(", ")}</span>
+                          </p>
+                        )}
+                        {m.claimed_user.device_id_short && (
+                          <p className="flex items-center gap-1 font-mono">
+                            <Smartphone size={11} className="flex-shrink-0" />
+                            <span>{m.claimed_user.device_id_short}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -653,6 +699,20 @@ export default function GroupSettings() {
                     >
                       {ROLE_LABELS[m.role]}
                     </span>
+                  )}
+                  {isAdminOrOwner && m.user_id && m.role !== "owner" && (
+                    <button
+                      onClick={() =>
+                        handleUnclaimMember(
+                          m.id,
+                          m.claimed_user?.email || m.claimed_user?.display_name || m.display_name,
+                        )
+                      }
+                      title={t("settings.members.unclaim_tooltip")}
+                      className="p-1.5 text-outline-variant hover:text-on-surface-variant hover:bg-surface-container rounded-full transition-colors"
+                    >
+                      <Unlink size={14} />
+                    </button>
                   )}
                   {isAdminOrOwner && m.role !== "owner" && m.id !== myMember?.id && (
                     <button

@@ -30,6 +30,13 @@ export async function claimMember(groupId: string, memberId: string): Promise<Gr
   return response.data;
 }
 
+export async function unclaimMember(groupId: string, memberId: string): Promise<GroupMember> {
+  const response = await client.post<GroupMember>(
+    `/groups/${groupId}/members/${memberId}/unclaim`
+  );
+  return response.data;
+}
+
 export async function removeMember(groupId: string, memberId: string): Promise<void> {
   await client.delete(`/groups/${groupId}/members/${memberId}`);
 }

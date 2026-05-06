@@ -12,8 +12,35 @@ from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import GroupMember, GroupMemberLog, MemberRole, User
-from app.schemas.group_member import MemberCreate, MemberRead, MemberUpdate
+from app.schemas.group_member import ClaimedUserInfo, MemberCreate, MemberRead, MemberUpdate
 from app.services.member_log import log_member_event
+
+
+def _build_claimed_user_info(user: User | None) -> ClaimedUserInfo | None:
+    """Construct admin-visible identifying info for a claimed account.
+
+    Truncates device_id so admins can visually match without exposing the
+    full opaque token (which is effectively a credential for guest accounts).
+    """
+    if user is None:
+        return None
+    device_short = (user.device_id[:8] + "…") if user.device_id else None
+    providers = sorted({oa.provider for oa in (user.oauth_accounts or [])})
+    return ClaimedUserInfo(
+        user_id=user.id,
+        display_name=user.display_name,
+        email=user.email,
+        is_verified=user.is_verified,
+        oauth_providers=providers,
+        device_id_short=device_short,
+    )
+
+
+def _serialize_member(member: GroupMember, *, include_claimed_user: bool) -> MemberRead:
+    payload = MemberRead.model_validate(member)
+    if include_claimed_user and member.user_id is not None:
+        payload.claimed_user = _build_claimed_user_info(member.user)
+    return payload
 
 router = APIRouter(prefix="/groups/{group_id}/members", tags=["members"])
 
@@ -25,12 +52,18 @@ async def list_members(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await get_current_member(db, group_id, current_user.id)
+    current = await get_current_member(db, group_id, current_user.id)
+    is_admin = current.role in (MemberRole.owner, MemberRole.admin)
     query = select(GroupMember).where(GroupMember.group_id == group_id)
     if not include_inactive:
         query = query.where(GroupMember.is_active.is_(True))
+    if is_admin:
+        query = query.options(selectinload(GroupMember.user).selectinload(User.oauth_accounts))
     result = await db.execute(query.order_by(GroupMember.joined_at))
-    return result.scalars().all()
+    return [
+        _serialize_member(m, include_claimed_user=is_admin)
+        for m in result.scalars().all()
+    ]
 
 
 @router.post("", response_model=MemberRead)
@@ -142,7 +175,63 @@ async def claim_member(
 
     target.user_id = current_user.id
     target.claimed_at = datetime.now(timezone.utc)
-    await log_member_event(db, group_id, member_id, "claimed", f"Claimed by {current_user.display_name}")
+    # Snapshot identifying details so the audit trail survives even if the
+    # user later changes email, deletes their account, or claims from another
+    # device — this is what lets admins recognise "which login was this?"
+    parts = [f"Claimed by {current_user.display_name}"]
+    if current_user.email:
+        parts.append(current_user.email)
+    if current_user.device_id:
+        parts.append(f"device {current_user.device_id[:8]}…")
+    detail = " · ".join(parts)
+    await log_member_event(db, group_id, member_id, "claimed", detail)
+    await db.commit()
+    await db.refresh(target)
+    return target
+
+
+@router.post("/{member_id}/unclaim", response_model=MemberRead)
+async def unclaim_member(
+    group_id: uuid.UUID,
+    member_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detach a user account from a member slot so it can be re-claimed.
+
+    Used when a user forgets which device/account they used to claim, or
+    needs to migrate their member to a different account.
+    """
+    current = await get_current_member(db, group_id, current_user.id)
+    require_role(current, MemberRole.owner, MemberRole.admin)
+
+    result = await db.execute(
+        select(GroupMember)
+        .where(GroupMember.id == member_id, GroupMember.group_id == group_id)
+        .options(selectinload(GroupMember.user))
+    )
+    target = result.scalars().first()
+    if not target:
+        raise NotFound("Member not found")
+    if target.user_id is None:
+        raise BadRequest("Member is not claimed")
+    if target.role == MemberRole.owner:
+        raise BadRequest("Cannot unclaim the group owner")
+
+    previous_label = target.user.display_name if target.user else "unknown account"
+    if target.user and target.user.email:
+        previous_label = f"{previous_label} ({target.user.email})"
+
+    target.user_id = None
+    target.claimed_at = None
+    await log_member_event(
+        db,
+        group_id,
+        member_id,
+        "unclaimed",
+        f"Unclaimed from {previous_label} by {current.display_name}",
+        current.id,
+    )
     await db.commit()
     await db.refresh(target)
     return target

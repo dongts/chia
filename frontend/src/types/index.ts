@@ -54,6 +54,15 @@ export interface GroupUpdate {
 // Group Member
 export type MemberRole = "owner" | "admin" | "member";
 
+export interface ClaimedUserInfo {
+  user_id: string;
+  display_name: string;
+  email: string | null;
+  is_verified: boolean;
+  oauth_providers: string[];
+  device_id_short: string | null;
+}
+
 export interface GroupMember {
   id: string;
   display_name: string;
@@ -64,6 +73,7 @@ export interface GroupMember {
   initial_balance: number;
   claimed_at: string | null;
   joined_at: string;
+  claimed_user: ClaimedUserInfo | null;
 }
 
 export interface MemberCreate {
