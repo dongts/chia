@@ -407,24 +407,22 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                         <Badge green={m.role === "owner"}>{m.role}</Badge>
                         {!m.user_id && <span className="text-xs text-amber-500">unclaimed</span>}
                         {m.is_active && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setMergeMemberId(m.id);
-                                setMergeMemberName(m.display_name);
-                                setMergeMemberUserId(m.user_id);
-                                setMergeType(m.user_id ? "user" : "member");
-                              }}
-                              className="text-outline-variant hover:text-primary transition-colors" title="Merge this member into another"
-                            ><Merge size={11} /></button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteMember(m.id, m.display_name); }}
-                              disabled={deletingMemberId === m.id}
-                              className="text-outline-variant hover:text-error transition-colors disabled:opacity-50" title="Permanently delete member"
-                            ><Trash2 size={11} /></button>
-                          </>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMergeMemberId(m.id);
+                              setMergeMemberName(m.display_name);
+                              setMergeMemberUserId(m.user_id);
+                              setMergeType(m.user_id ? "user" : "member");
+                            }}
+                            className="text-outline-variant hover:text-primary transition-colors" title="Merge this member into another"
+                          ><Merge size={11} /></button>
                         )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteMember(m.id, m.display_name); }}
+                          disabled={deletingMemberId === m.id}
+                          className="text-outline-variant hover:text-error transition-colors disabled:opacity-50" title="Permanently delete member"
+                        ><Trash2 size={11} /></button>
                       </span>
                     ))}
                   </div>
