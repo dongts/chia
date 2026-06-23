@@ -12,6 +12,7 @@ from app.api.v1.settlements import _compute_balances
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, GroupMember, Category, Settlement, User
+from app.models.expense_fund_deduction import ExpenseFundDeduction
 
 BALANCE_ACTIVITY_LIMIT = 100
 
@@ -55,14 +56,27 @@ async def report_summary(
     total_spent = sum((e.converted_amount for e in expenses), Decimal("0"))
     expense_count = len(expenses)
 
-    # Per member: total paid, total owed
+    # Fund-covered portion per expense (reimbursed to the payer by the fund).
+    deductions_result = await db.execute(
+        select(ExpenseFundDeduction.expense_id, func.sum(ExpenseFundDeduction.amount))
+        .join(Expense, Expense.id == ExpenseFundDeduction.expense_id)
+        .where(Expense.group_id == group_id)
+        .group_by(ExpenseFundDeduction.expense_id)
+    )
+    deduction_by_expense: dict[uuid.UUID, Decimal] = {
+        eid: amt for eid, amt in deductions_result.all()
+    }
+
+    # Per member: total paid (net of fund-covered portions), total owed
     paid_by_member: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
     owed_by_member: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
     expense_count_by_member: dict[uuid.UUID, int] = defaultdict(int)
 
     for e in expenses:
         if e.paid_by in members:
-            paid_by_member[e.paid_by] += e.converted_amount
+            paid_by_member[e.paid_by] += (
+                e.converted_amount - deduction_by_expense.get(e.id, Decimal("0"))
+            )
             expense_count_by_member[e.paid_by] += 1
 
     for s in all_splits:
@@ -205,7 +219,25 @@ async def report_member_detail(
         for split, expense in owed_splits[:50]
     ]
 
-    total_paid = sum((e.converted_amount for e in paid_expenses), Decimal("0"))
+    # Fund-covered portion per expense this member paid (reimbursed by the
+    # fund), so it must not count toward what they paid or their balance.
+    paid_expense_ids = [e.id for e in paid_expenses]
+    if paid_expense_ids:
+        deductions_result = await db.execute(
+            select(ExpenseFundDeduction.expense_id, func.sum(ExpenseFundDeduction.amount))
+            .where(ExpenseFundDeduction.expense_id.in_(paid_expense_ids))
+            .group_by(ExpenseFundDeduction.expense_id)
+        )
+        deduction_by_expense: dict[uuid.UUID, Decimal] = {
+            eid: amt for eid, amt in deductions_result.all()
+        }
+    else:
+        deduction_by_expense = {}
+
+    total_paid = sum(
+        (e.converted_amount - deduction_by_expense.get(e.id, Decimal("0")) for e in paid_expenses),
+        Decimal("0"),
+    )
     total_owed = sum((s.resolved_amount for s, _ in owed_splits), Decimal("0"))
 
     # Balance activity: one row per transaction that moved this member's
@@ -222,7 +254,7 @@ async def report_member_detail(
     for eid, expense in involved_expenses.items():
         net_effect = Decimal("0")
         if eid in paid_ids:
-            net_effect += expense.converted_amount
+            net_effect += expense.converted_amount - deduction_by_expense.get(eid, Decimal("0"))
         if eid in owed_share_by_expense:
             net_effect -= owed_share_by_expense[eid]
         cat = categories.get(expense.category_id)

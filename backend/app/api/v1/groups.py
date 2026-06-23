@@ -13,6 +13,7 @@ from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, Group, GroupMember, MemberRole, Settlement, User
+from app.models.expense_fund_deduction import ExpenseFundDeduction
 from app.schemas.group import GroupCreate, GroupListItem, GroupRead, GroupUpdate
 from app.services.member_log import log_member_event
 from app.utils.invite_code import generate_invite_code
@@ -121,6 +122,17 @@ async def list_groups(
             )
             for gid, total in paid_result.all():
                 balances[gid] = float(total)
+
+            # Subtract fund-covered portions of my expenses: the fund (a
+            # separate ledger) reimburses me, so it must not credit my balance.
+            my_deductions_result = await db.execute(
+                select(Expense.group_id, func.coalesce(func.sum(ExpenseFundDeduction.amount), 0))
+                .join(ExpenseFundDeduction, ExpenseFundDeduction.expense_id == Expense.id)
+                .where(Expense.paid_by.in_(all_member_ids))
+                .group_by(Expense.group_id)
+            )
+            for gid, total in my_deductions_result.all():
+                balances[gid] -= float(total)
 
             # What I owe
             owed_result = await db.execute(

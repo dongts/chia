@@ -319,7 +319,15 @@ export default function EditExpense() {
               const selectedIds = fundDeductions.map((dd) => dd.fundId).filter((id) => id && id !== d.fundId);
               const availableFunds = funds.filter((f) => !selectedIds.includes(f.id));
               const selectedFund = funds.find((f) => f.id === d.fundId);
-              const deductionExceedsBalance = selectedFund && parseFloat(d.amount) > selectedFund.balance;
+              // The fund's current balance already has THIS expense's existing
+              // deduction subtracted, so add it back to get the real headroom
+              // when editing — otherwise an unchanged deduction looks like it
+              // exceeds the balance.
+              const originalDeduction = expense?.fund_deductions?.find((fd) => fd.fund_id === d.fundId);
+              const availableBalance = selectedFund
+                ? selectedFund.balance + (originalDeduction ? parseFloat(String(originalDeduction.amount)) : 0)
+                : 0;
+              const deductionExceedsBalance = selectedFund && parseFloat(d.amount) > availableBalance;
 
               return (
                 <div key={i} className="flex items-start gap-2">
@@ -343,7 +351,7 @@ export default function EditExpense() {
                     />
                     {deductionExceedsBalance && (
                       <p className="text-xs text-error">
-                        {t("exceeds_fund_balance", { balance: formatCurrency(selectedFund.balance, group?.currency_code || "VND") })}
+                        {t("exceeds_fund_balance", { balance: formatCurrency(availableBalance, group?.currency_code || "VND") })}
                       </p>
                     )}
                   </div>

@@ -456,6 +456,60 @@ async def test_update_change_deduction_amount(
     assert Decimal(str(fa_resp.json()["balance"])) == Decimal("440.00")
 
 
+async def _balances_by_member(client: AsyncClient, auth_headers: dict, group_id) -> dict:
+    resp = await client.get(f"/api/v1/groups/{group_id}/balances", headers=auth_headers)
+    assert resp.status_code == 200
+    return {b["member_id"]: Decimal(str(b["balance"])) for b in resp.json()}
+
+
+@pytest.mark.asyncio
+async def test_fund_covered_expense_does_not_affect_member_balances(
+    client: AsyncClient, auth_headers: dict, expense_fund_setup: dict,
+):
+    """A 100%-fund-covered expense must be neutral to every member's balance:
+    the payer fronted the cash but the fund (a separate ledger) reimburses them."""
+    setup = expense_fund_setup
+    payload = _expense_payload(setup, fund_deductions=[
+        {"fund_id": str(setup["fund_a"].id), "amount": "100.00"},
+    ])
+    resp = await client.post(
+        f"/api/v1/groups/{setup['group'].id}/expenses",
+        json=payload, headers=auth_headers,
+    )
+    assert resp.status_code == 200
+
+    balances = await _balances_by_member(client, auth_headers, setup["group"].id)
+    # Nobody owes or is owed anything — the fund paid for it.
+    assert balances[str(setup["member1"].id)] == Decimal("0.00")
+    assert balances[str(setup["member2"].id)] == Decimal("0.00")
+    assert balances[str(setup["member3"].id)] == Decimal("0.00")
+
+
+@pytest.mark.asyncio
+async def test_partial_fund_deduction_balances(
+    client: AsyncClient, auth_headers: dict, expense_fund_setup: dict,
+):
+    """100 expense, 40 from the fund, remaining 60 split equally among 3.
+    Payer is credited only the 60 they covered for the group (not the full 100)."""
+    setup = expense_fund_setup
+    payload = _expense_payload(setup, fund_deductions=[
+        {"fund_id": str(setup["fund_a"].id), "amount": "40.00"},
+    ])
+    resp = await client.post(
+        f"/api/v1/groups/{setup['group'].id}/expenses",
+        json=payload, headers=auth_headers,
+    )
+    assert resp.status_code == 200
+
+    balances = await _balances_by_member(client, auth_headers, setup["group"].id)
+    # member1 paid 60 (net of fund), owes 20 -> +40; others owe 20 each.
+    assert balances[str(setup["member1"].id)] == Decimal("40.00")
+    assert balances[str(setup["member2"].id)] == Decimal("-20.00")
+    assert balances[str(setup["member3"].id)] == Decimal("-20.00")
+    # Balances must sum to zero.
+    assert sum(balances.values()) == Decimal("0.00")
+
+
 @pytest.mark.asyncio
 async def test_delete_expense_restores_fund_balances(
     client: AsyncClient, auth_headers: dict, expense_fund_setup: dict,
