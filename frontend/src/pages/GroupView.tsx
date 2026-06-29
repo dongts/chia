@@ -840,12 +840,18 @@ export default function GroupView() {
                     key={b.member_id}
                     className="bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-3.5 flex items-center justify-between"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant">
+                    <Link
+                      to={`/groups/${groupId}/reports/member/${b.member_id}`}
+                      className="flex items-center gap-3 min-w-0 group/member rounded-xl -m-1 p-1 hover:bg-surface-container/40 transition-colors"
+                      title={t("balances.view_analytics", { name: b.member_name })}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                         {b.member_name[0]?.toUpperCase()}
                       </div>
-                      <p className="font-semibold text-on-surface text-sm">{b.member_name}</p>
-                    </div>
+                      <p className="font-semibold text-on-surface text-sm truncate group-hover/member:text-primary group-hover/member:underline underline-offset-2 transition-colors">
+                        {b.member_name}
+                      </p>
+                    </Link>
                     <div className="flex items-center gap-2">
                       {getMemberPaymentMethods(b.member_id).length > 0 && (
                         <button

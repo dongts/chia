@@ -59,7 +59,8 @@
     "sort_name_asc": "Tên (A→Z)",
     "sort_name_desc": "Tên (Z→A)",
     "sort_balance_desc": "Số dư (cao→thấp)",
-    "sort_balance_asc": "Số dư (thấp→cao)"
+    "sort_balance_asc": "Số dư (thấp→cao)",
+    "view_analytics": "Xem phân tích của {{name}}"
   },
   "settlements": {
     "empty_title": "Chưa có giao dịch nào",

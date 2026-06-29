@@ -59,7 +59,8 @@
     "sort_name_asc": "Name (A→Z)",
     "sort_name_desc": "Name (Z→A)",
     "sort_balance_desc": "Balance (high→low)",
-    "sort_balance_asc": "Balance (low→high)"
+    "sort_balance_asc": "Balance (low→high)",
+    "view_analytics": "View {{name}}'s analytics"
   },
   "settlements": {
     "empty_title": "No settlements recorded",
