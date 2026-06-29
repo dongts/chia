@@ -14,7 +14,7 @@ from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Group, GroupMember, GroupMemberLog, MemberRole, User
 from app.schemas.group_member import ClaimedUserInfo, MemberCreate, MemberRead, MemberUpdate
-from app.services.balances import CENT, compute_balances, suggest_settlements_for_member
+from app.services.balances import compute_balances, settled_threshold, suggest_settlements_for_member
 from app.services.member_log import log_member_event
 
 
@@ -27,8 +27,9 @@ async def _assert_member_settled(db: AsyncSession, group: Group, member: GroupMe
     would bring this member to zero so the client can offer to record them.
     """
     balances = await compute_balances(db, group.id)
-    balance = balances.get(member.id, Decimal("0")).quantize(CENT)
-    if abs(balance) < CENT:
+    threshold = settled_threshold(group.currency_code)
+    balance = balances.get(member.id, Decimal("0")).quantize(threshold)
+    if abs(balance) < threshold:
         return
 
     suggestions = suggest_settlements_for_member(balances, member.id)

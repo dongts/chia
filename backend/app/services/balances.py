@@ -11,6 +11,22 @@ from app.services.debt_simplifier import simplify_debts
 
 CENT = Decimal("0.01")
 
+# Currencies with no minor unit — a balance below 1 of these is rounding dust,
+# not a real debt (mirrors the frontend ZERO_DECIMAL_CURRENCIES list).
+ZERO_DECIMAL_CURRENCIES = frozenset({
+    "VND", "JPY", "KRW", "CLP", "ISK", "UGX", "GNF", "BIF", "DJF",
+    "KMF", "MGA", "PYG", "RWF", "VUV", "XAF", "XOF", "XPF",
+})
+
+
+def settled_threshold(currency_code: str) -> Decimal:
+    """Smallest balance that still counts as owed in this currency.
+
+    Equal-split division leaves sub-unit remainders (e.g. 0.02 VND). Those are
+    un-payable dust, so anything below one minor unit must read as settled.
+    """
+    return Decimal("1") if currency_code.upper() in ZERO_DECIMAL_CURRENCIES else CENT
+
 
 async def compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
     """Net balance per active member in the group's main currency.
