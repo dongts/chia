@@ -1,8 +1,13 @@
 import type { GroupMember, MemberCreate, MemberUpdate } from "@/types";
 import client from "./client";
 
-export async function listMembers(groupId: string): Promise<GroupMember[]> {
-  const response = await client.get<GroupMember[]>(`/groups/${groupId}/members`);
+export async function listMembers(
+  groupId: string,
+  includeInactive = false
+): Promise<GroupMember[]> {
+  const response = await client.get<GroupMember[]>(`/groups/${groupId}/members`, {
+    params: includeInactive ? { include_inactive: true } : undefined,
+  });
   return response.data;
 }
 
@@ -39,4 +44,8 @@ export async function unclaimMember(groupId: string, memberId: string): Promise<
 
 export async function removeMember(groupId: string, memberId: string): Promise<void> {
   await client.delete(`/groups/${groupId}/members/${memberId}`);
+}
+
+export async function reactivateMember(groupId: string, memberId: string): Promise<GroupMember> {
+  return updateMember(groupId, memberId, { is_active: true });
 }

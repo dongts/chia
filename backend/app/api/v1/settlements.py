@@ -1,22 +1,18 @@
 import uuid
-from collections import defaultdict
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import (
-    Expense,
-    ExpenseSplit,
     GroupMember,
     Settlement,
     User,
 )
-from app.models.expense_fund_deduction import ExpenseFundDeduction
 from app.schemas.settlement import (
     BalanceRead,
     SettlementCreate,
@@ -24,79 +20,11 @@ from app.schemas.settlement import (
     SettlementUpdate,
     SuggestedSettlement,
 )
+from app.services.balances import compute_balances
 from app.services.debt_simplifier import simplify_debts
 from app.services.notification import notify_members, resolve_member_user_ids
 
 router = APIRouter(prefix="/groups/{group_id}", tags=["settlements"])
-
-
-async def _compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
-    # Get active members
-    members_result = await db.execute(
-        select(GroupMember).where(
-            GroupMember.group_id == group_id,
-            GroupMember.is_active.is_(True),
-        )
-    )
-    members = {m.id: m for m in members_result.scalars().all()}
-    balances: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
-
-    # Fund-covered portions of expenses: the payer fronted this money but is
-    # reimbursed by the fund (a separate ledger), so it must NOT count toward
-    # their split balance. Without this, a fund-paid expense double-credits the
-    # payer.
-    deductions_result = await db.execute(
-        select(ExpenseFundDeduction.expense_id, func.sum(ExpenseFundDeduction.amount))
-        .join(Expense, Expense.id == ExpenseFundDeduction.expense_id)
-        .where(Expense.group_id == group_id)
-        .group_by(ExpenseFundDeduction.expense_id)
-    )
-    deduction_by_expense: dict[uuid.UUID, Decimal] = {
-        eid: amt for eid, amt in deductions_result.all()
-    }
-
-    # Sum what each member paid (in group's main currency), net of any portion
-    # covered by a fund.
-    expenses_result = await db.execute(
-        select(Expense).where(Expense.group_id == group_id)
-    )
-    for expense in expenses_result.scalars().all():
-        if expense.paid_by in members:
-            balances[expense.paid_by] += (
-                expense.converted_amount
-                - deduction_by_expense.get(expense.id, Decimal("0"))
-            )
-
-    # Subtract what each member owes
-    splits_result = await db.execute(
-        select(ExpenseSplit)
-        .join(Expense, Expense.id == ExpenseSplit.expense_id)
-        .where(Expense.group_id == group_id)
-    )
-    for split in splits_result.scalars().all():
-        if split.group_member_id in members:
-            balances[split.group_member_id] -= split.resolved_amount
-
-    # Factor in settlements
-    settlements_result = await db.execute(
-        select(Settlement).where(Settlement.group_id == group_id)
-    )
-    for s in settlements_result.scalars().all():
-        if s.from_member in members:
-            balances[s.from_member] += s.amount  # payer reduces debt
-        if s.to_member in members:
-            balances[s.to_member] -= s.amount  # receiver loses credit
-
-    # Add initial balances (for migrated debts from other systems)
-    for mid, member in members.items():
-        balances[mid] += member.initial_balance
-
-    # Ensure all active members appear
-    for mid in members:
-        if mid not in balances:
-            balances[mid] = members[mid].initial_balance
-
-    return balances
 
 
 @router.get("/balances", response_model=list[BalanceRead])
@@ -106,7 +34,7 @@ async def get_balances(
     db: AsyncSession = Depends(get_db),
 ):
     await get_current_member(db, group_id, current_user.id)
-    balances = await _compute_balances(db, group_id)
+    balances = await compute_balances(db, group_id)
 
     members_result = await db.execute(
         select(GroupMember).where(
@@ -134,7 +62,7 @@ async def get_suggested_settlements(
     db: AsyncSession = Depends(get_db),
 ):
     await get_current_member(db, group_id, current_user.id)
-    balances = await _compute_balances(db, group_id)
+    balances = await compute_balances(db, group_id)
 
     members_result = await db.execute(
         select(GroupMember).where(

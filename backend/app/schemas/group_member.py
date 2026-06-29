@@ -18,6 +18,7 @@ class MemberUpdate(BaseModel):
     display_name: str | None = None
     nicknames: str | None = None
     initial_balance: Decimal | None = None
+    is_active: bool | None = None
 
 
 class ClaimedUserInfo(BaseModel):

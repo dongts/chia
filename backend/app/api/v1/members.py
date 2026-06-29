@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -11,9 +12,57 @@ from app.core.exceptions import BadRequest, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import GroupMember, GroupMemberLog, MemberRole, User
+from app.models import Group, GroupMember, GroupMemberLog, MemberRole, User
 from app.schemas.group_member import ClaimedUserInfo, MemberCreate, MemberRead, MemberUpdate
+from app.services.balances import CENT, compute_balances, suggest_settlements_for_member
 from app.services.member_log import log_member_event
+
+
+async def _assert_member_settled(db: AsyncSession, group: Group, member: GroupMember) -> None:
+    """Block deactivation while a member still has a non-zero balance.
+
+    A deactivated member drops out of every balance/settlement calculation, so
+    letting one leave with an outstanding debt or credit would silently corrupt
+    the group's books. On block, we attach the minimal settle-up transfers that
+    would bring this member to zero so the client can offer to record them.
+    """
+    balances = await compute_balances(db, group.id)
+    balance = balances.get(member.id, Decimal("0")).quantize(CENT)
+    if abs(balance) < CENT:
+        return
+
+    suggestions = suggest_settlements_for_member(balances, member.id)
+    name_ids = {member.id}
+    for from_id, to_id, _ in suggestions:
+        name_ids.update((from_id, to_id))
+    names_result = await db.execute(
+        select(GroupMember.id, GroupMember.display_name).where(GroupMember.id.in_(name_ids))
+    )
+    names = {mid: name for mid, name in names_result.all()}
+
+    owed = balance > 0  # positive balance ⇒ the group owes this member
+    raise BadRequest(
+        {
+            "code": "member_has_balance",
+            "message": (
+                f"{member.display_name} still has an unsettled balance "
+                f"({'is owed' if owed else 'owes'} {abs(balance)} {group.currency_code}). "
+                "Settle up before deactivating."
+            ),
+            "balance": str(balance),
+            "currency_code": group.currency_code,
+            "suggested_settlements": [
+                {
+                    "from_member": str(from_id),
+                    "from_member_name": names.get(from_id, "Unknown"),
+                    "to_member": str(to_id),
+                    "to_member_name": names.get(to_id, "Unknown"),
+                    "amount": str(amount),
+                }
+                for from_id, to_id, amount in suggestions
+            ],
+        }
+    )
 
 
 def _build_claimed_user_info(user: User | None) -> ClaimedUserInfo | None:
@@ -140,6 +189,23 @@ async def update_member(
         require_role(current, MemberRole.owner, MemberRole.admin)
         target.initial_balance = data.initial_balance
 
+    if data.is_active is not None and data.is_active != target.is_active:
+        require_role(current, MemberRole.owner, MemberRole.admin)
+        if target.role == MemberRole.owner:
+            raise BadRequest("Cannot deactivate the group owner")
+        if data.is_active:
+            target.is_active = True
+            await log_member_event(
+                db, group_id, member_id, "reactivated", f"Reactivated by {current.display_name}", current.id
+            )
+        else:
+            group = await get_group_or_404(db, group_id)
+            await _assert_member_settled(db, group, target)
+            target.is_active = False
+            await log_member_event(
+                db, group_id, member_id, "removed", f"Removed by {current.display_name}", current.id
+            )
+
     await db.commit()
     await db.refresh(target)
     return target
@@ -254,6 +320,8 @@ async def remove_member(
         raise NotFound("Member not found")
     if target.role == MemberRole.owner:
         raise BadRequest("Cannot remove the group owner")
+    group = await get_group_or_404(db, group_id)
+    await _assert_member_settled(db, group, target)
     target.is_active = False
     await log_member_event(db, group_id, member_id, "removed", f"Removed by {current.display_name}", current.id)
     await db.commit()

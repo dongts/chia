@@ -2,19 +2,20 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon, Unlink, Mail, Smartphone, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, Plus, Pencil, X, UserPlus, UserMinus, Shield, Link as LinkIcon, Unlink, Mail, Smartphone, BadgeCheck, RotateCcw, ArrowRight } from "lucide-react";
 import client from "@/api/client";
 import { getGroup, updateGroup, deleteGroup } from "@/api/groups";
-import { listMembers, addMember, updateMember, removeMember, unclaimMember } from "@/api/members";
+import { listMembers, addMember, updateMember, removeMember, unclaimMember, reactivateMember } from "@/api/members";
+import { createSettlement } from "@/api/settlements";
 import { listGroupCurrencies, addGroupCurrency, updateGroupCurrency, deleteGroupCurrency } from "@/api/groupCurrencies";
 import { listMyGroupPaymentMethods, enablePaymentMethodInGroup, disablePaymentMethodInGroup } from "@/api/paymentMethods";
-import type { Group, GroupMember, GroupCurrencyRead, MemberRole, MyGroupPaymentMethod } from "@/types";
+import type { Group, GroupMember, GroupCurrencyRead, MemberRole, MyGroupPaymentMethod, MemberHasBalanceError } from "@/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
 import { getCurrencyName } from "@/utils/currencies";
 
-type MemberLogAction = "joined" | "left" | "removed" | "role_changed" | "renamed" | "claimed" | "unclaimed";
+type MemberLogAction = "joined" | "left" | "removed" | "reactivated" | "role_changed" | "renamed" | "claimed" | "unclaimed";
 
 interface MemberLogEntry {
   id: string;
@@ -64,6 +65,10 @@ export default function GroupSettings() {
   const [logLimit, setLogLimit] = useState(20);
   const [myGroupPMs, setMyGroupPMs] = useState<MyGroupPaymentMethod[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [settleUpPrompt, setSettleUpPrompt] = useState<
+    { member: GroupMember; info: MemberHasBalanceError } | null
+  >(null);
+  const [settling, setSettling] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -81,7 +86,7 @@ export default function GroupSettings() {
     try {
       const [g, m, c, logRes, pms] = await Promise.all([
         getGroup(groupId),
-        listMembers(groupId),
+        listMembers(groupId, true),
         listGroupCurrencies(groupId),
         client.get<MemberLogEntry[]>(`/groups/${groupId}/members/log`),
         listMyGroupPaymentMethods(groupId),
@@ -106,6 +111,10 @@ export default function GroupSettings() {
   const myMember = members.find((m) => m.user_id === user?.id);
   const isOwner = myMember?.role === "owner";
   const isAdminOrOwner = myMember?.role === "owner" || myMember?.role === "admin";
+
+  // Active members lead the list; deactivated ones are grouped at the bottom.
+  const activeMembers = members.filter((m) => m.is_active);
+  const sortedMembers = [...activeMembers, ...members.filter((m) => !m.is_active)];
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -154,12 +163,61 @@ export default function GroupSettings() {
     if (!window.confirm(t("settings.members.confirm_remove", { name: memberName }))) return;
     try {
       await removeMember(groupId, memberId);
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      // Soft delete: keep the row but flip it to inactive so it stays visible
+      // (and reactivatable) without losing payment history.
+      setMembers((prev) => prev.map((m) => (m.id === memberId ? { ...m, is_active: false } : m)));
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      if (detail && typeof detail === "object" && (detail as MemberHasBalanceError).code === "member_has_balance") {
+        const member = members.find((m) => m.id === memberId);
+        if (member) {
+          setSettleUpPrompt({ member, info: detail as MemberHasBalanceError });
+          return;
+        }
+      }
+      const msg = typeof detail === "string" ? detail : t("settings.members.failed_remove");
+      window.alert(msg);
+    }
+  }
+
+  async function handleReactivateMember(memberId: string) {
+    if (!groupId) return;
+    try {
+      const updated = await reactivateMember(groupId, memberId);
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        t("settings.members.failed_reactivate");
+      window.alert(msg);
+    }
+  }
+
+  // Records the suggested settlements that zero out the member's balance, then
+  // retries the deactivation in one click.
+  async function handleSettleAndRemove() {
+    if (!groupId || !settleUpPrompt) return;
+    const { member, info } = settleUpPrompt;
+    setSettling(true);
+    try {
+      for (const s of info.suggested_settlements) {
+        await createSettlement(groupId, {
+          from_member: s.from_member,
+          to_member: s.to_member,
+          amount: Number(s.amount),
+          type: "settle_up",
+        });
+      }
+      await removeMember(groupId, member.id);
+      setSettleUpPrompt(null);
+      await loadData();
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.members.failed_remove");
-      window.alert(msg);
+      window.alert(typeof msg === "string" ? msg : t("settings.members.failed_remove"));
+    } finally {
+      setSettling(false);
     }
   }
 
@@ -290,6 +348,7 @@ export default function GroupSettings() {
   function ActionIcon({ action }: { action: MemberLogAction }) {
     const cls = "w-4 h-4 flex-shrink-0";
     if (action === "joined" || action === "claimed") return <UserPlus className={cls} />;
+    if (action === "reactivated") return <RotateCcw className={cls} />;
     if (action === "unclaimed") return <Unlink className={cls} />;
     if (action === "left" || action === "removed") return <UserMinus className={cls} />;
     if (action === "role_changed") return <Shield className={cls} />;
@@ -298,7 +357,7 @@ export default function GroupSettings() {
   }
 
   function actionColor(action: MemberLogAction): string {
-    if (action === "joined" || action === "claimed") return "text-primary bg-primary-container/20";
+    if (action === "joined" || action === "claimed" || action === "reactivated") return "text-primary bg-primary-container/20";
     if (action === "unclaimed") return "text-on-surface-variant bg-surface-container";
     if (action === "left") return "text-on-surface-variant bg-surface-container";
     if (action === "removed") return "text-error bg-error-container/20";
@@ -607,8 +666,11 @@ export default function GroupSettings() {
 
           {/* Member list */}
           <div className="space-y-1">
-            {members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors">
+            {sortedMembers.map((m) => (
+              <div key={m.id} className={cn(
+                "flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-surface-container-high/30 transition-colors",
+                !m.is_active && "opacity-60"
+              )}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-full bg-primary-container/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
                     {m.display_name[0]?.toUpperCase()}
@@ -634,7 +696,14 @@ export default function GroupSettings() {
                     ) : (
                       <div className="flex items-center gap-1.5">
                         <div>
-                          <p className="text-sm font-medium text-on-surface truncate">{m.display_name}</p>
+                          <p className={cn("text-sm font-medium text-on-surface truncate", !m.is_active && "line-through")}>
+                            {m.display_name}
+                            {!m.is_active && (
+                              <span className="ml-2 align-middle rounded-full bg-surface-container px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant no-underline">
+                                {t("settings.members.inactive_badge")}
+                              </span>
+                            )}
+                          </p>
                           {m.nicknames && <p className="text-xs text-outline truncate">{m.nicknames}</p>}
                         </div>
                         {isAdminOrOwner && (
@@ -681,7 +750,7 @@ export default function GroupSettings() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {isOwner && m.role !== "owner" ? (
+                  {isOwner && m.role !== "owner" && m.is_active ? (
                     <select
                       value={m.role}
                       onChange={(e) => handleRoleChange(m.id, e.target.value as MemberRole)}
@@ -700,7 +769,7 @@ export default function GroupSettings() {
                       {ROLE_LABELS[m.role]}
                     </span>
                   )}
-                  {isAdminOrOwner && m.user_id && m.role !== "owner" && (
+                  {isAdminOrOwner && m.user_id && m.role !== "owner" && m.is_active && (
                     <button
                       onClick={() =>
                         handleUnclaimMember(
@@ -715,12 +784,23 @@ export default function GroupSettings() {
                     </button>
                   )}
                   {isAdminOrOwner && m.role !== "owner" && m.id !== myMember?.id && (
-                    <button
-                      onClick={() => handleRemoveMember(m.id, m.display_name)}
-                      className="p-1.5 text-outline-variant hover:text-error hover:bg-error-container/10 rounded-full transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    m.is_active ? (
+                      <button
+                        onClick={() => handleRemoveMember(m.id, m.display_name)}
+                        title={t("settings.members.deactivate_tooltip")}
+                        className="p-1.5 text-outline-variant hover:text-error hover:bg-error-container/10 rounded-full transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleReactivateMember(m.id)}
+                        title={t("settings.members.reactivate_tooltip")}
+                        className="p-1.5 text-outline-variant hover:text-primary hover:bg-primary-container/10 rounded-full transition-colors"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -729,14 +809,14 @@ export default function GroupSettings() {
         </section>
 
         {/* Initial Balances — for migrating from other systems */}
-        {isAdminOrOwner && members.length > 0 && (
+        {isAdminOrOwner && activeMembers.length > 0 && (
           <section className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
             <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1">{t("settings.initial_balances.title")}</h2>
             <p className="text-xs text-outline mb-5">
               {t("settings.initial_balances.hint")}
             </p>
             <div className="space-y-2">
-              {members.map((m) => (
+              {activeMembers.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-container-high/30 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                     {m.display_name[0]?.toUpperCase()}
@@ -818,6 +898,63 @@ export default function GroupSettings() {
           </section>
         )}
       </div>
+
+      {/* Settle-up prompt — blocks deactivating a member with an open balance */}
+      {settleUpPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-editorial p-6">
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <h3 className="text-base font-semibold text-on-surface">
+                {t("settings.members.settle_prompt.title", { name: settleUpPrompt.member.display_name })}
+              </h3>
+              <button
+                onClick={() => setSettleUpPrompt(null)}
+                className="p-1 text-outline hover:text-on-surface rounded-full"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-4">
+              {t("settings.members.settle_prompt.hint")}
+            </p>
+            <div className="space-y-2 mb-5">
+              {settleUpPrompt.info.suggested_settlements.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-surface-container-high/40 text-sm"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-medium text-on-surface truncate">{s.from_member_name}</span>
+                    <ArrowRight size={13} className="text-outline flex-shrink-0" />
+                    <span className="font-medium text-on-surface truncate">{s.to_member_name}</span>
+                  </div>
+                  <span className="font-semibold text-on-surface whitespace-nowrap">
+                    {s.amount} {settleUpPrompt.info.currency_code}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setSettleUpPrompt(null)}
+                disabled={settling}
+                className="px-4 py-2.5 rounded-full text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-60"
+              >
+                {t("settings.members.settle_prompt.cancel")}
+              </button>
+              <button
+                onClick={handleSettleAndRemove}
+                disabled={settling}
+                className="px-4 py-2.5 rounded-full text-sm font-semibold text-on-primary bg-primary hover:bg-primary-dim transition-colors disabled:opacity-60"
+              >
+                {settling
+                  ? t("settings.members.settle_prompt.recording")
+                  : t("settings.members.settle_prompt.confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -87,6 +87,23 @@ export interface MemberUpdate {
   display_name?: string | null;
   nicknames?: string | null;
   initial_balance?: number | null;
+  is_active?: boolean | null;
+}
+
+// Returned as the `detail` of a 400 when deactivating a member who still has
+// a non-zero balance (see backend members._assert_member_settled).
+export interface MemberHasBalanceError {
+  code: "member_has_balance";
+  message: string;
+  balance: string;
+  currency_code: string;
+  suggested_settlements: {
+    from_member: string;
+    from_member_name: string;
+    to_member: string;
+    to_member_name: string;
+    amount: string;
+  }[];
 }
 
 // Expense / Split

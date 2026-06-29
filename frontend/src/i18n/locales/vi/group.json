@@ -175,7 +175,18 @@
       "confirm_remove": "Xóa {{name}} khỏi nhóm?",
       "failed_remove": "Không thể xóa thành viên",
       "failed_rename": "Không thể đổi tên",
-      "failed_update_role": "Không thể cập nhật vai trò"
+      "failed_update_role": "Không thể cập nhật vai trò",
+      "inactive_badge": "Ngừng hoạt động",
+      "deactivate_tooltip": "Vô hiệu hóa (giữ lịch sử thanh toán)",
+      "reactivate_tooltip": "Kích hoạt lại thành viên",
+      "failed_reactivate": "Không thể kích hoạt lại thành viên",
+      "settle_prompt": {
+        "title": "Cân đối công nợ trước khi xóa {{name}}",
+        "hint": "Thành viên này vẫn còn số dư chưa thanh toán nên chưa thể vô hiệu hóa. Ghi nhận các khoản thanh toán dưới đây để cân đối, sau đó xóa — các chi tiêu cũ vẫn được giữ nguyên.",
+        "cancel": "Hủy",
+        "confirm": "Ghi nhận & xóa",
+        "recording": "Đang ghi nhận…"
+      }
     },
     "initial_balances": {
       "title": "Số dư ban đầu",

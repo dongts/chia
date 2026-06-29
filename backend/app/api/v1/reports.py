@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
-from app.api.v1.settlements import _compute_balances
+from app.services.balances import compute_balances
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, GroupMember, Category, Settlement, User
@@ -85,7 +85,7 @@ async def report_summary(
 
     # Authoritative balances (includes initial_balance and settlements) — must
     # match the Balances tab so analytics doesn't confuse the user.
-    computed_balances = await _compute_balances(db, group_id)
+    computed_balances = await compute_balances(db, group_id)
 
     per_member = []
     for mid, m in members.items():
@@ -241,7 +241,7 @@ async def report_member_detail(
     total_owed = sum((s.resolved_amount for s, _ in owed_splits), Decimal("0"))
 
     # Balance activity: one row per transaction that moved this member's
-    # balance, signed to match _compute_balances (positive = balance up).
+    # balance, signed to match compute_balances (positive = balance up).
     owed_share_by_expense: dict[uuid.UUID, Decimal] = {
         split.expense_id: split.resolved_amount for split, _ in owed_splits
     }
@@ -284,7 +284,7 @@ async def report_member_detail(
     activity.sort(key=lambda pair: pair[0], reverse=True)
     balance_activity = [entry for _, entry in activity[:BALANCE_ACTIVITY_LIMIT]]
 
-    computed_balances = await _compute_balances(db, group_id)
+    computed_balances = await compute_balances(db, group_id)
     net_balance = computed_balances.get(member_id, Decimal("0"))
 
     return {

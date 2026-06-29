@@ -175,7 +175,18 @@
       "confirm_remove": "Remove {{name}} from the group?",
       "failed_remove": "Failed to remove member",
       "failed_rename": "Failed to rename",
-      "failed_update_role": "Failed to update role"
+      "failed_update_role": "Failed to update role",
+      "inactive_badge": "Inactive",
+      "deactivate_tooltip": "Deactivate (keeps payment history)",
+      "reactivate_tooltip": "Reactivate member",
+      "failed_reactivate": "Failed to reactivate member",
+      "settle_prompt": {
+        "title": "Settle up before removing {{name}}",
+        "hint": "This member still has an open balance, so they can't be deactivated yet. Record these payments to settle up, then remove them — past expenses stay intact.",
+        "cancel": "Cancel",
+        "confirm": "Record payments & remove",
+        "recording": "Recording…"
+      }
     },
     "initial_balances": {
       "title": "Initial Balances",
