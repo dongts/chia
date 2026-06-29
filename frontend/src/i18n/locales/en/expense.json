@@ -48,5 +48,6 @@
   },
   "search_members": "Search {{count}} members...",
   "selected_count": "{{selected}} of {{total}} selected",
-  "no_members_found": "No members found"
+  "no_members_found": "No members found",
+  "inactive_suffix": "(inactive)"
 }

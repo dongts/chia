@@ -48,5 +48,6 @@
   },
   "search_members": "Tìm trong {{count}} thành viên...",
   "selected_count": "{{selected}} / {{total}} được chọn",
-  "no_members_found": "Không tìm thấy thành viên"
+  "no_members_found": "Không tìm thấy thành viên",
+  "inactive_suffix": "(đã rời)"
 }

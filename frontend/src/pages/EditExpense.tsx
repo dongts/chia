@@ -74,11 +74,19 @@ export default function EditExpense() {
     getGroup(groupId).then((g) => setGroup(g));
     Promise.all([
       getExpense(groupId, expenseId),
-      listMembers(groupId),
+      listMembers(groupId, true),
       listGroupCategories(groupId),
     ])
-      .then(([exp, m, c]) => {
+      .then(([exp, allMembers, c]) => {
         setExpense(exp);
+        // Keep active members, plus any inactive member this expense already
+        // references (its payer or splits), so a deactivated payer still
+        // resolves in the form without surfacing unrelated inactive members.
+        const referenced = new Set<string>([
+          exp.paid_by,
+          ...exp.splits.map((s) => s.group_member_id),
+        ]);
+        const m = allMembers.filter((mem) => mem.is_active || referenced.has(mem.id));
         setMembers(m);
         setCategories(c);
         setFundDeductions(
@@ -280,7 +288,7 @@ export default function EditExpense() {
                   searchable={members.length > 5}
                   options={members.map((m) => ({
                     value: m.id,
-                    label: m.display_name,
+                    label: m.is_active ? m.display_name : `${m.display_name} ${t("inactive_suffix")}`,
                     icon: m.display_name[0]?.toUpperCase(),
                   }))}
                   placeholder={t("select_person")}
