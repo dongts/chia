@@ -1,4 +1,4 @@
-import type { Balance, Settlement, SettlementCreate, SettlementUpdate, SuggestedSettlement } from "@/types";
+import type { Balance, DistributionCreate, Settlement, SettlementCreate, SettlementUpdate, SuggestedSettlement } from "@/types";
 import client from "./client";
 
 export async function getBalances(groupId: string): Promise<Balance[]> {
@@ -18,6 +18,14 @@ export async function createSettlement(
   data: SettlementCreate
 ): Promise<Settlement> {
   const response = await client.post<Settlement>(`/groups/${groupId}/settlements`, data);
+  return response.data;
+}
+
+export async function createDistribution(
+  groupId: string,
+  data: DistributionCreate
+): Promise<Settlement[]> {
+  const response = await client.post<Settlement[]>(`/groups/${groupId}/distributions`, data);
   return response.data;
 }
 

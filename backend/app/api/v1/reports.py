@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.groups import get_current_member, get_group_or_404
-from app.services.balances import compute_balances
+from app.services.balances import compute_balances, settlement_balance_effect
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import Expense, ExpenseSplit, GroupMember, Category, Settlement, User
@@ -269,7 +269,8 @@ async def report_member_detail(
             "date": expense.date.isoformat(),
         }))
     for s in member_settlements:
-        signed = s.amount if s.from_member == member_id else -s.amount
+        sender_effect, recipient_effect = settlement_balance_effect(s.type, s.amount)
+        signed = sender_effect if s.from_member == member_id else recipient_effect
         settled_at = s.settled_at
         sort_key = settled_at if settled_at.tzinfo else settled_at.replace(tzinfo=timezone.utc)
         activity.append((sort_key.replace(tzinfo=None), {

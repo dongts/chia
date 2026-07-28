@@ -1,11 +1,12 @@
 import uuid
-from decimal import Decimal
+from decimal import ROUND_DOWN, Decimal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.groups import get_current_member
+from app.api.v1.groups import get_current_member, get_group_or_404
+from app.core.exceptions import BadRequest
 from app.core.security import get_current_user
 from app.database import get_db
 from app.models import (
@@ -15,16 +16,29 @@ from app.models import (
 )
 from app.schemas.settlement import (
     BalanceRead,
+    DistributionCreate,
     SettlementCreate,
     SettlementRead,
     SettlementUpdate,
     SuggestedSettlement,
 )
-from app.services.balances import compute_balances
+from app.services.balances import ZERO_DECIMAL_CURRENCIES, compute_balances
 from app.services.debt_simplifier import simplify_debts
 from app.services.notification import notify_members, resolve_member_user_ids
 
 router = APIRouter(prefix="/groups/{group_id}", tags=["settlements"])
+
+
+def _distribution_amounts(
+    amount: Decimal, count: int, mode: str, currency_code: str
+) -> list[Decimal]:
+    if mode == "per_recipient":
+        return [amount] * count
+
+    unit = Decimal("1") if currency_code.upper() in ZERO_DECIMAL_CURRENCIES else Decimal("0.01")
+    base = (amount / count).quantize(unit, rounding=ROUND_DOWN)
+    remainder_units = int((amount - base * count) / unit)
+    return [base + (unit if i < remainder_units else Decimal("0")) for i in range(count)]
 
 
 @router.get("/balances", response_model=list[BalanceRead])
@@ -138,6 +152,78 @@ async def create_settlement(
         type=settlement.type,
         settled_at=settlement.settled_at,
     )
+
+
+@router.post("/distributions", response_model=list[SettlementRead])
+async def create_distribution(
+    group_id: uuid.UUID,
+    data: DistributionCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Give money to several members without creating expense debt."""
+    current = await get_current_member(db, group_id, current_user.id)
+    group = await get_group_or_404(db, group_id)
+    requested_ids = [data.from_member, *data.recipient_ids]
+    members_result = await db.execute(
+        select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.id.in_(requested_ids),
+            GroupMember.is_active.is_(True),
+        )
+    )
+    members = {member.id: member for member in members_result.scalars().all()}
+    if len(members) != len(requested_ids):
+        raise BadRequest("Sender and all recipients must be active members of this group")
+
+    amounts = _distribution_amounts(
+        data.amount, len(data.recipient_ids), data.amount_mode, group.currency_code
+    )
+    if any(amount <= 0 for amount in amounts):
+        raise BadRequest("Amount is too small to distribute among the selected recipients")
+
+    distributions = [
+        Settlement(
+            group_id=group_id,
+            from_member=data.from_member,
+            to_member=recipient_id,
+            amount=amount,
+            description=data.description,
+            type="gift",
+            created_by=current.id,
+        )
+        for recipient_id, amount in zip(data.recipient_ids, amounts, strict=True)
+    ]
+    db.add_all(distributions)
+
+    affected_user_ids = await resolve_member_user_ids(db, requested_ids)
+    await notify_members(
+        db, affected_user_ids, group_id, "distribution_recorded",
+        {
+            "from": members[data.from_member].display_name,
+            "recipient_count": len(data.recipient_ids),
+            "total": str(sum(amounts, Decimal("0"))),
+        },
+        exclude_user_id=current_user.id,
+    )
+    await db.commit()
+    for distribution in distributions:
+        await db.refresh(distribution)
+
+    return [
+        SettlementRead(
+            id=distribution.id,
+            from_member=distribution.from_member,
+            from_member_name=members[distribution.from_member].display_name,
+            to_member=distribution.to_member,
+            to_member_name=members[distribution.to_member].display_name,
+            amount=distribution.amount,
+            description=distribution.description,
+            type=distribution.type,
+            settled_at=distribution.settled_at,
+        )
+        for distribution in distributions
+    ]
 
 
 @router.patch("/settlements/{settlement_id}", response_model=SettlementRead)

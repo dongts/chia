@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   Plus, Share2, Settings, ArrowLeft, Check, BarChart3, Pencil, Trash2,
   ArrowLeftRight, Landmark, UserPlus, ImageIcon,
-  ArrowRight, X, Search, Filter, ChevronDown, ChevronRight,
+  ArrowRight, X, Search, Filter, ChevronDown, ChevronRight, Gift,
 } from "lucide-react";
 import { getGroup } from "@/api/groups";
 import { listExpenses, deleteExpense } from "@/api/expenses";
-import { getBalances, createSettlement, updateSettlement, listSettlements, getSuggestedSettlements } from "@/api/settlements";
+import { getBalances, createDistribution, createSettlement, updateSettlement, listSettlements, getSuggestedSettlements } from "@/api/settlements";
 import { listGroupCategories } from "@/api/categories";
 import { listMembers, addMember } from "@/api/members";
 import { listGroupPaymentMethods, listMyPaymentMethods, enablePaymentMethodInGroup } from "@/api/paymentMethods";
@@ -158,6 +158,13 @@ export default function GroupView() {
   const [transferring, setTransferring] = useState(false);
   const [transferType, setTransferType] = useState<"transfer" | "settle_up">("transfer");
   const [editingSettlementId, setEditingSettlementId] = useState<string | null>(null);
+  const [showGiveMoney, setShowGiveMoney] = useState(false);
+  const [giftFrom, setGiftFrom] = useState("");
+  const [giftRecipients, setGiftRecipients] = useState<string[]>([]);
+  const [giftAmount, setGiftAmount] = useState("");
+  const [giftAmountMode, setGiftAmountMode] = useState<"per_recipient" | "total">("per_recipient");
+  const [giftNote, setGiftNote] = useState("");
+  const [givingMoney, setGivingMoney] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -367,6 +374,35 @@ export default function GroupView() {
       await loadAll();
     } catch { window.alert(editingSettlementId ? t("transfer_modal.failed_update") : t("transfer_modal.failed_record")); }
     finally { setTransferring(false); }
+  }
+
+  function openGiveMoneyModal() {
+    setGiftFrom(myMemberId ?? "");
+    setGiftRecipients([]);
+    setGiftAmount("");
+    setGiftAmountMode("per_recipient");
+    setGiftNote("");
+    setShowGiveMoney(true);
+  }
+
+  async function handleGiveMoney() {
+    if (!groupId || !giftFrom || giftRecipients.length === 0 || !giftAmount) return;
+    setGivingMoney(true);
+    try {
+      await createDistribution(groupId, {
+        from_member: giftFrom,
+        recipient_ids: giftRecipients,
+        amount: parseFloat(giftAmount),
+        amount_mode: giftAmountMode,
+        description: giftNote || null,
+      });
+      setShowGiveMoney(false);
+      await loadAll();
+    } catch {
+      window.alert(t("give_money_modal.failed_record"));
+    } finally {
+      setGivingMoney(false);
+    }
   }
 
   function getMemberPaymentMethods(memberId: string) {
@@ -662,6 +698,13 @@ export default function GroupView() {
             {/* Actions — always visible, pushed right */}
             <div className="flex items-center gap-2 ml-auto">
               <button
+                onClick={openGiveMoneyModal}
+                className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
+              >
+                <Gift size={16} />
+                <span className="hidden sm:inline">{t("actions.give_money")}</span>
+              </button>
+              <button
                 onClick={() => openTransferModal("transfer")}
                 className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
               >
@@ -887,7 +930,14 @@ export default function GroupView() {
       {tab === "settlements" && (
         <div className="space-y-3">
           {/* Action row */}
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={openGiveMoneyModal}
+              className="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium px-4 py-2 rounded-full text-sm transition-colors"
+            >
+              <Gift size={16} />
+              <span>{t("actions.give_money")}</span>
+            </button>
             <button
               onClick={() => openTransferModal("transfer")}
               className="flex items-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium px-4 py-2 rounded-full text-sm transition-colors"
@@ -911,11 +961,13 @@ export default function GroupView() {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center",
-                    s.type === "transfer"
+                    s.type === "gift"
+                      ? "bg-secondary-container/30 text-secondary"
+                      : s.type === "transfer"
                       ? "bg-tertiary-container/20 text-tertiary"
                       : "bg-primary-container/20 text-primary"
                   )}>
-                    {s.type === "transfer" ? <ArrowLeftRight size={18} /> : <Check size={18} />}
+                    {s.type === "gift" ? <Gift size={18} /> : s.type === "transfer" ? <ArrowLeftRight size={18} /> : <Check size={18} />}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 text-sm">
@@ -937,21 +989,23 @@ export default function GroupView() {
                   </p>
                   <span className={cn(
                     "text-[10px] font-medium uppercase tracking-wide",
-                    s.type === "transfer" ? "text-tertiary" : "text-primary"
+                    s.type === "gift" ? "text-secondary" : s.type === "transfer" ? "text-tertiary" : "text-primary"
                   )}>
-                    {s.type === "transfer" ? t("settlements.type_transfer") : t("settlements.type_settlement")}
+                    {s.type === "gift" ? t("settlements.type_gift") : s.type === "transfer" ? t("settlements.type_transfer") : t("settlements.type_settlement")}
                   </span>
                 </div>
-                <button
-                  onClick={() => openTransferModal(
-                    (s.type as "transfer" | "settle_up") || "settle_up",
-                    s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
-                  )}
-                  className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                  title={t("edit", { ns: "common" })}
-                >
-                  <Pencil size={14} />
-                </button>
+                {s.type !== "gift" && (
+                  <button
+                    onClick={() => openTransferModal(
+                      (s.type as "transfer" | "settle_up") || "settle_up",
+                      s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
+                    )}
+                    className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                    title={t("edit", { ns: "common" })}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
               </div>
             ))
           )}
@@ -1016,6 +1070,177 @@ export default function GroupView() {
               </Link>
             ))
           )}
+        </div>
+      )}
+
+      {/* ── Give Money Modal ── */}
+      {showGiveMoney && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setShowGiveMoney(false)}
+        >
+          <div
+            className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 pt-6 pb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-secondary-container/30 flex items-center justify-center">
+                  <Gift size={18} className="text-secondary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-on-surface">{t("give_money_modal.title")}</h3>
+                  <p className="text-xs text-outline">{t("give_money_modal.subtitle")}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGiveMoney(false)}
+                className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-6 pb-6 pt-3 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">{t("give_money_modal.from")}</label>
+                <MemberSearchSelect
+                  value={giftFrom}
+                  onChange={(id) => {
+                    setGiftFrom(id);
+                    setGiftRecipients((current) => current.filter((recipientId) => recipientId !== id));
+                  }}
+                  members={members}
+                  placeholder={t("transfer_modal.search_person")}
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    {t("give_money_modal.recipients")}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const eligible = members.filter((member) => member.id !== giftFrom).map((member) => member.id);
+                      setGiftRecipients(giftRecipients.length === eligible.length ? [] : eligible);
+                    }}
+                    className="text-xs font-medium text-primary"
+                  >
+                    {giftRecipients.length === members.filter((member) => member.id !== giftFrom).length
+                      ? t("give_money_modal.clear_all")
+                      : t("give_money_modal.select_all")}
+                  </button>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-xl bg-surface-container-high/50 p-2 space-y-1">
+                  {members.filter((member) => member.id !== giftFrom).map((member) => (
+                    <label
+                      key={member.id}
+                      className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-surface-container cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={giftRecipients.includes(member.id)}
+                        onChange={() => setGiftRecipients((current) =>
+                          current.includes(member.id)
+                            ? current.filter((id) => id !== member.id)
+                            : [...current, member.id]
+                        )}
+                        className="accent-primary w-4 h-4"
+                      />
+                      <span className="text-sm text-on-surface">{member.display_name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-outline mt-1.5">
+                  {t("give_money_modal.selected", { count: giftRecipients.length })}
+                </p>
+              </div>
+
+              <div>
+                <div className="grid grid-cols-2 gap-1 bg-surface-container rounded-xl p-1 mb-3">
+                  {(["per_recipient", "total"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setGiftAmountMode(mode)}
+                      className={cn(
+                        "py-2 rounded-lg text-xs font-medium transition-colors",
+                        giftAmountMode === mode
+                          ? "bg-surface-container-lowest text-primary shadow-editorial"
+                          : "text-on-surface-variant"
+                      )}
+                    >
+                      {t(`give_money_modal.mode_${mode}`)}
+                    </button>
+                  ))}
+                </div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+                  {giftAmountMode === "per_recipient"
+                    ? t("give_money_modal.amount_each")
+                    : t("give_money_modal.total_amount")} ({group.currency_code})
+                </label>
+                <MoneyInput value={giftAmount} onChange={setGiftAmount} currencyCode={group.currency_code} />
+              </div>
+
+              {giftAmount && giftRecipients.length > 0 && (
+                <div className="rounded-xl bg-secondary-container/20 px-4 py-3 text-sm">
+                  <div className="flex justify-between text-on-surface-variant">
+                    <span>{t("give_money_modal.each_person")}</span>
+                    <span className="font-semibold text-on-surface">
+                      {formatCurrency(
+                        giftAmountMode === "per_recipient"
+                          ? Number(giftAmount)
+                          : Number(giftAmount) / giftRecipients.length,
+                        group.currency_code
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1 text-on-surface-variant">
+                    <span>{t("give_money_modal.total")}</span>
+                    <span className="font-bold text-secondary">
+                      {formatCurrency(
+                        giftAmountMode === "per_recipient"
+                          ? Number(giftAmount) * giftRecipients.length
+                          : Number(giftAmount),
+                        group.currency_code
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+                  {t("give_money_modal.note")} <span className="text-outline font-normal">({t("give_money_modal.optional")})</span>
+                </label>
+                <input
+                  type="text"
+                  value={giftNote}
+                  onChange={(e) => setGiftNote(e.target.value)}
+                  placeholder={t("give_money_modal.note_placeholder")}
+                  className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowGiveMoney(false)}
+                  className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface font-medium py-2.5 rounded-full text-sm"
+                >
+                  {t("give_money_modal.cancel")}
+                </button>
+                <button
+                  onClick={handleGiveMoney}
+                  disabled={givingMoney || !giftFrom || giftRecipients.length === 0 || !giftAmount || Number(giftAmount) <= 0}
+                  className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm"
+                >
+                  {givingMoney ? t("give_money_modal.saving") : t("give_money_modal.record")}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

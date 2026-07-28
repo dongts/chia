@@ -18,7 +18,9 @@ class Settlement(Base):
     to_member: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("group_members.id"))
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    type: Mapped[str] = mapped_column(String(20), default="settle_up")  # "settle_up" or "transfer"
+    # settle_up/transfer pay down debt; gift distributes value and has the
+    # opposite balance effect.
+    type: Mapped[str] = mapped_column(String(20), default="settle_up")
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("group_members.id"))
     settled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

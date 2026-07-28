@@ -46,6 +46,7 @@
   },
   "actions": {
     "transfer": "Transfer",
+    "give_money": "Give money",
     "add_expense": "Add Expense"
   },
   "suggested_settlements": {
@@ -66,7 +67,30 @@
     "empty_title": "No settlements recorded",
     "empty_subtitle": "Settle up debts to see them here",
     "type_transfer": "Transfer",
+    "type_gift": "Money given",
     "type_settlement": "Settlement"
+  },
+  "give_money_modal": {
+    "title": "Give money",
+    "subtitle": "Distribute money without creating expense debt",
+    "from": "Given by",
+    "recipients": "Recipients",
+    "select_all": "Select all",
+    "clear_all": "Clear all",
+    "selected": "{{count}} selected",
+    "mode_per_recipient": "Amount per person",
+    "mode_total": "Divide a total",
+    "amount_each": "Amount per recipient",
+    "total_amount": "Total amount",
+    "each_person": "Each person",
+    "total": "Total given",
+    "note": "Note",
+    "optional": "optional",
+    "note_placeholder": "e.g. Team allowance",
+    "cancel": "Cancel",
+    "record": "Record gift",
+    "saving": "Saving...",
+    "failed_record": "Failed to record money distribution"
   },
   "funds": {
     "title": "Group Funds",

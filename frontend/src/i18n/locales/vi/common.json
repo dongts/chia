@@ -61,6 +61,7 @@
     "expense_updated": "Chi phí đã cập nhật: {{description}}",
     "expense_deleted": "Chi phí đã xóa: {{description}}",
     "settlement_recorded": "Đã ghi thanh toán: {{amount}}",
+    "distribution_recorded": "{{from}} đã tặng {{total}} cho {{recipient_count}} người",
     "settlement_confirmed": "Đã xác nhận thanh toán: {{amount}}",
     "role_changed": "Vai trò đã đổi thành {{role}} bởi {{member}}",
     "member_joined": "{{member}} đã tham gia {{group}}",

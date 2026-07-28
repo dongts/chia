@@ -61,6 +61,7 @@
     "expense_updated": "Expense updated: {{description}}",
     "expense_deleted": "Expense deleted: {{description}}",
     "settlement_recorded": "Settlement recorded: {{amount}}",
+    "distribution_recorded": "{{from}} gave {{total}} to {{recipient_count}} people",
     "settlement_confirmed": "Settlement confirmed: {{amount}}",
     "role_changed": "Role changed to {{role}} by {{member}}",
     "member_joined": "{{member}} joined {{group}}",

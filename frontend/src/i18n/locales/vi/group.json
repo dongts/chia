@@ -46,6 +46,7 @@
   },
   "actions": {
     "transfer": "Chuyển tiền",
+    "give_money": "Tặng tiền",
     "add_expense": "Thêm chi phí"
   },
   "suggested_settlements": {
@@ -66,7 +67,30 @@
     "empty_title": "Chưa có giao dịch nào",
     "empty_subtitle": "Thanh toán công nợ để xem ở đây",
     "type_transfer": "Chuyển tiền",
+    "type_gift": "Tặng tiền",
     "type_settlement": "Thanh toán"
+  },
+  "give_money_modal": {
+    "title": "Tặng tiền",
+    "subtitle": "Chia tiền cho nhiều người mà không tạo công nợ chi phí",
+    "from": "Người tặng",
+    "recipients": "Người nhận",
+    "select_all": "Chọn tất cả",
+    "clear_all": "Bỏ chọn",
+    "selected": "Đã chọn {{count}} người",
+    "mode_per_recipient": "Số tiền mỗi người",
+    "mode_total": "Chia tổng số tiền",
+    "amount_each": "Số tiền mỗi người nhận",
+    "total_amount": "Tổng số tiền",
+    "each_person": "Mỗi người",
+    "total": "Tổng tiền tặng",
+    "note": "Ghi chú",
+    "optional": "tùy chọn",
+    "note_placeholder": "VD: Phụ cấp nhóm",
+    "cancel": "Hủy",
+    "record": "Ghi nhận",
+    "saving": "Đang lưu...",
+    "failed_record": "Không thể ghi nhận việc chia tiền"
   },
   "funds": {
     "title": "Quỹ nhóm",

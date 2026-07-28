@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class SettlementCreate(BaseModel):
@@ -11,6 +12,22 @@ class SettlementCreate(BaseModel):
     amount: Decimal
     description: str | None = None
     type: str = "settle_up"  # "settle_up" or "transfer"
+
+
+class DistributionCreate(BaseModel):
+    from_member: uuid.UUID
+    recipient_ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
+    amount: Decimal = Field(gt=0)
+    amount_mode: Literal["per_recipient", "total"] = "per_recipient"
+    description: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def validate_recipients(self):
+        if len(set(self.recipient_ids)) != len(self.recipient_ids):
+            raise ValueError("Recipients must be unique")
+        if self.from_member in self.recipient_ids:
+            raise ValueError("Sender cannot also be a recipient")
+        return self
 
 
 class SettlementUpdate(BaseModel):

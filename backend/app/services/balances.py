@@ -19,6 +19,15 @@ ZERO_DECIMAL_CURRENCIES = frozenset({
 })
 
 
+def settlement_balance_effect(
+    settlement_type: str, amount: Decimal
+) -> tuple[Decimal, Decimal]:
+    """Return (sender effect, recipient effect) for a ledger transfer."""
+    if settlement_type == "gift":
+        return -amount, amount
+    return amount, -amount
+
+
 def settled_threshold(currency_code: str) -> Decimal:
     """Smallest balance that still counts as owed in this currency.
 
@@ -83,10 +92,11 @@ async def compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.U
         select(Settlement).where(Settlement.group_id == group_id)
     )
     for s in settlements_result.scalars().all():
+        sender_effect, recipient_effect = settlement_balance_effect(s.type, s.amount)
         if s.from_member in members:
-            balances[s.from_member] += s.amount  # payer reduces debt
+            balances[s.from_member] += sender_effect
         if s.to_member in members:
-            balances[s.to_member] -= s.amount  # receiver loses credit
+            balances[s.to_member] += recipient_effect
 
     # Add initial balances (for migrated debts from other systems)
     for mid, member in members.items():

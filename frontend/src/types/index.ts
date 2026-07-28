@@ -220,7 +220,7 @@ export interface Settlement {
   to_member_name: string | null;
   amount: number;
   description: string | null;
-  type: "settle_up" | "transfer";
+  type: "settle_up" | "transfer" | "gift";
   settled_at: string;
 }
 
@@ -238,6 +238,14 @@ export interface SettlementUpdate {
   amount?: number;
   description?: string | null;
   type?: "settle_up" | "transfer";
+}
+
+export interface DistributionCreate {
+  from_member: string;
+  recipient_ids: string[];
+  amount: number;
+  amount_mode: "per_recipient" | "total";
+  description?: string | null;
 }
 
 // Fund

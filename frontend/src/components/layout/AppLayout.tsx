@@ -42,6 +42,8 @@ function getNotificationText(notification: Notification): string {
       return `Expense deleted: ${data.description ?? "Unknown"}`;
     case "settlement_recorded":
       return `Settlement recorded: ${data.amount ?? ""}`;
+    case "distribution_recorded":
+      return `${data.from ?? "Someone"} gave ${data.total ?? ""} to ${data.recipient_count ?? 0} people`;
     default:
       return data.description
         ? String(data.description)

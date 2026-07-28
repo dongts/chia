@@ -35,7 +35,7 @@ interface RecentOwed {
   date: string;
 }
 
-type ActivityKind = "expense" | "transfer" | "settle_up";
+type ActivityKind = "expense" | "transfer" | "settle_up" | "gift";
 
 interface BalanceActivity {
   id: string;
@@ -207,7 +207,7 @@ function BalanceBreakdown({
 function ActivityRow({ item, currency, t }: { item: BalanceActivity; currency: string; t: (k: string) => string }) {
   const isTransfer = item.kind !== "expense";
   const label = isTransfer
-    ? (item.kind === "transfer" ? t("kind_transfer") : t("kind_settle_up"))
+    ? (item.kind === "gift" ? t("kind_gift") : item.kind === "transfer" ? t("kind_transfer") : t("kind_settle_up"))
     : item.category_name ?? "";
   const description = item.description || (isTransfer ? label : "");
   return (
