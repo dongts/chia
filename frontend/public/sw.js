@@ -1,4 +1,4 @@
-const CACHE_NAME = "chia-v8";
+const CACHE_NAME = "chia-runtime-v1";
 
 // Install: activate immediately
 self.addEventListener("install", () => {
@@ -13,13 +13,6 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
-});
-
-// Listen for skip waiting message from the page
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
 });
 
 // Fetch handler
@@ -37,7 +30,9 @@ self.addEventListener("fetch", (event) => {
   // This ensures users always get the latest index.html
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      // Explicitly bypass the browser HTTP cache. The runtime cache below is
+      // only an offline fallback, never the source of an online app update.
+      fetch(request, { cache: "no-store" })
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
@@ -50,7 +45,7 @@ self.addEventListener("fetch", (event) => {
 
   // Hashed assets (JS/CSS with content hash): cache-first
   // These are immutable — the filename changes when content changes
-  if (url.pathname.match(/\/assets\/.*\.[a-f0-9]+\./)) {
+  if (url.pathname.match(/\/assets\/.+-[A-Za-z0-9_-]+\.[^.]+$/)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
