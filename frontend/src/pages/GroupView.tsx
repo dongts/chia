@@ -156,7 +156,7 @@ export default function GroupView() {
   const [transferAmount, setTransferAmount] = useState("");
   const [transferNote, setTransferNote] = useState("");
   const [transferring, setTransferring] = useState(false);
-  const [transferType, setTransferType] = useState<"transfer" | "settle_up">("transfer");
+  const [transferType, setTransferType] = useState<"transfer" | "settle_up" | "gift">("transfer");
   const [editingSettlementId, setEditingSettlementId] = useState<string | null>(null);
   const [showGiveMoney, setShowGiveMoney] = useState(false);
   const [giftFrom, setGiftFrom] = useState("");
@@ -336,7 +336,7 @@ export default function GroupView() {
     }
   }, [location.state]);
 
-  function openTransferModal(type: "transfer" | "settle_up", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
+  function openTransferModal(type: "transfer" | "settle_up" | "gift", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
     setTransferType(type);
     setTransferFrom(from ?? myMemberId ?? "");
     setTransferTo(to ?? "");
@@ -365,7 +365,7 @@ export default function GroupView() {
           to_member: transferTo,
           amount: parseFloat(transferAmount),
           description: transferNote || null,
-          type: transferType,
+          type: transferType === "gift" ? "transfer" : transferType,
         });
       }
       setShowTransfer(false);
@@ -994,18 +994,16 @@ export default function GroupView() {
                     {s.type === "gift" ? t("settlements.type_gift") : s.type === "transfer" ? t("settlements.type_transfer") : t("settlements.type_settlement")}
                   </span>
                 </div>
-                {s.type !== "gift" && (
-                  <button
-                    onClick={() => openTransferModal(
-                      (s.type as "transfer" | "settle_up") || "settle_up",
-                      s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
-                    )}
-                    className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                    title={t("edit", { ns: "common" })}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                )}
+                <button
+                  onClick={() => openTransferModal(
+                    s.type || "settle_up",
+                    s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
+                  )}
+                  className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                  title={t("edit", { ns: "common" })}
+                >
+                  <Pencil size={14} />
+                </button>
               </div>
             ))
           )}
@@ -1264,7 +1262,13 @@ export default function GroupView() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-on-surface">
-                    {editingSettlementId ? t("transfer_modal.title_edit") : transferType === "settle_up" ? t("transfer_modal.title_settle_up") : t("transfer_modal.title_transfer")}
+                    {editingSettlementId
+                      ? transferType === "gift"
+                        ? t("transfer_modal.title_edit_gift")
+                        : t("transfer_modal.title_edit")
+                      : transferType === "settle_up"
+                        ? t("transfer_modal.title_settle_up")
+                        : t("transfer_modal.title_transfer")}
                   </h3>
                   {!editingSettlementId && (
                     <Link

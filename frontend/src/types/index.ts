@@ -237,7 +237,7 @@ export interface SettlementUpdate {
   to_member?: string;
   amount?: number;
   description?: string | null;
-  type?: "settle_up" | "transfer";
+  type?: "settle_up" | "transfer" | "gift";
 }
 
 export interface DistributionCreate {

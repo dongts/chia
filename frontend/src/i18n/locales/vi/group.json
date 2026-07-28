@@ -104,6 +104,7 @@
   },
   "transfer_modal": {
     "title_edit": "Sửa giao dịch",
+    "title_edit_gift": "Sửa khoản tặng",
     "title_settle_up": "Thanh toán",
     "title_transfer": "Chuyển tiền",
     "expense_hint": "Muốn thêm chi phí thay vì chuyển tiền?",

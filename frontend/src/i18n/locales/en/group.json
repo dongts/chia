@@ -104,6 +104,7 @@
   },
   "transfer_modal": {
     "title_edit": "Edit Transfer",
+    "title_edit_gift": "Edit Gift",
     "title_settle_up": "Settle Up",
     "title_transfer": "Money Transfer",
     "expense_hint": "Want to add an expense instead?",
