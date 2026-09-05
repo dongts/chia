@@ -104,7 +104,7 @@ services:
     volumes:
       - frontend_dist:/output
     # Copy built files to shared volume, then exit
-    entrypoint: ["/bin/sh", "-c", "cp -r /usr/share/nginx/html/* /output/ && echo 'Frontend built' && tail -f /dev/null"]
+    entrypoint: ["/bin/sh", "-c", "cp -r /usr/share/nginx/html/. /output/ && echo 'Frontend built' && tail -f /dev/null"]
 
 volumes:
   pgdata:
