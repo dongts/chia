@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "asia.dongtran.chia",
+      "sha256_cert_fingerprints": [
+        "4C:53:73:69:DB:77:B6:D3:62:C2:E0:06:F3:A7:16:86:13:B4:6E:5E:90:1B:31:93:81:71:6A:1A:38:19:73:8A"
+      ]
+    }
+  }
+]

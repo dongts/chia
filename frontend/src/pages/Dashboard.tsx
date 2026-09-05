@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { copyText } from "@/native";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -138,7 +139,7 @@ export default function Dashboard() {
   function copyCreatedGroupLink() {
     if (!createdGroup) return;
     const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${createdGroup.invite_code}`;
-    navigator.clipboard.writeText(link).then(() => {
+    copyText(link).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     });

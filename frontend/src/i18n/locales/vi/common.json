@@ -71,5 +71,39 @@
   "relative_time": {
     "just_now": "Vừa xong",
     "yesterday": "Hôm qua"
+  },
+  "privacy": {
+    "title": "Chính sách quyền riêng tư",
+    "updated": "Cập nhật lần cuối: 5 tháng 9, 2026",
+    "sections": [
+      {
+        "title": "Chia là gì",
+        "body": "Chia là ứng dụng theo dõi chi tiêu chung. Bạn tạo nhóm, ghi lại ai đã trả khoản gì, và Chia tính toán ai nợ ai. Ứng dụng do một lập trình viên cá nhân vận hành, không phải công ty."
+      },
+      {
+        "title": "Chúng tôi thu thập gì",
+        "body": "Thông tin tài khoản (email, tên hiển thị và ảnh đại diện nếu đăng nhập bằng Google), các nhóm, thành viên, chi tiêu, thanh toán và ảnh hóa đơn bạn thêm vào, cùng một mã thiết bị ngẫu nhiên nếu bạn dùng chế độ khách. Chúng tôi không thu thập danh bạ, vị trí hay mã quảng cáo."
+      },
+      {
+        "title": "Cách chúng tôi sử dụng",
+        "body": "Chỉ để vận hành ứng dụng: hiển thị số dư cho thành viên trong nhóm, gửi thông báo trong ứng dụng và duy trì đăng nhập. Chúng tôi không bán dữ liệu, không hiển thị quảng cáo và không chia sẻ thông tin cho bên thứ ba ngoài các nhà cung cấp hosting và lưu trữ vận hành dịch vụ."
+      },
+      {
+        "title": "Đăng nhập bằng Google",
+        "body": "Khi đăng nhập bằng Google, chúng tôi nhận tên, email và ảnh đại diện từ Google để tạo hoặc khớp tài khoản Chia. Chúng tôi không bao giờ thấy mật khẩu Google của bạn và không yêu cầu dữ liệu Google nào khác."
+      },
+      {
+        "title": "Ai có thể xem dữ liệu của bạn",
+        "body": "Thành viên trong nhóm có thể xem mọi thứ được ghi trong nhóm đó. Không có gì là công khai. Link mời cho phép bất kỳ ai có link tham gia nhóm, hãy chia sẻ cẩn thận."
+      },
+      {
+        "title": "Xóa dữ liệu",
+        "body": "Bạn có thể xóa chi tiêu và nhóm trong ứng dụng bất cứ lúc nào. Để xóa toàn bộ tài khoản và dữ liệu, hãy liên hệ địa chỉ bên dưới."
+      },
+      {
+        "title": "Liên hệ",
+        "body": "Thắc mắc về chính sách này: dongts1201@gmail.com"
+      }
+    ]
   }
 }

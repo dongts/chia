@@ -17,6 +17,10 @@ npm run dev       # Vite dev server on :5173
 npm run build     # Production build → dist/
 npm run lint      # ESLint
 
+# Android APK (Capacitor; see docs/android.md for toolchain setup)
+scripts/build-android.sh           # Debug APK → frontend/android/app/build/outputs/apk/debug/
+scripts/build-android.sh release   # Signed release APK (needs CHIA_ANDROID_* env)
+
 # Docker
 docker compose up -d                   # Dev (hot-reload)
 docker compose -f docker-compose.prod.yml up -d  # Prod (Caddy + HTTPS)
@@ -38,7 +42,9 @@ backend/app/
 backend/mcp_server/  # MCP server for Claude.ai integration (port 8001)
 backend/migrations/  # Alembic versions
 
+frontend/android/    # Capacitor Android project (generated, committed)
 frontend/src/
+  native.ts       # Capacitor helpers (isNative, Android back button)
   api/            # Axios client with auto token refresh
   store/          # Zustand stores (auth, notifications)
   pages/          # Route components
@@ -53,6 +59,7 @@ frontend/src/
 - **Database:** PostgreSQL 16 (UUID PKs, Numeric(12,2) for money)
 - **Auth:** JWT (access + refresh tokens), Google OAuth, guest mode (device_id)
 - **Deployment:** Docker Compose + Caddy (auto-HTTPS), or Railway/Vercel/Supabase
+- **Android:** Capacitor 7 wrapping the web bundle (`vite build --mode android`, API URL from `frontend/.env.android`)
 
 ## Code Conventions
 
@@ -73,6 +80,7 @@ frontend/src/
 - Guest users tracked by device_id, upgradeable to verified accounts
 - System categories auto-seeded on first startup via lifespan hook
 - File uploads: local dir by default, Cloudflare R2 if CHIA_R2_BUCKET_NAME is set
-- Frontend service worker only registered in production
+- Frontend service worker only registered in production, and never inside the Capacitor app
+- Native app hides Google sign-in (GIS is blocked in WebViews); HTTP goes through CapacitorHttp so no CORS entry is needed for it
 - No backend linter configured (consider adding ruff)
 - Test coverage is minimal (auth, split_calculator, debt_simplifier only)

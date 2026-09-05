@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -25,6 +25,8 @@ import MemberAnalytics from "@/pages/MemberAnalytics";
 import FundDetail from "@/pages/FundDetail";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
+import Privacy from "@/pages/Privacy";
+import { DEEP_LINK_EVENT } from "@/native";
 
 function RedirectIfAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -71,9 +73,23 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Routes App Link opens (native app) through the client-side router. */
+function DeepLinkHandler() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    function onDeepLink(e: Event) {
+      navigate((e as CustomEvent<string>).detail);
+    }
+    window.addEventListener(DEEP_LINK_EVENT, onDeepLink);
+    return () => window.removeEventListener(DEEP_LINK_EVENT, onDeepLink);
+  }, [navigate]);
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <DeepLinkHandler />
       <AppInitializer>
         <Routes>
           {/* Public routes — redirect to dashboard if already logged in */}
@@ -125,6 +141,7 @@ export default function App() {
           </Route>
 
           {/* 404 */}
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppInitializer>

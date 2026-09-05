@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isNative } from "@/native";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +14,8 @@ function isIOS(): boolean {
 }
 
 function isInStandaloneMode(): boolean {
+  // The native app is, by definition, already installed.
+  if (isNative) return true;
   return window.matchMedia("(display-mode: standalone)").matches ||
     ("standalone" in navigator && (navigator as unknown as { standalone: boolean }).standalone === true);
 }

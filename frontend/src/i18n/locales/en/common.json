@@ -71,5 +71,39 @@
   "relative_time": {
     "just_now": "Just now",
     "yesterday": "Yesterday"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "updated": "Last updated: 5 September 2026",
+    "sections": [
+      {
+        "title": "What Chia is",
+        "body": "Chia is a shared-expense tracker. You create groups, record who paid for what, and Chia works out who owes whom. It is run by an individual developer, not a company."
+      },
+      {
+        "title": "What we collect",
+        "body": "Your account details (email address, display name, and profile picture if you sign in with Google), the groups, members, expenses, settlements and receipt photos you add, and a random device identifier if you use guest mode. We do not collect your contacts, location, or advertising identifiers."
+      },
+      {
+        "title": "How we use it",
+        "body": "Only to run the app: showing balances to the members of your groups, sending in-app notifications, and keeping you signed in. We do not sell data, show ads, or share your information with third parties except the hosting and storage providers that run the service."
+      },
+      {
+        "title": "Google sign-in",
+        "body": "If you sign in with Google we receive your name, email address and profile picture from Google to create or match your Chia account. We never see your Google password and request no other Google data."
+      },
+      {
+        "title": "Who can see your data",
+        "body": "Members of a group can see everything recorded in that group. Nothing is public. Group invite links let anyone with the link join the group, so share them carefully."
+      },
+      {
+        "title": "Deleting your data",
+        "body": "You can delete expenses and groups from the app at any time. To delete your whole account and its data, contact the address below."
+      },
+      {
+        "title": "Contact",
+        "body": "Questions about this policy: dongts1201@gmail.com"
+      }
+    ]
   }
 }

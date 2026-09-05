@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { copyText } from "@/native";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -310,7 +311,7 @@ export default function GroupView() {
   function copyInviteCode() {
     if (!group) return;
     const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${group.invite_code}`;
-    navigator.clipboard.writeText(link).then(() => {
+    copyText(link).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
