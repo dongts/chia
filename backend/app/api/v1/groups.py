@@ -1,20 +1,18 @@
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from collections import defaultdict
-from decimal import Decimal
-
 from app.core.exceptions import BadRequest, Forbidden, NotFound
 from app.core.permissions import require_role
 from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Expense, ExpenseSplit, Group, GroupMember, MemberRole, Settlement, User
-from app.models.expense_fund_deduction import ExpenseFundDeduction
+from app.models import Group, GroupMember, MemberRole, User
 from app.schemas.group import GroupCreate, GroupListItem, GroupRead, GroupUpdate
+from app.services.balances import compute_balances
 from app.services.member_log import log_member_event
 from app.utils.invite_code import generate_invite_code
 
@@ -95,81 +93,22 @@ async def list_groups(
     groups_data = result.all()
     group_ids = [g.id for g, _ in groups_data]
 
-    # Compute my_balance for each group
-    balances: dict[uuid.UUID, float] = {gid: 0.0 for gid in group_ids}
-
-    if group_ids:
-        # Get my member IDs per group
-        my_members_result = await db.execute(
-            select(GroupMember.id, GroupMember.group_id).where(
-                GroupMember.user_id == current_user.id,
-                GroupMember.group_id.in_(group_ids),
-                GroupMember.is_active.is_(True),
-            )
+    # Use the same authoritative ledger calculation as the group balance and
+    # report endpoints. Keeping a second aggregate implementation here caused
+    # the dashboard to drift when gift transactions were introduced.
+    balances: dict[uuid.UUID, Decimal] = {}
+    my_members_result = await db.execute(
+        select(GroupMember.id, GroupMember.group_id).where(
+            GroupMember.user_id == current_user.id,
+            GroupMember.group_id.in_(group_ids),
+            GroupMember.is_active.is_(True),
         )
-        my_member_map: dict[uuid.UUID, uuid.UUID] = {}  # group_id -> member_id
-        for mid, gid in my_members_result.all():
-            my_member_map[gid] = mid
-
-        if my_member_map:
-            all_member_ids = list(my_member_map.values())
-
-            # What I paid
-            paid_result = await db.execute(
-                select(Expense.group_id, func.coalesce(func.sum(Expense.converted_amount), 0))
-                .where(Expense.paid_by.in_(all_member_ids))
-                .group_by(Expense.group_id)
-            )
-            for gid, total in paid_result.all():
-                balances[gid] = float(total)
-
-            # Subtract fund-covered portions of my expenses: the fund (a
-            # separate ledger) reimburses me, so it must not credit my balance.
-            my_deductions_result = await db.execute(
-                select(Expense.group_id, func.coalesce(func.sum(ExpenseFundDeduction.amount), 0))
-                .join(ExpenseFundDeduction, ExpenseFundDeduction.expense_id == Expense.id)
-                .where(Expense.paid_by.in_(all_member_ids))
-                .group_by(Expense.group_id)
-            )
-            for gid, total in my_deductions_result.all():
-                balances[gid] -= float(total)
-
-            # What I owe
-            owed_result = await db.execute(
-                select(Expense.group_id, func.coalesce(func.sum(ExpenseSplit.resolved_amount), 0))
-                .join(Expense, Expense.id == ExpenseSplit.expense_id)
-                .where(ExpenseSplit.group_member_id.in_(all_member_ids))
-                .group_by(Expense.group_id)
-            )
-            for gid, total in owed_result.all():
-                balances[gid] -= float(total)
-
-            # Settlements I made (paid out)
-            sent_result = await db.execute(
-                select(Settlement.group_id, func.coalesce(func.sum(Settlement.amount), 0))
-                .where(Settlement.from_member.in_(all_member_ids))
-                .group_by(Settlement.group_id)
-            )
-            for gid, total in sent_result.all():
-                balances[gid] += float(total)
-
-            # Settlements I received
-            recv_result = await db.execute(
-                select(Settlement.group_id, func.coalesce(func.sum(Settlement.amount), 0))
-                .where(Settlement.to_member.in_(all_member_ids))
-                .group_by(Settlement.group_id)
-            )
-            for gid, total in recv_result.all():
-                balances[gid] -= float(total)
-
-            # Initial balances (for migrated debts)
-            init_result = await db.execute(
-                select(GroupMember.group_id, GroupMember.initial_balance)
-                .where(GroupMember.id.in_(all_member_ids))
-            )
-            for gid, init_bal in init_result.all():
-                if init_bal:
-                    balances[gid] += float(init_bal)
+    )
+    my_member_map = {group_id: member_id for member_id, group_id in my_members_result.all()}
+    for group_id in group_ids:
+        group_balances = await compute_balances(db, group_id)
+        member_id = my_member_map.get(group_id)
+        balances[group_id] = group_balances.get(member_id, Decimal("0"))
 
     items = []
     for group, member_count in groups_data:
@@ -178,7 +117,7 @@ async def list_groups(
             name=group.name,
             currency_code=group.currency_code,
             member_count=member_count,
-            my_balance=round(balances.get(group.id, 0.0), 2),
+            my_balance=float(balances.get(group.id, Decimal("0")).quantize(Decimal("0.01"))),
             created_at=group.created_at,
         ))
     return items
