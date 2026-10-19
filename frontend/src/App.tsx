@@ -56,11 +56,22 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
-  const { initialize, isLoading } = useAuthStore();
+  const { initialize, isLoading, initializationError } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  if (initializationError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-surface p-6 text-center" role="alert">
+        <p>Unable to connect. Your session is saved. Please try again.</p>
+        <button type="button" className="rounded-xl bg-primary px-5 py-3 text-white" onClick={() => void initialize()}>
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -90,6 +101,11 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <DeepLinkHandler />
+      {import.meta.env.VITE_DEPLOYMENT === "preview" && (
+        <div role="status" className="bg-amber-100 text-amber-950 text-center text-sm px-4 py-2">
+          Preview · Separate copy of your data. Changes here do not sync with the live app.
+        </div>
+      )}
       <AppInitializer>
         <Routes>
           {/* Public routes — redirect to dashboard if already logged in */}

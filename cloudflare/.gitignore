@@ -1,0 +1,9 @@
+.venv/
+.venv-workers/
+.wrangler/
+python_modules/
+src/shared/
+node_modules/
+dist/
+.dev.vars
+*.log

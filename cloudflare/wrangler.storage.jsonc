@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chia-storage-bridge",
+  "main": "src/storage_bridge.mjs",
+  "account_id": "71f0645d95a495c65a6261f599afaa2c",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": [],
+  "workers_dev": false,
+  "preview_urls": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chia-production-20260918",
+      "database_id": "4e0d3fcc-96fa-453a-983f-124a0f9d3383",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "UPLOADS",
+      "bucket_name": "chia-production-uploads"
+    }
+  ],
+  "vars": {},
+  "observability": {
+    "enabled": false
+  }
+}

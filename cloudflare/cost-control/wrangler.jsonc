@@ -1,0 +1,85 @@
+{
+  "name": "cf-budget-guard",
+  "main": "worker.mjs",
+  "account_id": "71f0645d95a495c65a6261f599afaa2c",
+  "compatibility_date": "2026-09-18",
+  "workers_dev": false,
+  "preview_urls": false,
+  "limits": {
+    "cpu_ms": 5000
+  },
+  "observability": {
+    "enabled": false
+  },
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CONTROLLER",
+        "class_name": "BudgetController"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "BudgetController"
+      ]
+    }
+  ],
+  "vars": {
+    "ACCOUNT_ID": "71f0645d95a495c65a6261f599afaa2c",
+    "TARGET_WORKERS": "[\"ahaslides-adventures\", \"ahaslides-vmm\", \"chia\", \"chia-runtime-spike\", \"chia-storage-bridge\", \"dawn-of-rivers\", \"neon-step\", \"sky-salvo\", \"zalo-group-bot\"]",
+    "CONTROLLER_NAME": "account-budget-20260924",
+    "OBSERVATION_GRACE_MINUTES": "180"
+  },
+  "services": [
+    {
+      "binding": "TARGET_AHASLIDES_ADVENTURES",
+      "service": "ahaslides-adventures"
+    },
+    {
+      "binding": "TARGET_AHASLIDES_VMM",
+      "service": "ahaslides-vmm"
+    },
+    {
+      "binding": "TARGET_CHIA",
+      "service": "chia"
+    },
+    {
+      "binding": "TARGET_CHIA_RUNTIME_SPIKE",
+      "service": "chia-runtime-spike"
+    },
+    {
+      "binding": "TARGET_CHIA_STORAGE_BRIDGE",
+      "service": "chia-storage-bridge"
+    },
+    {
+      "binding": "TARGET_DAWN_OF_RIVERS",
+      "service": "dawn-of-rivers"
+    },
+    {
+      "binding": "TARGET_NEON_STEP",
+      "service": "neon-step"
+    },
+    {
+      "binding": "TARGET_SKY_SALVO",
+      "service": "sky-salvo"
+    },
+    {
+      "binding": "TARGET_ZALO_GROUP_BOT",
+      "service": "zalo-group-bot"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "STATUS",
+      "id": "961289f6e63142bd8a4937294a96a47d"
+    }
+  ]
+}

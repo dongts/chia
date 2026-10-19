@@ -1,0 +1,7 @@
+[project]
+name = "chia-cloudflare"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = ["fastapi==0.141.1", "bcrypt==5.0.0", "pillow==12.2.0", "python-jose[cryptography]==3.5.0", "python-multipart==0.0.20", "email-validator==2.3.0"]
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]

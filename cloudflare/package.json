@@ -1,0 +1,1 @@
+{"name":"chia-cloudflare","private":true,"type":"module","scripts":{"prepare:shared":"python3 scripts/prepare.py","cf":"node scripts/cf.mjs"},"devDependencies":{"wrangler":"4.134.0"}}

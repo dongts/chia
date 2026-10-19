@@ -93,7 +93,7 @@ client.interceptors.response.use(
       if (status === 401 || status === 403) {
         clearAuthAndRedirect();
       }
-      return Promise.reject(error);
+      return Promise.reject(refreshError);
     }
   }
 );

@@ -2,12 +2,10 @@ import uuid
 from collections import defaultdict
 from decimal import Decimal
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import TYPE_CHECKING
 
-from app.models import Expense, ExpenseSplit, GroupMember, Settlement
-from app.models.expense_fund_deduction import ExpenseFundDeduction
-from app.services.debt_simplifier import simplify_debts
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 CENT = Decimal("0.01")
 
@@ -37,77 +35,56 @@ def settled_threshold(currency_code: str) -> Decimal:
     return Decimal("1") if currency_code.upper() in ZERO_DECIMAL_CURRENCIES else CENT
 
 
-async def compute_balances(db: AsyncSession, group_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
-    """Net balance per active member in the group's main currency.
+def calculate_balances(members, expenses, splits, deductions, settlements):
+    """Authoritative ledger arithmetic for ORM objects or decoded storage rows.
 
-    Positive = the member is owed money (creditor); negative = the member owes
-    (debtor). Only active members are included — deactivated members are removed
-    from the ledger, which is exactly why a member must be settled to zero
-    before they can be deactivated (see members.remove_member).
+    Inputs are group-scoped; amounts must already be Decimal. Keep this function
+    independent of persistence so the Postgres and D1 APIs use identical rules.
     """
-    members_result = await db.execute(
-        select(GroupMember).where(
-            GroupMember.group_id == group_id,
-            GroupMember.is_active.is_(True),
-        )
-    )
-    members = {m.id: m for m in members_result.scalars().all()}
-    balances: dict[uuid.UUID, Decimal] = defaultdict(Decimal)
+    def field(row, key):
+        return row[key] if isinstance(row, dict) else getattr(row, key)
 
-    # Fund-covered portions of expenses: the payer fronted this money but is
-    # reimbursed by the fund (a separate ledger), so it must NOT count toward
-    # their split balance. Without this, a fund-paid expense double-credits the
-    # payer.
-    deductions_result = await db.execute(
-        select(ExpenseFundDeduction.expense_id, func.sum(ExpenseFundDeduction.amount))
-        .join(Expense, Expense.id == ExpenseFundDeduction.expense_id)
-        .where(Expense.group_id == group_id)
-        .group_by(ExpenseFundDeduction.expense_id)
-    )
-    deduction_by_expense: dict[uuid.UUID, Decimal] = {
-        eid: amt for eid, amt in deductions_result.all()
-    }
+    active = {field(m, "id"): m for m in members if field(m, "is_active")}
+    result = {mid: field(member, "initial_balance") for mid, member in active.items()}
+    covered = defaultdict(Decimal)
+    for deduction in deductions:
+        covered[field(deduction, "expense_id")] += field(deduction, "amount")
+    for expense in expenses:
+        payer = field(expense, "paid_by")
+        if payer in active:
+            result[payer] += field(expense, "converted_amount") - covered[field(expense, "id")]
+    for split in splits:
+        member = field(split, "group_member_id")
+        if member in active:
+            result[member] -= field(split, "resolved_amount")
+    for settlement in settlements:
+        sender, recipient = settlement_balance_effect(field(settlement, "type"), field(settlement, "amount"))
+        from_id, to_id = field(settlement, "from_member"), field(settlement, "to_member")
+        if from_id in active:
+            result[from_id] += sender
+        if to_id in active:
+            result[to_id] += recipient
+    return result
 
-    # Sum what each member paid (in group's main currency), net of any portion
-    # covered by a fund.
-    expenses_result = await db.execute(select(Expense).where(Expense.group_id == group_id))
-    for expense in expenses_result.scalars().all():
-        if expense.paid_by in members:
-            balances[expense.paid_by] += (
-                expense.converted_amount - deduction_by_expense.get(expense.id, Decimal("0"))
-            )
 
-    # Subtract what each member owes
-    splits_result = await db.execute(
-        select(ExpenseSplit)
-        .join(Expense, Expense.id == ExpenseSplit.expense_id)
-        .where(Expense.group_id == group_id)
-    )
-    for split in splits_result.scalars().all():
-        if split.group_member_id in members:
-            balances[split.group_member_id] -= split.resolved_amount
+async def compute_balances(db: "AsyncSession", group_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
+    """Load the group ledger from Postgres and apply the shared Decimal rules."""
+    from sqlalchemy import select
+    from app.models import Expense, ExpenseSplit, GroupMember, Settlement
+    from app.models.expense_fund_deduction import ExpenseFundDeduction
 
-    # Factor in settlements
-    settlements_result = await db.execute(
-        select(Settlement).where(Settlement.group_id == group_id)
-    )
-    for s in settlements_result.scalars().all():
-        sender_effect, recipient_effect = settlement_balance_effect(s.type, s.amount)
-        if s.from_member in members:
-            balances[s.from_member] += sender_effect
-        if s.to_member in members:
-            balances[s.to_member] += recipient_effect
-
-    # Add initial balances (for migrated debts from other systems)
-    for mid, member in members.items():
-        balances[mid] += member.initial_balance
-
-    # Ensure all active members appear
-    for mid in members:
-        if mid not in balances:
-            balances[mid] = members[mid].initial_balance
-
-    return balances
+    members = (await db.execute(select(GroupMember).where(
+        GroupMember.group_id == group_id, GroupMember.is_active.is_(True)
+    ))).scalars().all()
+    expenses = (await db.execute(select(Expense).where(Expense.group_id == group_id))).scalars().all()
+    deductions = (await db.execute(select(ExpenseFundDeduction).join(
+        Expense, Expense.id == ExpenseFundDeduction.expense_id
+    ).where(Expense.group_id == group_id))).scalars().all()
+    splits = (await db.execute(select(ExpenseSplit).join(
+        Expense, Expense.id == ExpenseSplit.expense_id
+    ).where(Expense.group_id == group_id))).scalars().all()
+    settlements = (await db.execute(select(Settlement).where(Settlement.group_id == group_id))).scalars().all()
+    return calculate_balances(members, expenses, splits, deductions, settlements)
 
 
 def suggest_settlements_for_member(
@@ -119,6 +96,8 @@ def suggest_settlements_for_member(
     this member pays or receives — i.e. the payments that would bring them to a
     zero balance.
     """
+    from .debt_simplifier import simplify_debts
+
     str_balances = {str(k): v.quantize(CENT) for k, v in balances.items()}
     transfers = simplify_debts(str_balances)
     return [
