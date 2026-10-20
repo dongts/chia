@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from chia_api.auth import hash_password, merge_user_into
+from chia_api.auth import consolidate_split_commands, hash_password, merge_user_into
 from chia_api.common import Context, admin_context, new_id, now
 from chia_api.db import Command
 from chia_api.routes_misc import CONFIG_REGISTRY
@@ -284,10 +284,14 @@ async def merge_group_members(group_id: uuid.UUID, source_member_id: uuid.UUID,
         "THEN 1 ELSE 0 END", (token, source_key, str(group_id), target_key, str(group_id)))]
     commands.extend(ctx.db.update(table, {column: target_key}, f"{column} = ?", (source_key,))
                     for table, columns in refs.items() for column in columns)
-    role = max((source["role"], target["role"]), key=lambda value: {"owner": 3, "admin": 2, "member": 1}[value])
+    commands.extend(consolidate_split_commands(target_key))
+    # Read the roles inside the batch so a concurrent role change is not overwritten.
     commands.extend([Command("UPDATE group_members SET initial_balance=initial_balance+"
-        "(SELECT initial_balance FROM group_members WHERE id=?),role=?,is_active=1 WHERE id=?",
-        (source_key, role, target_key)),
+        "(SELECT initial_balance FROM group_members WHERE id=?),role=CASE "
+        "WHEN role='owner' OR (SELECT role FROM group_members WHERE id=?)='owner' THEN 'owner' "
+        "WHEN role='admin' OR (SELECT role FROM group_members WHERE id=?)='admin' THEN 'admin' "
+        "ELSE 'member' END,is_active=1 WHERE id=?",
+        (source_key, source_key, source_key, target_key)),
         ctx.db.update("group_members", {"initial_balance": Decimal("0"), "is_active": False,
                                         "user_id": None}, "id = ?", (source_key,)),
         Command("DELETE FROM _finance_assertions WHERE token=?", (token,))])

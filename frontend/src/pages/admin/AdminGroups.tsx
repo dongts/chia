@@ -59,40 +59,46 @@ function Badge({ children, green }: { children: React.ReactNode; green?: boolean
 
 // ── Merge Member Inline (used in Groups tab) ────────────────────────────────
 
-function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
+function MergeMemberInline({ memberName, sourceUserId, groupUsers, onClose, onMerged }: {
   memberName: string;
   sourceUserId: string;
+  // Other claimed members of this group, offered before the admin types anything
+  groupUsers: UserRead[];
   onClose: () => void;
   onMerged: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<UserRead[]>([]);
   const [searching, setSearching] = useState(false);
-  const [targetId, setTargetId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserRead | null>(null);
   const [merging, setMerging] = useState(false);
-  const timerRef = { current: null as ReturnType<typeof setTimeout> | null };
 
-  function doSearch(q: string) {
-    if (!q.trim()) { setResults([]); return; }
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) { setResults([]); setSearching(false); return; }
+    let stale = false;
     setSearching(true);
-    client.get<{ items: UserRead[] }>("/admin/users", { params: { q, limit: 10 } })
-      .then((r) => setResults(r.data.items.filter((u) => u.id !== sourceUserId)))
-      .catch(() => setResults([]))
-      .finally(() => setSearching(false));
-  }
+    const timer = setTimeout(() => {
+      client.get<{ items: UserRead[] }>("/admin/users", { params: { search: q, limit: 20 } })
+        .then((r) => { if (!stale) setResults(r.data.items.filter((u) => u.id !== sourceUserId)); })
+        .catch(() => { if (!stale) setResults([]); })
+        .finally(() => { if (!stale) setSearching(false); });
+    }, 300);
+    return () => { stale = true; clearTimeout(timer); };
+  }, [search, sourceUserId]);
 
-  function handleSearchChange(val: string) {
-    setSearch(val);
-    setTargetId(null);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => doSearch(val), 300);
-  }
+  const candidates = search.trim() ? results : groupUsers;
+  const targetId = selectedUser?.id ?? null;
 
   async function handleMerge() {
-    if (!targetId) return;
+    if (!selectedUser) return;
+    if (!window.confirm(
+      `Merge the whole account of "${memberName}" into "${selectedUser.display_name}"?\n\n` +
+      "This moves their memberships in ALL groups and payment methods, then deletes the source account. This cannot be undone."
+    )) return;
     setMerging(true);
     try {
-      const r = await client.post(`/admin/users/${sourceUserId}/merge-into/${targetId}`);
+      const r = await client.post(`/admin/users/${sourceUserId}/merge-into/${selectedUser.id}`);
       window.alert(r.data.detail);
       onMerged();
     } catch (err: unknown) {
@@ -101,7 +107,6 @@ function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
     } finally { setMerging(false); }
   }
 
-  const selectedUser = results.find((u) => u.id === targetId);
 
   return (
     <div className="mt-3 p-4 bg-surface rounded-xl border border-outline-variant/15 space-y-3">
@@ -116,17 +121,23 @@ function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
         <input
           type="text"
           value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setSelectedUser(null); }}
           placeholder="Search target user by name or email..."
           autoFocus
           className="w-full pl-8 pr-3 py-2 bg-surface-container-high/50 border-0 rounded-lg text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
+      {!search.trim() && groupUsers.length > 0 && !targetId && (
+        <p className="text-xs text-outline">Members of this group, or search all users:</p>
+      )}
       {searching && <p className="text-xs text-outline">Searching...</p>}
-      {!searching && results.length > 0 && !targetId && (
-        <div className="space-y-1 max-h-40 overflow-y-auto">
-          {results.map((u) => (
-            <button key={u.id} onClick={() => setTargetId(u.id)}
+      {!searching && search.trim() && results.length === 0 && (
+        <p className="text-xs text-outline text-center py-2">No matching users</p>
+      )}
+      {!searching && candidates.length > 0 && !targetId && (
+        <div className="space-y-1 max-h-60 overflow-y-auto">
+          {candidates.map((u) => (
+            <button key={u.id} onClick={() => setSelectedUser(u)}
               className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container transition-colors">
               <div className="w-7 h-7 rounded-full bg-primary-container/30 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                 {u.display_name[0]?.toUpperCase()}
@@ -149,7 +160,7 @@ function MergeMemberInline({ memberName, sourceUserId, onClose, onMerged }: {
             <p className="text-sm font-medium text-on-surface">{selectedUser.display_name}</p>
             <p className="text-xs text-outline">{selectedUser.email || "No email"}</p>
           </div>
-          <button onClick={() => setTargetId(null)} className="text-xs text-outline hover:text-on-surface-variant">Change</button>
+          <button onClick={() => setSelectedUser(null)} className="text-xs text-outline hover:text-on-surface-variant">Change</button>
         </div>
       )}
       {targetId && (
@@ -177,8 +188,9 @@ function MergeGroupMemberInline({ groupId, sourceMemberId, sourceMemberName, mem
   const [merging, setMerging] = useState(false);
   const [filter, setFilter] = useState("");
 
+  const q = filter.trim().toLowerCase();
   const filtered = members.filter((m) =>
-    m.display_name.toLowerCase().includes(filter.toLowerCase())
+    m.display_name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q)
   );
 
   async function handleMerge() {
@@ -432,6 +444,9 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                     <MergeMemberInline
                       memberName={mergeMemberName}
                       sourceUserId={mergeMemberUserId}
+                      groupUsers={expandedDetail.members
+                        .filter((m) => m.is_active && m.user_id && m.user_id !== mergeMemberUserId)
+                        .map((m) => ({ id: m.user_id!, email: m.email, display_name: m.display_name, is_verified: false, created_at: "" }))}
                       onClose={() => { setMergeMemberId(null); setMergeMemberUserId(null); }}
                       onMerged={() => { setMergeMemberId(null); setMergeMemberUserId(null); onRefresh(); }}
                     />

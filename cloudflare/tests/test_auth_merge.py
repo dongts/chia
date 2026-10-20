@@ -310,3 +310,87 @@ async def test_merge_uses_live_owner_role_instead_of_stale_precheck_role():
     assert db.execute(
         "SELECT role FROM group_members WHERE id = ?", (target_member,)
     ).fetchone()[0] == "owner"
+
+
+def seed_shared_expenses(db: sqlite3.Connection, group_id: str, source_member: str, target_member: str):
+    """Three members share an equal and an exact expense; returns (other_member, equal, exact)."""
+    timestamp = "2026-09-18T00:00:00+00:00"
+    other_member = "30000000-0000-0000-0000-000000000003"
+    category = "40000000-0000-0000-0000-000000000001"
+    equal, exact = "50000000-0000-0000-0000-000000000011", "50000000-0000-0000-0000-000000000012"
+    db.execute(
+        """INSERT INTO group_members(
+          id, group_id, user_id, display_name, role, claimed_at,
+          is_active, joined_at, initial_balance, nicknames
+        ) VALUES (?, ?, NULL, 'Other', 'member', NULL, 1, ?, 0, '')""",
+        (other_member, group_id, timestamp),
+    )
+    db.execute("INSERT INTO categories VALUES (?, ?, 'Food', '🍜', 0, ?)", (category, group_id, timestamp))
+    for expense in (equal, exact):
+        db.execute(
+            """INSERT INTO expenses VALUES(
+              ?, ?, ?, ?, 'Dinner', 9000, 'USD', ?, NULL, '2026-09-18', ?, ?, 1000000, 9000
+            )""",
+            (expense, group_id, other_member, other_member, category, timestamp, timestamp),
+        )
+    db.executemany(
+        "INSERT INTO expense_splits VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            ("51000000-0000-0000-0000-000000000011", equal, source_member, "equal", 10000, 3000),
+            ("51000000-0000-0000-0000-000000000012", equal, target_member, "equal", 10000, 3000),
+            ("51000000-0000-0000-0000-000000000013", equal, other_member, "equal", 10000, 3000),
+            ("51000000-0000-0000-0000-000000000021", exact, source_member, "exact", 200000, 2000),
+            ("51000000-0000-0000-0000-000000000022", exact, target_member, "exact", 300000, 3000),
+            ("51000000-0000-0000-0000-000000000023", exact, other_member, "exact", 400000, 4000),
+        ],
+    )
+    db.commit()
+    return other_member, equal, exact
+
+
+def splits_of(db: sqlite3.Connection, expense: str):
+    return {
+        row["group_member_id"]: (row["split_type"], row["value"], row["resolved_amount"])
+        for row in db.execute("SELECT * FROM expense_splits WHERE expense_id = ?", (expense,))
+    } | {"_rows": db.execute("SELECT COUNT(*) FROM expense_splits WHERE expense_id = ?", (expense,)).fetchone()[0]}
+
+
+def assert_shared_expenses_consolidated(db, target_member, other_member, equal, exact):
+    # Equal becomes shares so a later edit keeps the survivor's two-thirds.
+    assert splits_of(db, equal) == {
+        target_member: ("shares", 20000, 6000), other_member: ("shares", 10000, 3000), "_rows": 2,
+    }
+    assert splits_of(db, exact) == {
+        target_member: ("exact", 500000, 5000), other_member: ("exact", 400000, 4000), "_rows": 2,
+    }
+
+
+@pytest.mark.asyncio
+async def test_user_merge_folds_duplicate_splits_on_shared_expenses():
+    db = database()
+    source_user, target_user, group_id, source_member, target_member = seed_users_and_members(db)
+    other_member, equal, exact = seed_shared_expenses(db, group_id, source_member, target_member)
+
+    await merge_user_into(Store(SQLiteBinding(db)), source_user, target_user)
+
+    assert_shared_expenses_consolidated(db, target_member, other_member, equal, exact)
+
+
+@pytest.mark.asyncio
+async def test_admin_member_merge_folds_duplicate_splits_and_keeps_higher_role():
+    import uuid
+    from types import SimpleNamespace
+
+    from chia_api.common import Context
+    from chia_api.routes_admin import merge_group_members
+
+    db = database()
+    _, _, group_id, source_member, target_member = seed_users_and_members(db)
+    other_member, equal, exact = seed_shared_expenses(db, group_id, source_member, target_member)
+    ctx = Context(Store(SQLiteBinding(db)), SimpleNamespace(), {"id": "admin", "email": "admin@example.com"})
+
+    await merge_group_members(uuid.UUID(group_id), uuid.UUID(source_member), uuid.UUID(target_member), ctx)
+
+    assert_shared_expenses_consolidated(db, target_member, other_member, equal, exact)
+    target = db.execute("SELECT role, initial_balance FROM group_members WHERE id = ?", (target_member,)).fetchone()
+    assert tuple(target) == ("admin", 300)

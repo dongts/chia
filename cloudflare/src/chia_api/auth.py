@@ -63,6 +63,20 @@ async def google_user(ctx,credential):
     await ctx.db.batch(commands)
     return await ctx.db.one('users','id=?',(user['id'],))
 
+def consolidate_split_commands(member_id):
+    """Fold the duplicate splits a merge leaves when both members shared an expense.
+
+    Equal splits become shares (1 each, so the survivor holds one per merged
+    member); other types sum their inputs. Stored resolved amounts are summed,
+    so balances do not move.
+    """
+    duplicated='SELECT expense_id FROM expense_splits WHERE group_member_id=? GROUP BY expense_id HAVING COUNT(*)>1'
+    keeper='(SELECT MIN(d.id) FROM expense_splits d WHERE d.expense_id=expense_splits.expense_id AND d.group_member_id=?)'
+    def total(column):return f'(SELECT SUM(d.{column}) FROM expense_splits d WHERE d.expense_id=expense_splits.expense_id AND d.group_member_id=?)'
+    return [Command(f"UPDATE expense_splits SET split_type='shares',value=10000 WHERE split_type='equal' AND expense_id IN ({duplicated})",(member_id,)),
+        Command(f'UPDATE expense_splits SET value={total("value")},resolved_amount={total("resolved_amount")} WHERE group_member_id=? AND id={keeper} AND expense_id IN ({duplicated})',(member_id,member_id,member_id,member_id,member_id)),
+        Command(f'DELETE FROM expense_splits WHERE group_member_id=? AND id<>{keeper}',(member_id,member_id))]
+
 async def merge_user_into(db,source_user_id,target_user_id):
     source_user_id=str(source_user_id);target_user_id=str(target_user_id)
     if source_user_id==target_user_id:raise HTTPException(400,'Cannot merge a user into itself')
@@ -89,6 +103,7 @@ async def merge_user_into(db,source_user_id,target_user_id):
         if existing:
             for table,columns in references.items():
                 for column in columns:commands.append(db.update(table,{column:existing['id']},column+'=?',(member['id'],)))
+            commands.extend(consolidate_split_commands(existing['id']))
             # Read both role and balance inside the transaction so a concurrent
             # membership edit cannot be overwritten by the pre-read snapshot.
             commands.append(Command('''UPDATE group_members SET
