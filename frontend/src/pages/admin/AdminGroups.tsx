@@ -1,3 +1,4 @@
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDown,
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 import client from "@/api/client";
 import { cn } from "@/lib/utils";
-import { formatAmount } from "@/utils/currency";
+import { formatCurrency, formatNumber, formatRate } from "@/utils/currency";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ function MergeMemberInline({ memberName, sourceUserId, groupUsers, onClose, onMe
     const timer = setTimeout(() => {
       client.get<{ items: UserRead[] }>("/admin/users", { params: { search: q, limit: 20 } })
         .then((r) => { if (!stale) setResults(r.data.items.filter((u) => u.id !== sourceUserId)); })
-        .catch(() => { if (!stale) setResults([]); })
+        .catch(() => { if (!stale) { setResults([]); toast.error("User search failed"); } })
         .finally(() => { if (!stale) setSearching(false); });
     }, 300);
     return () => { stale = true; clearTimeout(timer); };
@@ -92,18 +93,16 @@ function MergeMemberInline({ memberName, sourceUserId, groupUsers, onClose, onMe
 
   async function handleMerge() {
     if (!selectedUser) return;
-    if (!window.confirm(
-      `Merge the whole account of "${memberName}" into "${selectedUser.display_name}"?\n\n` +
-      "This moves their memberships in ALL groups and payment methods, then deletes the source account. This cannot be undone."
-    )) return;
+    if (!await confirmDialog({ message: `Merge the whole account of "${memberName}" into "${selectedUser.display_name}"?\n\n` +
+      "This moves their memberships in ALL groups and payment methods, then deletes the source account. This cannot be undone.", destructive: true, confirmLabel: "Merge" })) return;
     setMerging(true);
     try {
       const r = await client.post(`/admin/users/${sourceUserId}/merge-into/${selectedUser.id}`);
-      window.alert(r.data.detail);
+      toast.error(r.data.detail);
       onMerged();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Merge failed";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setMerging(false); }
   }
 
@@ -198,11 +197,11 @@ function MergeGroupMemberInline({ groupId, sourceMemberId, sourceMemberName, mem
     setMerging(true);
     try {
       const r = await client.post<{ detail: string }>(`/admin/groups/${groupId}/members/${sourceMemberId}/merge-into/${targetId}`);
-      window.alert(r.data.detail);
+      toast.error(r.data.detail);
       onMerged();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Merge failed";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setMerging(false); }
   }
 
@@ -279,16 +278,16 @@ function GroupExpenses({ groupId }: { groupId: string }) {
   const load = useCallback(() => {
     setLoading(true);
     client.get<{ items: ExpenseItem[]; total: number }>(`/admin/groups/${groupId}/expenses`, { params: { limit: 100 } })
-      .then((r) => setExpenses(r.data.items)).catch(() => {}).finally(() => setLoading(false));
+      .then((r) => setExpenses(r.data.items)).catch(() => toast.error("Failed to load expenses")).finally(() => setLoading(false));
   }, [groupId]);
 
   useEffect(() => { load(); }, [load]);
 
   async function deleteExpense(expenseId: string) {
-    if (!window.confirm("Delete this expense?")) return;
+    if (!await confirmDialog({ message: "Delete this expense?", destructive: true })) return;
     setDeletingId(expenseId);
     try { await client.delete(`/admin/expenses/${expenseId}`); load(); }
-    catch { window.alert("Failed to delete expense"); } finally { setDeletingId(null); }
+    catch { toast.error("Failed to delete expense"); } finally { setDeletingId(null); }
   }
 
   if (loading) return <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -310,7 +309,7 @@ function GroupExpenses({ groupId }: { groupId: string }) {
           {expenses.map((exp) => (
             <tr key={exp.id} className="border-b border-outline-variant/10 last:border-0">
               <td className="px-3 py-2 text-on-surface">{exp.description}</td>
-              <td className="px-3 py-2 text-on-surface">{formatAmount(exp.amount, exp.currency_code)} {exp.currency_code}</td>
+              <td className="px-3 py-2 text-on-surface">{formatCurrency(exp.amount, exp.currency_code)}</td>
               <td className="px-3 py-2 text-on-surface-variant">{exp.payer_name ?? "—"}</td>
               <td className="px-3 py-2 text-outline">{formatDate(exp.date)}</td>
               <td className="px-3 py-2 text-right">
@@ -345,15 +344,15 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
 
   async function handleDeleteMember(memberId: string, memberName: string) {
-    if (!window.confirm(`Permanently delete member "${memberName}" and ALL their expenses, splits, and settlements? This cannot be undone.`)) return;
+    if (!await confirmDialog({ message: `Permanently delete member "${memberName}" and ALL their expenses, splits, and settlements? This cannot be undone.`, destructive: true })) return;
     setDeletingMemberId(memberId);
     try {
       const r = await client.delete<{ detail: string }>(`/admin/groups/${group.id}/members/${memberId}`);
-      window.alert(r.data.detail);
+      toast.error(r.data.detail);
       onRefresh();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Delete failed";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setDeletingMemberId(null); }
   }
 
@@ -364,7 +363,7 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
       await client.patch(`/admin/groups/${group.id}/members/${memberId}`, { display_name: renameValue.trim() });
       onMemberRenamed(memberId, renameValue.trim());
       setRenamingId(null);
-    } catch { window.alert("Failed to rename"); }
+    } catch { toast.error("Failed to rename"); }
     finally { setSavingRename(false); }
   }
 
@@ -374,7 +373,7 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
         <td className="px-4 py-3 text-outline">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
         <td className="px-4 py-3 font-medium text-on-surface">{group.name}</td>
         <td className="px-4 py-3"><Badge>{group.currency_code}</Badge></td>
-        <td className="px-4 py-3 text-on-surface-variant">{group.member_count}</td>
+        <td className="px-4 py-3 text-on-surface-variant">{formatNumber(group.member_count)}</td>
         <td className="px-4 py-3"><code className="text-xs bg-surface-container px-2 py-0.5 rounded text-on-surface-variant">{group.invite_code}</code></td>
         <td className="px-4 py-3 text-outline">{formatDate(group.created_at)}</td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -471,7 +470,7 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                       {expandedDetail.currencies.map((c) => (
                         <span key={c.id} className="inline-flex items-center gap-1 bg-surface-container-lowest border border-outline-variant/15 rounded-lg px-3 py-1 text-sm text-on-surface">
                           <span className="font-medium">{c.currency_code}</span>
-                          <span className="text-xs text-outline">rate: {c.exchange_rate}</span>
+                          <span className="text-xs text-outline">rate: {formatRate(c.exchange_rate)}</span>
                         </span>
                       ))}
                     </div>
@@ -480,7 +479,7 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
 
                 {/* Expenses */}
                 <div>
-                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Expenses ({expandedDetail.expenses_count})</p>
+                  <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Expenses ({formatNumber(expandedDetail.expenses_count)})</p>
                   <button onClick={onToggleExpenses} className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary font-medium">
                     <Receipt size={14} />{showExpenses ? "Hide expenses" : "View expenses"}
                   </button>
@@ -529,7 +528,7 @@ export default function AdminGroups() {
     setLoading(true);
     client.get<{ items: GroupItem[]; total: number }>("/admin/groups", {
       params: { limit, offset: page * limit, search: debouncedSearch || undefined },
-    }).then((r) => { setGroups(r.data.items); setTotal(r.data.total); }).catch(() => {}).finally(() => setLoading(false));
+    }).then((r) => { setGroups(r.data.items); setTotal(r.data.total); }).catch(() => toast.error("Failed to load groups")).finally(() => setLoading(false));
   }, [page, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
@@ -542,10 +541,10 @@ export default function AdminGroups() {
   }
 
   async function deleteGroup(groupId: string) {
-    if (!window.confirm("Delete this group and all its data?")) return;
+    if (!await confirmDialog({ message: "Delete this group and all its data?", destructive: true })) return;
     setDeletingId(groupId);
     try { await client.delete(`/admin/groups/${groupId}`); if (expandedId === groupId) setExpandedId(null); load(); }
-    catch { window.alert("Failed to delete group"); } finally { setDeletingId(null); }
+    catch { toast.error("Failed to delete group"); } finally { setDeletingId(null); }
   }
 
   async function handleAddMember() {
@@ -553,12 +552,12 @@ export default function AdminGroups() {
     setAddingMember(true);
     try {
       await client.post(`/admin/groups/${addMemberGroupId}/members`, { display_name: newMemberName.trim(), role: newMemberRole });
-      window.alert("Member added");
+      toast.success("Member added");
       setNewMemberName(""); setNewMemberRole("member"); setAddMemberGroupId(null);
       if (expandedId === addMemberGroupId) { const gid = addMemberGroupId; setExpandedId(null); setTimeout(() => toggleExpand(gid), 100); }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setAddingMember(false); }
   }
 
@@ -646,7 +645,7 @@ export default function AdminGroups() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between text-sm text-on-surface-variant">
-            <span>{page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}</span>
+            <span>{formatNumber(page * limit + 1)}–{formatNumber(Math.min((page + 1) * limit, total))} of {formatNumber(total)}</span>
             <div className="flex gap-1">
               <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
               <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>

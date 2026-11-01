@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useEffect, useRef, useState } from "react";
 import { getAuthConfig } from "@/api/auth";
 import { isNative, nativeGoogleSignIn } from "@/native";
@@ -89,8 +90,11 @@ export default function GoogleSignIn({ onCredential, disabled }: Props) {
       onCredential(await nativeGoogleSignIn(clientId));
     } catch (err) {
       // User dismissed the account sheet, or Play services is unavailable.
-      const message = err instanceof Error ? err.message : String(err);
-      if (!/cancel/i.test(message)) window.alert(t("login.error_google"));
+      const message =
+        err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err);
+      // Surface the native error text: it names the actual cause (developer
+      // error, missing Play services, backend rejection …).
+      if (!/cancel/i.test(message)) toast.error(`${t("login.error_google")}\n${message}`);
     } finally {
       setBusy(false);
     }

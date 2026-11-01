@@ -1,3 +1,4 @@
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -9,6 +10,7 @@ import type { FundDetail as FundDetailType, FundTransaction, GroupMember, Group 
 import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import MoneyInput from "@/components/MoneyInput";
+import LoadError from "@/components/LoadError";
 import { X } from "lucide-react";
 
 export default function FundDetailPage() {
@@ -31,13 +33,17 @@ export default function FundDetailPage() {
   const [txMemberId, setTxMemberId] = useState("");
   const [txNote, setTxNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const loadData = () => {
     if (!groupId || !fundId) return;
-    getFund(groupId, fundId).then(setFund);
-    listFundTransactions(groupId, fundId).then(setTransactions);
-    listMembers(groupId).then(setMembers);
-    getGroup(groupId).then(setGroup);
+    setLoadFailed(false);
+    Promise.all([
+      getFund(groupId, fundId).then(setFund),
+      listFundTransactions(groupId, fundId).then(setTransactions),
+      listMembers(groupId).then(setMembers),
+      getGroup(groupId).then(setGroup),
+    ]).catch(() => setLoadFailed(true));
   };
 
   useEffect(loadData, [groupId, fundId]);
@@ -55,7 +61,7 @@ export default function FundDetailPage() {
       closeModal();
       loadData();
     } catch {
-      window.alert(t("fund_detail.failed_create_tx"));
+      toast.error(t("fund_detail.failed_create_tx"));
     } finally {
       setSubmitting(false);
     }
@@ -63,12 +69,12 @@ export default function FundDetailPage() {
 
   const handleDeleteTransaction = async (txId: string) => {
     if (!groupId || !fundId) return;
-    if (!window.confirm(t("fund_detail.confirm_delete_tx"))) return;
+    if (!await confirmDialog({ message: t("fund_detail.confirm_delete_tx"), destructive: true })) return;
     try {
       await deleteFundTransaction(groupId, fundId, txId);
       loadData();
     } catch {
-      window.alert(t("fund_detail.failed_delete_tx"));
+      toast.error(t("fund_detail.failed_delete_tx"));
     }
   };
 
@@ -78,6 +84,10 @@ export default function FundDetailPage() {
     setTxMemberId("");
     setTxNote("");
   };
+
+  if (loadFailed && (!fund || !group)) {
+    return <LoadError onRetry={loadData} showBack />;
+  }
 
   if (!fund || !group) {
     return (

@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useState, useEffect, useMemo } from "react";
 import { copyText } from "@/native";
 import type { FormEvent } from "react";
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { listGroups, createGroup } from "@/api/groups";
 import type { Group, GroupListItem } from "@/types";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatNumber } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import CurrencySelect from "@/components/CurrencySelect";
 import { useAuthStore } from "@/store/authStore";
@@ -109,7 +110,7 @@ export default function Dashboard() {
       const data = await listGroups();
       setGroups(data);
     } catch {
-      window.alert(t("failed_to_load", { ns: "common" }));
+      toast.error(t("failed_to_load", { ns: "common" }));
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,7 @@ export default function Dashboard() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("failed_to_load", { ns: "common" });
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setCreating(false);
     }
@@ -145,10 +146,16 @@ export default function Dashboard() {
     });
   }
 
-  const totalBalance = useMemo(
-    () => groups.reduce((sum, g) => sum + g.my_balance, 0),
-    [groups]
-  );
+  const balancesByCurrency = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const group of groups) {
+      totals.set(
+        group.currency_code,
+        (totals.get(group.currency_code) ?? 0) + group.my_balance,
+      );
+    }
+    return [...totals.entries()];
+  }, [groups]);
 
   const groupsWithDebt = useMemo(
     () => groups.filter((g) => g.my_balance < 0),
@@ -156,9 +163,6 @@ export default function Dashboard() {
   );
 
   const pendingPaymentCount = groupsWithDebt.length;
-
-  // Use the first group's currency for the total, or default to USD
-  const primaryCurrency = groups.length > 0 ? groups[0].currency_code : "USD";
 
   return (
     <div className="space-y-6 pb-8">
@@ -331,21 +335,28 @@ export default function Dashboard() {
                 <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
                   {t("total_balance")}
                 </p>
-                <span
-                  className={cn(
-                    "text-3xl font-bold tracking-tight",
-                    totalBalance > 0
-                      ? "text-primary"
-                      : totalBalance < 0
-                      ? "text-error"
-                      : "text-on-surface"
-                  )}
-                >
-                  {totalBalance > 0 ? "+" : ""}
-                  {formatCurrency(totalBalance, primaryCurrency)}
-                </span>
+                <div className="flex flex-wrap gap-x-5 gap-y-1">
+                  {balancesByCurrency.map(([currencyCode, balance]) => (
+                    <span
+                      key={currencyCode}
+                      className={cn(
+                        "text-3xl font-bold tracking-tight",
+                        balance > 0
+                          ? "text-primary"
+                          : balance < 0
+                            ? "text-error"
+                            : "text-on-surface"
+                      )}
+                    >
+                      {balance > 0 ? "+" : ""}
+                      {formatCurrency(balance, currencyCode)}
+                    </span>
+                  ))}
+                </div>
                 <p className="text-xs text-on-surface-variant mt-1.5">
-                  Across {groups.length} group{groups.length !== 1 ? "s" : ""}
+                  {groups.length === 1
+                    ? t("across_groups", { count: groups.length })
+                    : t("across_groups_plural", { count: groups.length })}
                 </p>
               </div>
               <MiniBarChart />
@@ -385,7 +396,7 @@ export default function Dashboard() {
                 {t("your_groups")}
               </h2>
               <span className="text-xs text-on-surface-variant font-medium">
-                {groups.length} group{groups.length !== 1 ? "s" : ""}
+                {t("groups_count", { count: groups.length, n: formatNumber(groups.length) })}
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -406,7 +417,7 @@ export default function Dashboard() {
                   </h3>
                   <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4 flex-wrap">
                     <Users size={12} />
-                    <span>{g.member_count} member{g.member_count !== 1 ? "s" : ""}</span>
+                    <span>{t("members_count", { count: g.member_count, n: formatNumber(g.member_count) })}</span>
                     <span className="text-outline">|</span>
                     <span>{g.currency_code}</span>
                     {g.created_at && (

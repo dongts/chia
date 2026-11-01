@@ -1,3 +1,5 @@
+import LoadError from "@/components/LoadError";
+import { formatNumber } from "@/utils/currency";
 import { useState, useEffect } from "react";
 import { Users, LayoutDashboard, Layers, Receipt } from "lucide-react";
 import client from "@/api/client";
@@ -10,7 +12,7 @@ function StatCard({ icon: Icon, label, value, color }: { icon: React.ElementType
     <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 p-5 flex items-center gap-4">
       <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", color)}><Icon size={22} /></div>
       <div>
-        <p className="text-2xl font-bold text-on-surface">{value.toLocaleString()}</p>
+        <p className="text-2xl font-bold text-on-surface">{formatNumber(value)}</p>
         <p className="text-sm text-on-surface-variant">{label}</p>
       </div>
     </div>
@@ -21,12 +23,23 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [failed, setFailed] = useState(false);
+
+  const fetchStats = () =>
+    client.get<Stats>("/admin/stats").then((r) => setStats(r.data)).catch(() => setFailed(true)).finally(() => setLoading(false));
+
+  const load = () => {
+    setLoading(true);
+    setFailed(false);
+    fetchStats();
+  };
+
   useEffect(() => {
-    client.get<Stats>("/admin/stats").then((r) => setStats(r.data)).catch(() => {}).finally(() => setLoading(false));
+    fetchStats();
   }, []);
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
-  if (!stats) return null;
+  if (!stats) return failed ? <LoadError onRetry={load} /> : null;
 
   return (
     <div>

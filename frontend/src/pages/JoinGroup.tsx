@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -62,7 +63,7 @@ export default function JoinGroup() {
 
     // Validate
     if (joinAsNew && !displayName.trim()) {
-      window.alert(t("join.your_name_placeholder"));
+      toast.error(t("join.your_name_placeholder"));
       return;
     }
 

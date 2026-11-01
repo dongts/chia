@@ -105,5 +105,15 @@
         "body": "Questions about this policy: dongts1201@gmail.com"
       }
     ]
-  }
+  },
+  "confirm_dialog": {
+    "title": "Are you sure?",
+    "title_destructive": "This can't be undone"
+  },
+  "retry": "Try again",
+  "load_error_title": "Couldn't load this page",
+  "load_error_detail": "Check your connection and try again.",
+  "load_more_failed": "Couldn't load more.",
+  "remove": "Remove",
+  "error_generic": "Something went wrong. Please try again."
 }

@@ -4,6 +4,8 @@
   "greeting_evening": "Good evening",
   "your_groups": "Your Groups",
   "total_balance": "Total Balance",
+  "across_groups": "Across {{count}} group",
+  "across_groups_plural": "Across {{count}} groups",
   "new_group": "New Group",
   "create_group": "Create Group",
   "creating_group": "Creating...",
@@ -24,5 +26,9 @@
   "settle_now": "Settle Now",
   "you_owe": "you owe",
   "owed_to_you": "owed to you",
-  "settled": "settled up"
+  "settled": "settled up",
+  "groups_count_one": "{{n}} group",
+  "groups_count_other": "{{n}} groups",
+  "members_count_one": "{{n}} member",
+  "members_count_other": "{{n}} members"
 }

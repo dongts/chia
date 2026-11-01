@@ -38,7 +38,8 @@
     "upload": "Add receipt",
     "delete": "Delete receipt",
     "uploading": "Uploading...",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "confirm_delete": "Delete this receipt image?"
   },
   "validation": {
     "select_member": "Select at least one member for equal split",
@@ -49,5 +50,8 @@
   "search_members": "Search {{count}} members...",
   "selected_count": "{{selected}} of {{total}} selected",
   "no_members_found": "No members found",
-  "inactive_suffix": "(inactive)"
+  "inactive_suffix": "(inactive)",
+  "sum_label": "Sum:",
+  "receipt_upload_failed": "The expense was saved, but the receipt couldn't be uploaded. Open the expense to try again.",
+  "failed_save": "Couldn't save the expense. Please try again."
 }

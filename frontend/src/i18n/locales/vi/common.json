@@ -105,5 +105,15 @@
         "body": "Thắc mắc về chính sách này: dongts1201@gmail.com"
       }
     ]
-  }
+  },
+  "confirm_dialog": {
+    "title": "Bạn chắc chứ?",
+    "title_destructive": "Không thể hoàn tác"
+  },
+  "retry": "Thử lại",
+  "load_error_title": "Không tải được trang này",
+  "load_error_detail": "Kiểm tra kết nối mạng rồi thử lại.",
+  "load_more_failed": "Không tải thêm được.",
+  "remove": "Xóa",
+  "error_generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
 }

@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -25,7 +26,7 @@ export default function Login() {
       navigate(redirect);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("login.error_login");
-      window.alert(msg);
+      toast.error(msg);
     } finally { setLoading(false); }
   }
 
@@ -36,7 +37,7 @@ export default function Login() {
       navigate(redirect);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("login.error_google");
-      window.alert(msg);
+      toast.error(msg);
     } finally { setLoading(false); }
   }
 
@@ -47,7 +48,7 @@ export default function Login() {
       navigate(redirect);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t("login.error_guest");
-      window.alert(message);
+      toast.error(message);
     } finally { setLoading(false); }
   }
 

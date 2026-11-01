@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,7 +14,7 @@ import { listFunds } from "@/api/funds";
 import { useAuthStore } from "@/store/authStore";
 import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitInput, Fund } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatAmount, formatCurrency } from "@/utils/currency";
+import { formatAmount, formatCurrency, formatNumber } from "@/utils/currency";
 import CurrencySelect from "@/components/CurrencySelect";
 import DatePicker from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
@@ -43,7 +44,11 @@ export default function AddExpense() {
   const [amount, setAmount] = useState("");
   const [currencyCode, setCurrencyCode] = useState("");
   const [exchangeRate, setExchangeRate] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => {
+    // Local calendar date — toISOString() is UTC and gives "yesterday" before 07:00 in Vietnam
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [paidBy, setPaidBy] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [splitType, setSplitType] = useState<SplitType>("equal");
@@ -82,7 +87,8 @@ export default function AddExpense() {
 
   useEffect(() => {
     if (!groupId) return;
-    listFunds(groupId).then((f) => setFunds(f.filter((fund) => fund.is_active)));
+    // Funds are optional here — on failure the fund section just stays empty
+    listFunds(groupId).then((f) => setFunds(f.filter((fund) => fund.is_active))).catch(() => {});
     Promise.all([getGroup(groupId), listMembers(groupId), listGroupCategories(groupId), listGroupCurrencies(groupId)])
       .then(([g, m, c, gc]) => {
         setGroup(g);
@@ -111,7 +117,7 @@ export default function AddExpense() {
         }
         if (c.length > 0) setCategoryId(c[0].id);
       })
-      .catch(() => window.alert(t("failed_to_load", { ns: "common" })))
+      .catch(() => toast.error(t("failed_to_load", { ns: "common" })))
       .finally(() => setLoading(false));
   }, [groupId]);
 
@@ -119,7 +125,7 @@ export default function AddExpense() {
     if (splitType === "equal") {
       const selected = members.filter((m) => equalChecked[m.id]);
       if (selected.length === 0) {
-        window.alert(t("validation.select_member"));
+        toast.error(t("validation.select_member"));
         return null;
       }
       const each = 1 / selected.length;
@@ -132,7 +138,7 @@ export default function AddExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - splittableAmount) > 0.01) {
-        window.alert(t("validation.exact_sum", { target: formatAmount(splittableAmount, group?.currency_code), current: formatAmount(total, group?.currency_code) }));
+        toast.error(t("validation.exact_sum", { target: formatAmount(splittableAmount, group?.currency_code), current: formatAmount(total, group?.currency_code) }));
         return null;
       }
       return splits;
@@ -144,7 +150,7 @@ export default function AddExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - 100) > 0.01) {
-        window.alert(t("validation.percent_sum", { current: total.toFixed(2) }));
+        toast.error(t("validation.percent_sum", { current: formatNumber(total, 2) }));
         return null;
       }
       return splits;
@@ -155,7 +161,7 @@ export default function AddExpense() {
         .map((m) => ({ group_member_id: m.id, value: parseFloat(shareValues[m.id] || "0") }))
         .filter((s) => s.value > 0);
       if (splits.length === 0) {
-        window.alert(t("validation.shares_required"));
+        toast.error(t("validation.shares_required"));
         return null;
       }
       return splits;
@@ -218,9 +224,9 @@ export default function AddExpense() {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 503) {
         setNlHidden(true);
-        window.alert(t("ai_input.error_not_configured"));
+        toast.error(t("ai_input.error_not_configured"));
       } else {
-        window.alert(t("ai_input.error_parse"));
+        toast.error(t("ai_input.error_parse"));
       }
     } finally {
       setNlParsing(false);
@@ -255,15 +261,16 @@ export default function AddExpense() {
         try {
           await uploadReceipt(groupId, created.id, receiptFile);
         } catch {
-          // Expense created but receipt failed — not critical
+          // Expense is saved; don't block navigation, but don't pretend the receipt is attached
+          toast.error(t("receipt_upload_failed"));
         }
       }
       navigate(`/groups/${groupId}`);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        t("failed_to_load", { ns: "common" });
-      window.alert(msg);
+        t("failed_save");
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -460,14 +467,15 @@ export default function AddExpense() {
           {group && currencyCode && currencyCode !== group.currency_code && (
             <div className="flex items-center gap-2 px-1">
               <span className="text-xs text-on-surface-variant whitespace-nowrap">1 {currencyCode} =</span>
-              <input
-                type="number"
-                min="0.000001"
-                step="any"
+              <MoneyInput
                 value={exchangeRate}
-                onChange={(e) => setExchangeRate(e.target.value)}
-                placeholder="0.00"
-                className="w-24 bg-surface-container-high/50 border-0 rounded-lg px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                onChange={setExchangeRate}
+                maxDecimals={6}
+                showQuickAmounts={false}
+                placeholder="1"
+                aria-label={`1 ${currencyCode} = ? ${group.currency_code}`}
+                containerClassName="w-28"
+                className="h-auto rounded-lg px-3 py-1.5 text-xs"
               />
               <span className="text-xs text-on-surface-variant">{group.currency_code}</span>
               {amount && exchangeRate && parseFloat(exchangeRate) > 0 && (
@@ -555,7 +563,7 @@ export default function AddExpense() {
                       <option value="">{t("select_fund")}</option>
                       {availableFunds.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {f.name} (bal: {formatCurrency(f.balance, group?.currency_code || "VND")})
+                          {f.name} · {formatCurrency(f.balance, group?.currency_code || "VND")}
                         </option>
                       ))}
                     </select>
@@ -563,6 +571,8 @@ export default function AddExpense() {
                       value={d.amount}
                       onChange={(v) => updateFundDeduction(i, "amount", v)}
                       placeholder={t("amount_from_fund")}
+                      currencyCode={group?.currency_code}
+                      showQuickAmounts={false}
                     />
                     {deductionExceedsBalance && (
                       <p className="text-xs text-error">

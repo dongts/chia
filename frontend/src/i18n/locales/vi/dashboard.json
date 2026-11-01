@@ -4,6 +4,8 @@
   "greeting_evening": "Chào buổi tối",
   "your_groups": "Nhóm của bạn",
   "total_balance": "Tổng số dư",
+  "across_groups": "Trong {{count}} nhóm",
+  "across_groups_plural": "Trong {{count}} nhóm",
   "new_group": "Nhóm mới",
   "create_group": "Tạo nhóm",
   "creating_group": "Đang tạo...",
@@ -24,5 +26,9 @@
   "settle_now": "Thanh toán ngay",
   "you_owe": "bạn nợ",
   "owed_to_you": "được nợ",
-  "settled": "đã thanh toán"
+  "settled": "đã thanh toán",
+  "groups_count_one": "{{n}} nhóm",
+  "groups_count_other": "{{n}} nhóm",
+  "members_count_one": "{{n}} thành viên",
+  "members_count_other": "{{n}} thành viên"
 }

@@ -1,3 +1,4 @@
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -11,7 +12,7 @@ import { listGroupCategories } from "@/api/categories";
 import { listFunds } from "@/api/funds";
 import type { Group, GroupMember, Category, SplitType, SplitInput, Expense, Fund } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatAmount, formatCurrency } from "@/utils/currency";
+import { formatAmount, formatCurrency, formatNumber } from "@/utils/currency";
 import MemberSplitList from "@/components/expense/MemberSplitList";
 import DatePicker from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
@@ -70,8 +71,9 @@ export default function EditExpense() {
 
   useEffect(() => {
     if (!groupId || !expenseId) return;
-    listFunds(groupId).then((f) => setFunds(f.filter((fund) => fund.is_active)));
-    getGroup(groupId).then((g) => setGroup(g));
+    // Funds are optional here — on failure the fund section just stays empty
+    listFunds(groupId).then((f) => setFunds(f.filter((fund) => fund.is_active))).catch(() => {});
+    getGroup(groupId).then((g) => setGroup(g)).catch(() => toast.error(t("failed_to_load", { ns: "common" })));
     Promise.all([
       getExpense(groupId, expenseId),
       listMembers(groupId, true),
@@ -123,7 +125,7 @@ export default function EditExpense() {
         setPercentValues(pct);
         setShareValues(shares);
       })
-      .catch(() => window.alert(t("failed_to_load", { ns: "common" })))
+      .catch(() => toast.error(t("failed_to_load", { ns: "common" })))
       .finally(() => setLoading(false));
   }, [groupId, expenseId]);
 
@@ -131,7 +133,7 @@ export default function EditExpense() {
     if (splitType === "equal") {
       const selected = members.filter((m) => equalChecked[m.id]);
       if (selected.length === 0) {
-        window.alert(t("validation.select_member"));
+        toast.error(t("validation.select_member"));
         return null;
       }
       const each = 1 / selected.length;
@@ -144,7 +146,7 @@ export default function EditExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - splittableAmount) > 0.01) {
-        window.alert(t("validation.exact_sum", { target: formatAmount(splittableAmount, expense?.currency_code ?? undefined), current: formatAmount(total, expense?.currency_code ?? undefined) }));
+        toast.error(t("validation.exact_sum", { target: formatAmount(splittableAmount, expense?.currency_code ?? undefined), current: formatAmount(total, expense?.currency_code ?? undefined) }));
         return null;
       }
       return splits;
@@ -156,7 +158,7 @@ export default function EditExpense() {
         .filter((s) => s.value > 0);
       const total = splits.reduce((a, b) => a + b.value, 0);
       if (Math.abs(total - 100) > 0.01) {
-        window.alert(t("validation.percent_sum", { current: total.toFixed(2) }));
+        toast.error(t("validation.percent_sum", { current: formatNumber(total, 2) }));
         return null;
       }
       return splits;
@@ -167,7 +169,7 @@ export default function EditExpense() {
         .map((m) => ({ group_member_id: m.id, value: parseFloat(shareValues[m.id] || "0") }))
         .filter((s) => s.value > 0);
       if (splits.length === 0) {
-        window.alert(t("validation.shares_required"));
+        toast.error(t("validation.shares_required"));
         return null;
       }
       return splits;
@@ -200,8 +202,8 @@ export default function EditExpense() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        t("failed_to_load", { ns: "common" });
-      window.alert(msg);
+        t("failed_save");
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -348,7 +350,7 @@ export default function EditExpense() {
                       <option value="">{t("select_fund")}</option>
                       {availableFunds.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {f.name} (bal: {formatCurrency(f.balance, group?.currency_code || "VND")})
+                          {f.name} · {formatCurrency(f.balance, group?.currency_code || "VND")}
                         </option>
                       ))}
                     </select>
@@ -356,6 +358,8 @@ export default function EditExpense() {
                       value={d.amount}
                       onChange={(v) => updateFundDeduction(i, "amount", v)}
                       placeholder={t("amount_from_fund")}
+                      currencyCode={group?.currency_code}
+                      showQuickAmounts={false}
                     />
                     {deductionExceedsBalance && (
                       <p className="text-xs text-error">
@@ -472,13 +476,13 @@ export default function EditExpense() {
                 type="button"
                 onClick={async () => {
                   if (!groupId || !expenseId) return;
-                  if (!window.confirm(t("receipt.delete"))) return;
+                  if (!await confirmDialog({ message: t("receipt.confirm_delete"), destructive: true })) return;
                   setUploadingReceipt(true);
                   try {
                     await deleteReceipt(groupId, expenseId);
                     setReceiptUrl(null);
                   } catch {
-                    window.alert(t("failed_to_load", { ns: "common" }));
+                    toast.error(t("failed_to_load", { ns: "common" }));
                   } finally {
                     setUploadingReceipt(false);
                   }
@@ -513,7 +517,7 @@ export default function EditExpense() {
                     const updated = await uploadReceipt(groupId, expenseId, file);
                     setReceiptUrl(updated.receipt_url);
                   } catch {
-                    window.alert(t("failed_to_load", { ns: "common" }));
+                    toast.error(t("failed_to_load", { ns: "common" }));
                   } finally {
                     setUploadingReceipt(false);
                   }

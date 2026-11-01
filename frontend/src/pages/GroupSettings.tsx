@@ -1,3 +1,4 @@
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect } from "react";
 import { copyText } from "@/native";
 import type { FormEvent } from "react";
@@ -15,6 +16,34 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
 import { getCurrencyName } from "@/utils/currencies";
+import { formatCurrency } from "@/utils/currency";
+import MoneyInput from "@/components/MoneyInput";
+import LoadError from "@/components/LoadError";
+import type { ComponentProps } from "react";
+
+/** MoneyInput that keeps its own draft and saves on blur (rates, initial balances). */
+function BlurSaveMoneyInput({
+  initial,
+  onSave,
+  ...rest
+}: Omit<ComponentProps<typeof MoneyInput>, "value" | "onChange" | "onBlur"> & {
+  initial: string;
+  onSave: (value: string, reset: () => void) => void;
+}) {
+  // Callers key this by `initial`, so a saved/reset value remounts with a fresh draft.
+  const [draft, setDraft] = useState(initial);
+  return (
+    <MoneyInput
+      {...rest}
+      showQuickAmounts={false}
+      value={draft}
+      onChange={setDraft}
+      onBlur={() => {
+        if (draft !== initial) onSave(draft, () => setDraft(initial));
+      }}
+    />
+  );
+}
 
 type MemberLogAction = "joined" | "left" | "removed" | "reactivated" | "role_changed" | "renamed" | "claimed" | "unclaimed";
 
@@ -66,6 +95,7 @@ export default function GroupSettings() {
   const [logLimit, setLogLimit] = useState(20);
   const [myGroupPMs, setMyGroupPMs] = useState<MyGroupPaymentMethod[]>([]);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [settleUpPrompt, setSettleUpPrompt] = useState<
     { member: GroupMember; info: MemberHasBalanceError } | null
   >(null);
@@ -84,6 +114,7 @@ export default function GroupSettings() {
 
   async function loadData() {
     if (!groupId) return;
+    setLoadFailed(false);
     try {
       const [g, m, c, logRes, pms] = await Promise.all([
         getGroup(groupId),
@@ -102,7 +133,8 @@ export default function GroupSettings() {
       setRequireVerified(g.require_verified_users);
       setAllowLogOnBehalf(g.allow_log_on_behalf);
     } catch {
-      window.alert(t("settings.failed_load"));
+      setLoadFailed(true);
+      if (group) toast.error(t("settings.failed_load"));
     } finally {
       setLoading(false);
     }
@@ -129,9 +161,9 @@ export default function GroupSettings() {
         allow_log_on_behalf: allowLogOnBehalf,
       });
       setGroup(updated);
-      window.alert(t("settings.saved"));
+      toast.success(t("settings.saved"));
     } catch {
-      window.alert(t("settings.failed_save"));
+      toast.error(t("settings.failed_save"));
     } finally {
       setSaving(false);
     }
@@ -140,10 +172,12 @@ export default function GroupSettings() {
   function copyInviteLink() {
     if (!group) return;
     const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${group.invite_code}`;
-    copyText(link).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    copyText(link)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => toast.info(link));
   }
 
   async function handleRoleChange(memberId: string, role: MemberRole) {
@@ -155,13 +189,13 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.members.failed_update_role");
-      window.alert(msg);
+      toast.error(msg);
     }
   }
 
   async function handleRemoveMember(memberId: string, memberName: string) {
     if (!groupId) return;
-    if (!window.confirm(t("settings.members.confirm_remove", { name: memberName }))) return;
+    if (!await confirmDialog({ message: t("settings.members.confirm_remove", { name: memberName }), destructive: true, confirmLabel: t("remove", { ns: "common" }) })) return;
     try {
       await removeMember(groupId, memberId);
       // Soft delete: keep the row but flip it to inactive so it stays visible
@@ -177,7 +211,7 @@ export default function GroupSettings() {
         }
       }
       const msg = typeof detail === "string" ? detail : t("settings.members.failed_remove");
-      window.alert(msg);
+      toast.error(msg);
     }
   }
 
@@ -190,7 +224,7 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.members.failed_reactivate");
-      window.alert(msg);
+      toast.error(msg);
     }
   }
 
@@ -216,7 +250,7 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.members.failed_remove");
-      window.alert(typeof msg === "string" ? msg : t("settings.members.failed_remove"));
+      toast.error(typeof msg === "string" ? msg : t("settings.members.failed_remove"));
     } finally {
       setSettling(false);
     }
@@ -238,7 +272,7 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.currencies.failed_add");
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setAddingCurrency(false);
     }
@@ -252,18 +286,18 @@ export default function GroupSettings() {
       const updated = await updateGroupCurrency(groupId, currencyId, { exchange_rate: parsed });
       setCurrencies((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
     } catch {
-      window.alert(t("settings.currencies.failed_update_rate"));
+      toast.error(t("settings.currencies.failed_update_rate"));
     }
   }
 
   async function handleDeleteCurrency(currencyId: string, code: string) {
     if (!groupId) return;
-    if (!window.confirm(t("settings.currencies.confirm_remove", { code }))) return;
+    if (!await confirmDialog({ message: t("settings.currencies.confirm_remove", { code }), destructive: true, confirmLabel: t("remove", { ns: "common" }) })) return;
     try {
       await deleteGroupCurrency(groupId, currencyId);
       setCurrencies((prev) => prev.filter((c) => c.id !== currencyId));
     } catch {
-      window.alert(t("settings.currencies.failed_remove"));
+      toast.error(t("settings.currencies.failed_remove"));
     }
   }
 
@@ -282,7 +316,7 @@ export default function GroupSettings() {
         )
       );
     } catch {
-      window.alert(t("settings.payment_methods.failed_update"));
+      toast.error(t("settings.payment_methods.failed_update"));
     } finally {
       setTogglingId(null);
     }
@@ -297,7 +331,7 @@ export default function GroupSettings() {
       setRenamingMemberId(null);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? t("settings.members.failed_rename");
-      window.alert(msg);
+      toast.error(msg);
     } finally { setSavingRename(false); }
   }
 
@@ -313,7 +347,7 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("add_member_modal.failed_add");
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setAddingMember(false);
     }
@@ -321,13 +355,13 @@ export default function GroupSettings() {
 
   async function handleDeleteGroup() {
     if (!groupId || !group) return;
-    if (!window.confirm(t("settings.danger_zone.confirm_delete", { name: group.name }))) return;
+    if (!await confirmDialog({ message: t("settings.danger_zone.confirm_delete", { name: group.name }), destructive: true })) return;
     setDeleting(true);
     try {
       await deleteGroup(groupId);
       navigate("/dashboard");
     } catch {
-      window.alert(t("settings.danger_zone.failed_delete"));
+      toast.error(t("settings.danger_zone.failed_delete"));
       setDeleting(false);
     }
   }
@@ -369,7 +403,7 @@ export default function GroupSettings() {
 
   async function handleUnclaimMember(memberId: string, displayLabel: string) {
     if (!groupId) return;
-    if (!window.confirm(t("settings.members.confirm_unclaim", { name: displayLabel }))) return;
+    if (!await confirmDialog({ message: t("settings.members.confirm_unclaim", { name: displayLabel }), destructive: true, confirmLabel: t("confirm", { ns: "common" }) })) return;
     try {
       const updated = await unclaimMember(groupId, memberId);
       setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
@@ -377,7 +411,7 @@ export default function GroupSettings() {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("settings.members.failed_unclaim");
-      window.alert(msg);
+      toast.error(msg);
     }
   }
 
@@ -391,7 +425,11 @@ export default function GroupSettings() {
       </div>
     );
   }
-  if (!group) return null;
+  if (!group) {
+    return loadFailed ? (
+      <LoadError onRetry={() => { setLoading(true); loadData(); }} showBack message={t("settings.failed_load")} />
+    ) : null;
+  }
 
   return (
     <div className="max-w-lg mx-auto">
@@ -534,14 +572,15 @@ export default function GroupSettings() {
                   <span className="text-sm font-semibold text-on-surface w-12">{gc.currency_code}</span>
                   <span className="text-xs text-outline truncate max-w-[100px]">{getCurrencyName(gc.currency_code)}</span>
                   <span className="text-xs text-outline">1 {gc.currency_code} =</span>
-                  <input
-                    type="number"
-                    min="0.000001"
-                    step="any"
-                    defaultValue={gc.exchange_rate}
-                    onBlur={(e) => handleUpdateCurrencyRate(gc.id, e.target.value)}
+                  <BlurSaveMoneyInput
+                    key={String(gc.exchange_rate)}
+                    initial={String(Number(gc.exchange_rate))}
+                    maxDecimals={6}
                     disabled={!isAdminOrOwner}
-                    className="w-24 bg-surface-container-lowest border-0 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    aria-label={`1 ${gc.currency_code} = ? ${group.currency_code}`}
+                    onSave={(v) => handleUpdateCurrencyRate(gc.id, v)}
+                    containerClassName="w-28"
+                    className="h-auto bg-surface-container-lowest rounded-lg px-2 py-1.5 text-right"
                   />
                   <span className="text-xs text-outline">{group.currency_code}</span>
                   {isAdminOrOwner && (
@@ -570,15 +609,13 @@ export default function GroupSettings() {
                 </div>
                 <div className="w-28">
                   <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currencies.rate_label", { code: group.currency_code })}</label>
-                  <input
-                    type="number"
-                    min="0.000001"
-                    step="any"
+                  <MoneyInput
                     required
                     value={newCurrencyRate}
-                    onChange={(e) => setNewCurrencyRate(e.target.value)}
-                    placeholder="1.00"
-                    className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    onChange={setNewCurrencyRate}
+                    maxDecimals={6}
+                    placeholder="1"
+                    className="h-auto py-3"
                   />
                 </div>
                 <button
@@ -824,22 +861,24 @@ export default function GroupSettings() {
                   </div>
                   <span className="text-sm font-medium text-on-surface flex-1 truncate">{m.display_name}</span>
                   <div className="w-32">
-                    <input
-                      type="number"
-                      step="0.01"
-                      defaultValue={m.initial_balance ?? 0}
-                      onBlur={async (e) => {
-                        const val = parseFloat(e.target.value) || 0;
+                    <BlurSaveMoneyInput
+                      key={String(m.initial_balance ?? 0)}
+                      initial={String(Number(m.initial_balance ?? 0))}
+                      currencyCode={group.currency_code}
+                      allowNegative
+                      aria-label={`${t("settings.initial_balances.title")}: ${m.display_name}`}
+                      className="h-auto px-3 py-2 text-right font-mono"
+                      onSave={async (v, reset) => {
+                        const val = parseFloat(v) || 0;
                         if (val === (m.initial_balance ?? 0)) return;
                         try {
                           const updated = await updateMember(groupId!, m.id, { initial_balance: val });
                           setMembers((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
                         } catch {
-                          window.alert(t("settings.initial_balances.failed_update"));
-                          e.target.value = String(m.initial_balance ?? 0);
+                          toast.error(t("settings.initial_balances.failed_update"));
+                          reset();
                         }
                       }}
-                      className="w-full bg-surface-container-high/50 border-0 rounded-lg px-3 py-2 text-sm text-right text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary tabular-nums"
                     />
                   </div>
                   <span className="text-xs text-outline w-12">{group.currency_code}</span>
@@ -930,7 +969,7 @@ export default function GroupSettings() {
                     <span className="font-medium text-on-surface truncate">{s.to_member_name}</span>
                   </div>
                   <span className="font-semibold text-on-surface whitespace-nowrap">
-                    {s.amount} {settleUpPrompt.info.currency_code}
+                    {formatCurrency(s.amount, settleUpPrompt.info.currency_code)}
                   </span>
                 </div>
               ))}

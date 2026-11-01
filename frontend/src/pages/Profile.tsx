@@ -1,3 +1,5 @@
+import LoadError from "@/components/LoadError";
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -59,11 +61,19 @@ export default function Profile() {
 
   const qrInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  useEffect(() => {
-    fetchVietBanks().then(setVietBanks).catch(() => {});
+  const [pmLoadFailed, setPmLoadFailed] = useState(false);
+
+  const loadPaymentMethods = () => {
+    setPmLoadFailed(false);
     listMyPaymentMethods()
       .then(setPaymentMethods)
-      .catch(() => {/* silently ignore */});
+      .catch(() => setPmLoadFailed(true));
+  };
+
+  useEffect(() => {
+    // Bank list only powers the picker/logos; failure falls back to free text
+    fetchVietBanks().then(setVietBanks).catch(() => {});
+    loadPaymentMethods();
   }, []);
 
   async function handleSaveName(e: FormEvent) {
@@ -73,9 +83,9 @@ export default function Profile() {
       await client.patch("/users/me", { display_name: displayName });
       const updated = await getMe();
       setUser(updated);
-      window.alert(t("display_name_updated"));
+      toast.success(t("display_name_updated"));
     } catch {
-      window.alert(t("failed_display_name"));
+      toast.error(t("failed_display_name"));
     } finally {
       setSavingName(false);
     }
@@ -93,12 +103,12 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert(t("upgrade.success"));
+      toast.success(t("upgrade.success"));
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("upgrade.failed");
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setUpgrading(false);
     }
@@ -113,13 +123,13 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert(t("link.success"));
+      toast.success(t("link.success"));
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("link.failed");
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setLinking(false);
     }
@@ -133,13 +143,13 @@ export default function Profile() {
       localStorage.setItem("refresh_token", tokens.refresh_token);
       const updated = await getMe();
       setUser(updated);
-      window.alert(t("link.success_google"));
+      toast.success(t("link.success_google"));
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         t("link.failed_google");
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setLinking(false);
     }
@@ -204,19 +214,19 @@ export default function Profile() {
       }
       resetForm();
     } catch {
-      window.alert(t("payment_methods.failed_save"));
+      toast.error(t("payment_methods.failed_save"));
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDeletePaymentMethod(id: string) {
-    if (!window.confirm(t("payment_methods.confirm_delete"))) return;
+    if (!await confirmDialog({ message: t("payment_methods.confirm_delete"), destructive: true })) return;
     try {
       await deletePaymentMethod(id);
       setPaymentMethods((prev) => prev.filter((pm) => pm.id !== id));
     } catch {
-      window.alert(t("payment_methods.failed_delete"));
+      toast.error(t("payment_methods.failed_delete"));
     }
   }
 
@@ -225,7 +235,7 @@ export default function Profile() {
       const updated = await uploadQrImage(id, file);
       setPaymentMethods((prev) => prev.map((pm) => (pm.id === id ? updated : pm)));
     } catch {
-      window.alert(t("payment_methods.failed_upload_qr"));
+      toast.error(t("payment_methods.failed_upload_qr"));
     }
   }
 
@@ -564,7 +574,9 @@ export default function Profile() {
           )}
 
           {/* List */}
-          {paymentMethods.length === 0 && !showForm ? (
+          {pmLoadFailed && paymentMethods.length === 0 && !showForm ? (
+            <LoadError compact message={t("failed_to_load", { ns: "common" })} onRetry={loadPaymentMethods} />
+          ) : paymentMethods.length === 0 && !showForm ? (
             <p className="text-sm text-outline text-center py-4">
               {t("payment_methods.empty")}
             </p>

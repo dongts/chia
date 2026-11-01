@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRightLeft, MoreVertical } from "lucide-react";
 import client from "@/api/client";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatCompactCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -86,11 +86,8 @@ function formatDate(iso: string) {
 }
 
 function formatCompact(amount: number, currencyCode: string = "USD"): string {
-  const abs = Math.abs(amount);
-  if (abs >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)}B`;
-  if (abs >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
-  if (abs >= 10_000) return `${(amount / 1_000).toFixed(0)}K`;
-  return formatCurrency(amount, currencyCode);
+  // Full value while it still fits the donut centre; compact (1,5 Tr ₫ / $12K) beyond that
+  return Math.abs(amount) >= 10_000 ? formatCompactCurrency(amount, currencyCode) : formatCurrency(amount, currencyCode);
 }
 
 function formatSigned(amount: number, currency: string): string {

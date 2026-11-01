@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Search, CheckCircle2, Circle, Check } from "lucide-react";
 import type { GroupMember, SplitType } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatAmount } from "@/utils/currency";
+import { formatAmount, formatPercent } from "@/utils/currency";
+import MoneyInput from "@/components/MoneyInput";
 import { useTranslation } from "react-i18next";
 
 interface MemberSplitListProps {
@@ -155,11 +156,15 @@ export default function MemberSplitList({
                       {m.display_name[0]?.toUpperCase()}
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
-                    <input type="number" min="0" step="any"
+                    <MoneyInput
                       value={exactValues[m.id] ?? ""}
-                      onChange={(e) => onExactChange(m.id, e.target.value)}
+                      onChange={(v) => onExactChange(m.id, v)}
+                      currencyCode={currencyCode}
+                      showQuickAmounts={false}
                       placeholder="0"
-                      className="w-32 border border-outline-variant/15 rounded-lg px-2.5 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
+                      aria-label={m.display_name}
+                      containerClassName="w-32 flex-shrink-0"
+                      className="h-auto bg-transparent hover:bg-transparent border border-outline-variant/15 rounded-lg px-2.5 py-2 text-right focus:border-transparent" />
                   </div>
                 )}
 
@@ -218,7 +223,7 @@ export default function MemberSplitList({
           Math.abs(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - parseFloat(totalAmount)) < 0.02
             ? "text-primary" : "text-on-tertiary-container"
         )}>
-          Sum: {formatAmount(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0), currencyCode)} / {formatAmount(parseFloat(totalAmount || "0"), currencyCode)}
+          {t("sum_label")} {formatAmount(Object.values(exactValues).reduce((a, v) => a + parseFloat(v || "0"), 0), currencyCode)} / {formatAmount(parseFloat(totalAmount || "0"), currencyCode)}
         </p>
       )}
 
@@ -227,7 +232,7 @@ export default function MemberSplitList({
           Math.abs(Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0) - 100) < 0.1
             ? "text-primary" : "text-on-tertiary-container"
         )}>
-          Sum: {Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0).toFixed(1)}% / 100%
+          {t("sum_label")} {formatPercent(Object.values(percentValues).reduce((a, v) => a + parseFloat(v || "0"), 0), 2)} / {formatPercent(100)}
         </p>
       )}
     </div>

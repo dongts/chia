@@ -13,37 +13,44 @@ import { listGroups } from "@/api/groups";
 import type { GroupListItem } from "@/types";
 import type { Notification } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatAmount } from "@/utils/currency";
+import type { TFunction } from "i18next";
+import { formatAmount, formatCurrency, formatNumber, getNumberLocale } from "@/utils/currency";
 
-function formatRelativeTime(dateStr: string): string {
-  const now = new Date();
+function formatRelativeTime(dateStr: string, t: TFunction): string {
   const date = new Date(dateStr);
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = Date.now() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  const locale = getNumberLocale();
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
+  if (diffMins < 1) return t("relative_time.just_now");
+  if (diffMins < 60) return rtf.format(-diffMins, "minute");
+  if (diffHours < 24) return rtf.format(-diffHours, "hour");
+  if (diffDays === 1) return t("relative_time.yesterday");
+  if (diffDays < 7) return rtf.format(-diffDays, "day");
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
-function getNotificationText(notification: Notification): string {
+function getNotificationText(notification: Notification, t: TFunction, currencyCode?: string): string {
   const { type, data } = notification;
+  const money = (v: unknown) =>
+    v == null || v === "" ? "" : currencyCode ? formatCurrency(String(v), currencyCode) : formatAmount(String(v));
+  const description = String(data.description ?? "—");
   switch (type) {
     case "expense_added":
-      return `New expense: ${data.description ?? "Unknown"}`;
     case "expense_updated":
-      return `Expense updated: ${data.description ?? "Unknown"}`;
     case "expense_deleted":
-      return `Expense deleted: ${data.description ?? "Unknown"}`;
+      return t(`notification.${type}`, { description });
     case "settlement_recorded":
-      return `Settlement recorded: ${data.amount ?? ""}`;
+    case "settlement_confirmed":
+      return t(`notification.${type}`, { amount: money(data.amount) });
     case "distribution_recorded":
-      return `${data.from ?? "Someone"} gave ${data.total ?? ""} to ${data.recipient_count ?? 0} people`;
+      return t("notification.distribution_recorded", {
+        from: String(data.from ?? "—"),
+        total: money(data.total),
+        recipient_count: formatNumber(Number(data.recipient_count ?? 0)),
+      });
     default:
       return data.description
         ? String(data.description)
@@ -201,12 +208,12 @@ export default function AppLayout() {
                         <span className="truncate">{g.name}</span>
                         <span
                           className={cn(
-                            "text-xs font-semibold ml-2 tabular-nums",
+                            "text-xs font-semibold ml-2 tabular-nums whitespace-nowrap flex-shrink-0",
                             g.my_balance >= 0 ? "text-primary" : "text-error"
                           )}
                         >
                           {g.my_balance >= 0 ? "+" : ""}
-                          {formatAmount(g.my_balance, g.currency_code)}
+                          {formatCurrency(g.my_balance, g.currency_code)}
                         </span>
                       </Link>
                     </li>
@@ -284,7 +291,7 @@ export default function AppLayout() {
                     )}
                   </button>
                   {notifOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-editorial-xl z-50 overflow-hidden">
+                    <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-surface-container-lowest rounded-2xl shadow-editorial-xl z-50 overflow-hidden">
                       <div className="px-5 py-3 flex items-center justify-between">
                         <span className="text-sm font-bold text-on-surface">{t("notifications")}</span>
                         <div className="flex items-center gap-1">
@@ -336,10 +343,10 @@ export default function AppLayout() {
                                     "text-sm leading-snug",
                                     n.read ? "text-on-surface-variant" : "text-on-surface font-medium"
                                   )}>
-                                    {getNotificationText(n)}
+                                    {getNotificationText(n, t, groups.find((g) => g.id === n.group_id)?.currency_code)}
                                   </p>
                                   <p className="text-[11px] text-outline mt-0.5">
-                                    {formatRelativeTime(n.created_at)}
+                                    {formatRelativeTime(n.created_at, t)}
                                   </p>
                                 </div>
                               </button>

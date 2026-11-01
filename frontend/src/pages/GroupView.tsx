@@ -1,3 +1,4 @@
+import { toast, confirmDialog } from "@/lib/feedback";
 import { useState, useEffect, useRef } from "react";
 import { copyText } from "@/native";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
@@ -16,9 +17,10 @@ import { listGroupPaymentMethods, listMyPaymentMethods, enablePaymentMethodInGro
 import { listFunds, createFund } from "@/api/funds";
 import type { Group, GroupMember, Expense, Balance, Settlement, SuggestedSettlement, Category, GroupPaymentMethod, Fund } from "@/types";
 import MoneyInput from "@/components/MoneyInput";
+import LoadError from "@/components/LoadError";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatNumber } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 
@@ -188,6 +190,8 @@ export default function GroupView() {
   // Infinite scroll (server-side pagination)
   const [expensesHasMore, setExpensesHasMore] = useState(true);
   const [loadingMoreExpenses, setLoadingMoreExpenses] = useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -210,8 +214,9 @@ export default function GroupView() {
         if (cancelled) return;
         setExpenses(exp);
         setExpensesHasMore(exp.length === PAGE_SIZE);
+        setLoadMoreFailed(false);
       } catch {
-        /* ignore */
+        if (!cancelled) toast.error(t("failed_to_load", { ns: "common" }));
       }
     })();
     return () => { cancelled = true; };
@@ -219,7 +224,7 @@ export default function GroupView() {
   }, [filterCategory, filterPaidBy]);
 
   async function loadMoreExpenses() {
-    if (!groupId || loadingMoreExpenses || !expensesHasMore) return;
+    if (!groupId || loadingMoreExpenses || !expensesHasMore || loadMoreFailed) return;
     setLoadingMoreExpenses(true);
     try {
       const next = await listExpenses(groupId, {
@@ -236,7 +241,8 @@ export default function GroupView() {
       });
       setExpensesHasMore(next.length === PAGE_SIZE);
     } catch {
-      /* ignore */
+      // Stop the observer from retrying in a loop; the user gets an explicit retry button
+      setLoadMoreFailed(true);
     } finally {
       setLoadingMoreExpenses(false);
     }
@@ -257,11 +263,13 @@ export default function GroupView() {
     observer.observe(el);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, expenses.length, expensesHasMore, loadingMoreExpenses]);
+  }, [tab, expenses.length, expensesHasMore, loadingMoreExpenses, loadMoreFailed]);
 
   async function loadAll() {
     if (!groupId) return;
     setLoading(true);
+    setLoadFailed(false);
+    setLoadMoreFailed(false);
     try {
       const [g, exp, bal, set, cats, mem, pms, fds, suggested] = await Promise.all([
         getGroup(groupId),
@@ -302,7 +310,9 @@ export default function GroupView() {
         } catch { /* silently ignore */ }
       }
     } catch {
-      window.alert(t("failed_to_load", { ns: "common" }));
+      setLoadFailed(true);
+      // Data already on screen (e.g. refresh after an action) → keep it, just tell the user
+      if (group) toast.error(t("failed_to_load", { ns: "common" }));
     } finally {
       setLoading(false);
     }
@@ -311,20 +321,22 @@ export default function GroupView() {
   function copyInviteCode() {
     if (!group) return;
     const link = `${window.location.origin}${import.meta.env.BASE_URL}join/${group.invite_code}`;
-    copyText(link).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    copyText(link)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => toast.info(link));
   }
 
   async function handleDeleteExpense(expenseId: string) {
     if (!groupId) return;
-    if (!window.confirm(t("expenses.confirm_delete"))) return;
+    if (!await confirmDialog({ message: t("expenses.confirm_delete"), destructive: true })) return;
     try {
       await deleteExpense(groupId, expenseId);
       setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
     } catch {
-      window.alert(t("expenses.failed_delete"));
+      toast.error(t("expenses.failed_delete"));
     }
   }
 
@@ -349,7 +361,7 @@ export default function GroupView() {
 
   async function handleTransfer() {
     if (!groupId || !transferFrom || !transferTo || !transferAmount) return;
-    if (transferFrom === transferTo) { window.alert(t("transfer_modal.cannot_same_person")); return; }
+    if (transferFrom === transferTo) { toast.error(t("transfer_modal.cannot_same_person")); return; }
     setTransferring(true);
     try {
       if (editingSettlementId) {
@@ -373,7 +385,7 @@ export default function GroupView() {
       setTransferFrom(""); setTransferTo(""); setTransferAmount(""); setTransferNote("");
       setEditingSettlementId(null);
       await loadAll();
-    } catch { window.alert(editingSettlementId ? t("transfer_modal.failed_update") : t("transfer_modal.failed_record")); }
+    } catch { toast.error(editingSettlementId ? t("transfer_modal.failed_update") : t("transfer_modal.failed_record")); }
     finally { setTransferring(false); }
   }
 
@@ -400,7 +412,7 @@ export default function GroupView() {
       setShowGiveMoney(false);
       await loadAll();
     } catch {
-      window.alert(t("give_money_modal.failed_record"));
+      toast.error(t("give_money_modal.failed_record"));
     } finally {
       setGivingMoney(false);
     }
@@ -441,7 +453,7 @@ export default function GroupView() {
     );
   }
 
-  if (!group) return null;
+  if (!group) return loadFailed ? <LoadError onRetry={loadAll} showBack /> : null;
 
   const dateGroups = groupExpensesByDate(visibleExpenses);
 
@@ -459,7 +471,7 @@ export default function GroupView() {
           <div>
             <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-xs text-on-surface-variant">{group.member_count ?? "?"} {t("members")}</span>
+              <span className="text-xs text-on-surface-variant">{group.member_count != null ? formatNumber(group.member_count) : "?"} {t("members")}</span>
               <span className="text-outline">·</span>
               <span className="text-xs font-medium text-outline">{group.currency_code}</span>
               {group.created_at && (
@@ -830,7 +842,10 @@ export default function GroupView() {
                   ? t("expenses.showing_loaded", { shown: filteredExpenses.length })
                   : t("expenses.all_loaded", { shown: filteredExpenses.length })}
               </p>
-              {hasMore && (
+              {hasMore && loadMoreFailed && (
+                <LoadError compact onRetry={() => setLoadMoreFailed(false)} />
+              )}
+              {hasMore && !loadMoreFailed && (
                 <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
                   <p className="text-xs text-outline animate-pulse">{t("expenses.loading_more")}</p>
                 </div>
@@ -1053,7 +1068,7 @@ export default function GroupView() {
                       )}
                     </div>
                     <p className="text-xs text-on-surface-variant mt-1">
-                      {t("funds.holder")}: {fund.holder_name} · {fund.transaction_count} {t("funds.transactions")}
+                      {t("funds.holder")}: {fund.holder_name} · {formatNumber(fund.transaction_count)} {t("funds.transactions")}
                     </p>
                   </div>
                   <div className="text-right">
@@ -1449,7 +1464,7 @@ export default function GroupView() {
                       setNewFundHolder("");
                       await loadAll();
                     } catch {
-                      window.alert(t("fund_modal.failed_create"));
+                      toast.error(t("fund_modal.failed_create"));
                     }
                   }}
                   disabled={!newFundName.trim()}
@@ -1503,7 +1518,7 @@ export default function GroupView() {
                         setAddingMember(true);
                         addMember(groupId, { display_name: newMemberName.trim() })
                           .then(() => { setShowAddMember(false); setNewMemberName(""); loadAll(); })
-                          .catch(() => window.alert(t("add_member_modal.failed_add")))
+                          .catch(() => toast.error(t("add_member_modal.failed_add")))
                           .finally(() => setAddingMember(false));
                       }
                     }
@@ -1537,7 +1552,7 @@ export default function GroupView() {
                       setNewMemberName("");
                       await loadAll();
                     } catch {
-                      window.alert(t("add_member_modal.failed_add"));
+                      toast.error(t("add_member_modal.failed_add"));
                     } finally {
                       setAddingMember(false);
                     }

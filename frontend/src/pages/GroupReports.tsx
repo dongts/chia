@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, TrendingUp, AlertTriangle, Clock, Lightbulb, ChevronRight, Users, Search, ChevronUp, ChevronDown } from "lucide-react";
 import client from "@/api/client";
-import { formatCurrency } from "@/utils/currency";
+import { formatCurrency, formatNumber, formatPercent } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -42,7 +42,7 @@ function CategoryBar({ category, maxAmount, currencyCode }: { category: Category
         <div className="flex items-center justify-between mb-1.5 gap-1">
           <span className="text-sm font-medium text-on-surface truncate">{category.category_name}</span>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-on-surface-variant">{category.percentage.toFixed(0)}%</span>
+            <span className="text-xs text-on-surface-variant">{formatPercent(category.percentage)}</span>
             <span className="text-sm font-semibold text-on-surface">
               {formatCurrency(category.total_amount, currencyCode)}
             </span>
@@ -67,7 +67,8 @@ export default function GroupReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [settlements, setSettlements] = useState<SuggestedSettlement[]>([]);
+  // null = couldn't load (don't claim "0 pending")
+  const [settlements, setSettlements] = useState<SuggestedSettlement[] | null>([]);
 
   // Sort & search state for member table
   const [sortColumn, setSortColumn] = useState<"name" | "balance">("balance");
@@ -80,7 +81,7 @@ export default function GroupReports() {
     Promise.all([
       client.get<GroupReportSummary>(`/groups/${groupId}/reports/summary`),
       client.get<{ name: string }>(`/groups/${groupId}`).catch(() => ({ data: { name: "" } })),
-      client.get<SuggestedSettlement[]>(`/groups/${groupId}/settlements/suggested`).catch(() => ({ data: [] as SuggestedSettlement[] })),
+      client.get<SuggestedSettlement[]>(`/groups/${groupId}/settlements/suggested`).catch(() => ({ data: null })),
     ])
       .then(([summaryRes, groupRes, settlementsRes]) => {
         setSummary(summaryRes.data);
@@ -202,7 +203,7 @@ export default function GroupReports() {
                   <div className="relative z-10">
                     <p className="text-[11px] font-semibold text-on-primary/70 uppercase tracking-wider mb-1">{t("total_group_spend")}</p>
                     <p className="text-3xl font-bold text-on-primary leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
-                    <p className="text-xs text-on-primary/60 mt-1.5">{summary.expense_count} {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}</p>
+                    <p className="text-xs text-on-primary/60 mt-1.5">{formatNumber(summary.expense_count)} {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}</p>
                   </div>
                 </div>
 
@@ -218,7 +219,7 @@ export default function GroupReports() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-on-surface truncate">{mostActiveMember.member_name}</p>
-                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} {t("txns")}</p>
+                          <p className="text-xs text-on-surface-variant">{formatNumber(mostActiveMember.expense_count)} {t("txns")}</p>
                         </div>
                       </div>
                     </div>
@@ -232,7 +233,7 @@ export default function GroupReports() {
                         <span className="text-2xl flex-shrink-0">{topCategory.category_icon}</span>
                         <div className="min-w-0">
                           <p className="text-sm font-bold text-on-surface truncate">{topCategory.category_name}</p>
-                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}{t("of_total")}</p>
+                          <p className="text-xs text-on-surface-variant">{t("of_total", { percent: formatPercent(topCategory.percentage) })}</p>
                         </div>
                       </div>
                     </div>
@@ -309,7 +310,7 @@ export default function GroupReports() {
                     <p className="text-2xl sm:text-3xl font-bold text-on-surface leading-tight">{formatCurrency(summary.total_spent, summary.currency_code)}</p>
                     <p className="text-xs text-on-surface-variant mt-2 flex items-center gap-1">
                       <TrendingUp size={12} className="text-primary" />
-                      <span className="text-primary font-medium">+{summary.expense_count}</span> {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}
+                      <span className="text-primary font-medium">+{formatNumber(summary.expense_count)}</span> {summary.expense_count !== 1 ? t("expenses_recorded_plural") : t("expenses_recorded")}
                     </p>
                   </div>
 
@@ -323,7 +324,7 @@ export default function GroupReports() {
                         </div>
                         <div>
                           <p className="text-base font-bold text-on-surface">{mostActiveMember.member_name}</p>
-                          <p className="text-xs text-on-surface-variant">{mostActiveMember.expense_count} {mostActiveMember.expense_count !== 1 ? t("transactions_plural") : t("transactions")}</p>
+                          <p className="text-xs text-on-surface-variant">{formatNumber(mostActiveMember.expense_count)} {mostActiveMember.expense_count !== 1 ? t("transactions_plural") : t("transactions")}</p>
                         </div>
                       </div>
                     </div>
@@ -337,7 +338,7 @@ export default function GroupReports() {
                         <span className="text-3xl">{topCategory.category_icon}</span>
                         <div>
                           <p className="text-base font-bold text-on-surface">{topCategory.category_name}</p>
-                          <p className="text-xs text-on-surface-variant">{topCategory.percentage.toFixed(0)}{t("of_total_volume")}</p>
+                          <p className="text-xs text-on-surface-variant">{t("of_total_volume", { percent: formatPercent(topCategory.percentage) })}</p>
                         </div>
                       </div>
                     </div>
@@ -378,7 +379,7 @@ export default function GroupReports() {
                       )}
 
                       {/* Settlement Pending */}
-                      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-tertiary-container/10">
+                      {settlements && <div className="flex items-start gap-3 p-3.5 rounded-xl bg-tertiary-container/10">
                         <div className="w-9 h-9 rounded-full bg-tertiary-container/30 flex items-center justify-center flex-shrink-0">
                           <Clock size={16} className="text-tertiary" />
                         </div>
@@ -390,7 +391,7 @@ export default function GroupReports() {
                               : t("settlement_pending_detail", { count: settlements.length })}
                           </p>
                         </div>
-                      </div>
+                      </div>}
 
                       {/* Savings Opportunity */}
                       {topCategory && (

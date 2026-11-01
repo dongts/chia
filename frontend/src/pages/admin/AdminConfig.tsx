@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import client from "@/api/client";
@@ -75,7 +76,7 @@ function ConfigRow({ item, onSaved }: { item: ConfigItem; onSaved: (key: string)
       setTimeout(() => setSaved(false), 2000);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to save";
-      window.alert(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

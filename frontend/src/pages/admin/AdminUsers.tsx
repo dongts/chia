@@ -1,3 +1,5 @@
+import { toast, confirmDialog } from "@/lib/feedback";
+import { formatNumber } from "@/utils/currency";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ChevronDown,
@@ -63,7 +65,7 @@ function MergeUserModal({ sourceUser, onClose, onMerged }: {
       setSearching(true);
       client.get<{ items: UserRead[]; total: number }>("/admin/users", { params: { search: mergeSearch, limit: 10 } })
         .then((r) => setMergeSearchResults(r.data.items.filter((u) => u.id !== sourceUser.id)))
-        .catch(() => setMergeSearchResults([]))
+        .catch(() => { setMergeSearchResults([]); toast.error("User search failed"); })
         .finally(() => setSearching(false));
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -77,7 +79,7 @@ function MergeUserModal({ sourceUser, onClose, onMerged }: {
       onMerged(response.data.detail);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to merge users";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setMerging(false); }
   }
 
@@ -319,7 +321,7 @@ export default function AdminUsers() {
     setLoading(true);
     client.get<{ items: UserRead[]; total: number }>("/admin/users", {
       params: { limit, offset: page * limit, search: debouncedSearch || undefined },
-    }).then((r) => { setUsers(r.data.items); setTotal(r.data.total); }).catch(() => {}).finally(() => setLoading(false));
+    }).then((r) => { setUsers(r.data.items); setTotal(r.data.total); }).catch(() => toast.error("Failed to load users")).finally(() => setLoading(false));
   }, [page, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
@@ -327,7 +329,7 @@ export default function AdminUsers() {
   // Load all groups once for the add-to-group dropdown
   useEffect(() => {
     client.get<{ items: { id: string; name: string }[]; total: number }>("/admin/groups", { params: { limit: 200 } })
-      .then((r) => setAllGroups(r.data.items)).catch(() => {});
+      .then((r) => setAllGroups(r.data.items)).catch(() => toast.error("Failed to load groups"));
   }, []);
 
   async function toggleExpand(userId: string) {
@@ -348,14 +350,14 @@ export default function AdminUsers() {
     try {
       await client.patch(`/admin/users/${userId}`, { display_name: editForm.display_name, email: editForm.email || null, is_verified: editForm.is_verified });
       setEditingId(null); load();
-    } catch { window.alert("Failed to save"); } finally { setSaving(false); }
+    } catch { toast.error("Failed to save"); } finally { setSaving(false); }
   }
 
   async function deleteUser(userId: string) {
-    if (!window.confirm("Delete this user? This cannot be undone.")) return;
+    if (!await confirmDialog({ message: "Delete this user? This cannot be undone.", destructive: true })) return;
     setDeletingId(userId);
     try { await client.delete(`/admin/users/${userId}`); if (expandedId === userId) setExpandedId(null); load(); }
-    catch { window.alert("Failed to delete"); } finally { setDeletingId(null); }
+    catch { toast.error("Failed to delete"); } finally { setDeletingId(null); }
   }
 
   async function handleResetPassword() {
@@ -363,9 +365,9 @@ export default function AdminUsers() {
     setResettingPw(true);
     try {
       await client.post(`/admin/users/${resetPwUserId}/reset-password`, { new_password: newPassword });
-      window.alert("Password reset successfully");
+      toast.success("Password reset successfully");
       setResetPwUserId(null); setNewPassword("");
-    } catch { window.alert("Failed to reset password"); } finally { setResettingPw(false); }
+    } catch { toast.error("Failed to reset password"); } finally { setResettingPw(false); }
   }
 
   async function handleAddToGroup() {
@@ -373,12 +375,12 @@ export default function AdminUsers() {
     setAddingToGroup(true);
     try {
       await client.post(`/admin/users/${addToGroupUserId}/add-to-group`, { group_id: addGroupId, role: addGroupRole });
-      window.alert("User added to group");
+      toast.success("User added to group");
       setAddToGroupUserId(null); setAddGroupId(""); setAddGroupRole("member");
       if (expandedId === addToGroupUserId) { toggleExpand(addToGroupUserId); toggleExpand(addToGroupUserId); }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed";
-      window.alert(msg);
+      toast.error(msg);
     } finally { setAddingToGroup(false); }
   }
 
@@ -441,7 +443,7 @@ export default function AdminUsers() {
             onMerged={(detail) => {
               setMergeSourceUser(null);
               if (expandedId === mergeSourceUser.id) setExpandedId(null);
-              window.alert(detail);
+              toast.error(detail);
               load();
             }}
           />
@@ -494,7 +496,7 @@ export default function AdminUsers() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between text-sm text-on-surface-variant">
-            <span>{page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}</span>
+            <span>{formatNumber(page * limit + 1)}–{formatNumber(Math.min((page + 1) * limit, total))} of {formatNumber(total)}</span>
             <div className="flex gap-1">
               <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
               <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>

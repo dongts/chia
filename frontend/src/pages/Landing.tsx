@@ -1,3 +1,4 @@
+import { toast } from "@/lib/feedback";
 import { useNavigate } from "react-router-dom";
 import { Sprout, ArrowRight, Shield, TrendingUp, BarChart3, Wallet, Leaf } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +15,7 @@ export default function Landing() {
       navigate("/dashboard");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t("error_guest");
-      window.alert(message);
+      toast.error(message);
     }
   }
 

@@ -27,6 +27,7 @@ import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 import Privacy from "@/pages/Privacy";
 import { DEEP_LINK_EVENT } from "@/native";
+import FeedbackHost from "@/components/FeedbackHost";
 
 function RedirectIfAuth({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -101,6 +102,7 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <DeepLinkHandler />
+      <FeedbackHost />
       {import.meta.env.VITE_DEPLOYMENT === "preview" && (
         <div role="status" className="bg-amber-100 text-amber-950 text-center text-sm px-4 py-2">
           Preview · Separate copy of your data. Changes here do not sync with the live app.
