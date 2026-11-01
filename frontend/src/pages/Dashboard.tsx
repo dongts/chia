@@ -18,10 +18,11 @@ import {
 import { listGroups, createGroup } from "@/api/groups";
 import type { Group, GroupListItem } from "@/types";
 import { formatCurrency, formatNumber } from "@/utils/currency";
+import { formatDate } from "@/utils/date";
 import { cn } from "@/lib/utils";
 import CurrencySelect from "@/components/CurrencySelect";
 import { useAuthStore } from "@/store/authStore";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 function AvatarStack({ count, max = 4 }: { count: number; max?: number }) {
   const shown = Math.min(count, max);
@@ -54,26 +55,6 @@ function AvatarStack({ count, max = 4 }: { count: number; max?: number }) {
   );
 }
 
-function MiniBarChart() {
-  const bars = [40, 65, 50, 80, 55, 70, 90];
-  return (
-    <div className="flex items-end gap-1 h-10">
-      {bars.map((h, i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-1.5 rounded-full transition-all",
-            i === bars.length - 1
-              ? "bg-primary"
-              : "bg-primary/20"
-          )}
-          style={{ height: `${h}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export default function Dashboard() {
   const { t } = useTranslation("dashboard");
   const [groups, setGroups] = useState<GroupListItem[]>([]);
@@ -92,7 +73,8 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.display_name?.split(" ")[0] ?? "there";
+  // Full display name: splitting on spaces picks the family name for Vietnamese names
+  const firstName = user?.display_name?.trim() || t("there");
 
   function getGreeting(): string {
     const hour = new Date().getHours();
@@ -186,12 +168,12 @@ export default function Dashboard() {
       {/* Create Group Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
+          <div role="dialog" aria-modal="true" className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-6 pb-2">
               <h2 className="text-lg font-bold text-on-surface">{t("create_group")}</h2>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setShowForm(false)}
-                className="w-8 h-8 rounded-full bg-surface-container-high/50 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
+                className="w-10 h-10 -m-1 rounded-full bg-surface-container-high/50 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <X size={18} />
               </button>
@@ -252,12 +234,17 @@ export default function Dashboard() {
       {/* Post-Creation Modal */}
       {createdGroup && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-          <div className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
+          <div role="dialog" aria-modal="true" className="bg-surface-container-lowest rounded-2xl shadow-editorial-xl w-full max-w-md overflow-hidden">
             <div className="px-6 pt-8 pb-6 text-center space-y-4">
               <div className="text-5xl">🎉</div>
               <h2 className="text-xl font-bold text-on-surface">{t("group_created")}</h2>
               <p className="text-sm text-on-surface-variant">
-                <span className="font-semibold text-on-surface">{createdGroup.name}</span> is ready. Invite people to start splitting expenses.
+                <Trans
+                  t={t}
+                  i18nKey="group_ready"
+                  values={{ name: createdGroup.name }}
+                  components={{ b: <span className="font-semibold text-on-surface break-words" /> }}
+                />
               </p>
 
               <div className="space-y-3 pt-2">
@@ -331,7 +318,7 @@ export default function Dashboard() {
           {/* Total Balance Hero */}
           <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-editorial">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">
                   {t("total_balance")}
                 </p>
@@ -359,7 +346,6 @@ export default function Dashboard() {
                     : t("across_groups_plural", { count: groups.length })}
                 </p>
               </div>
-              <MiniBarChart />
             </div>
           </div>
 
@@ -375,7 +361,7 @@ export default function Dashboard() {
                     <p className="text-sm font-bold text-on-primary">{t("settle_cta")}</p>
                   </div>
                   <p className="text-xs text-on-primary/70">
-                    {t("settle_cta_detail", { count: pendingPaymentCount, groups: groupsWithDebt.length })}
+                    {t("settle_cta_detail", { count: pendingPaymentCount, n: formatNumber(pendingPaymentCount) })}
                   </p>
                 </div>
                 <Link
@@ -412,7 +398,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-on-surface mb-0.5 group-hover:text-primary transition-colors truncate">
                     {g.name}
                   </h3>
                   <div className="flex items-center gap-2 text-xs text-on-surface-variant mb-4 flex-wrap">
@@ -423,7 +409,7 @@ export default function Dashboard() {
                     {g.created_at && (
                       <>
                         <span className="text-outline">|</span>
-                        <span>{new Date(g.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                        <span>{formatDate(g.created_at)}</span>
                       </>
                     )}
                   </div>

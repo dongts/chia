@@ -147,7 +147,7 @@ export default function GroupReports() {
       <div className="hidden sm:block mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
+            <button aria-label={t("back", { ns: "common" })}
               onClick={() => navigate(`/groups/${groupId}`)}
               className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
             >
@@ -164,7 +164,7 @@ export default function GroupReports() {
       {/* ============ MOBILE HEADER (hidden on desktop) ============ */}
       <div className="sm:hidden mb-5">
         <div className="flex items-center gap-3 mb-4">
-          <button
+          <button aria-label={t("back", { ns: "common" })}
             onClick={() => navigate(`/groups/${groupId}`)}
             className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
           >
@@ -280,14 +280,14 @@ export default function GroupReports() {
                             to={`/groups/${groupId}/reports/member/${member.member_id}`}
                             className="block bg-surface-container-lowest rounded-2xl shadow-editorial p-4 hover:shadow-editorial-lg transition-all"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                                   {member.member_name[0]?.toUpperCase()}
                                 </div>
-                                <p className="text-sm font-semibold text-on-surface">{member.member_name}</p>
+                                <p className="text-sm font-semibold text-on-surface truncate">{member.member_name}</p>
                               </div>
-                              <span className={cn("text-sm font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
+                              <span className={cn("text-sm font-bold whitespace-nowrap tabular-nums flex-shrink-0", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>
                                 {net > 0 ? "+" : ""}{formatCurrency(net, summary.currency_code)}
                               </span>
                             </div>
@@ -443,16 +443,20 @@ export default function GroupReports() {
                         <thead>
                           <tr className="bg-surface-container-high/30">
                             <th
-                              onClick={() => handleSort("name")}
-                              className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left cursor-pointer hover:text-on-surface transition-colors select-none"
+                              aria-sort={sortColumn === "name" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                              className="px-5 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-left"
                             >
-                              {t("name_column")}<SortIndicator col="name" />
+                              <button type="button" onClick={() => handleSort("name")} className="inline-flex items-center  gap-0.5 uppercase tracking-wider hover:text-on-surface transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+                                {t("name_column")}<SortIndicator col="name" />
+                              </button>
                             </th>
                             <th
-                              onClick={() => handleSort("balance")}
-                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right cursor-pointer hover:text-on-surface transition-colors select-none"
+                              aria-sort={sortColumn === "balance" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                              className="px-3 py-3 text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider text-right"
                             >
-                              {t("balance_column")}<SortIndicator col="balance" />
+                              <button type="button" onClick={() => handleSort("balance")} className="inline-flex items-center justify-end gap-0.5 uppercase tracking-wider hover:text-on-surface transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+                                {t("balance_column")}<SortIndicator col="balance" />
+                              </button>
                             </th>
                             <th className="px-3 py-3 w-10"></th>
                           </tr>
@@ -469,7 +473,13 @@ export default function GroupReports() {
                                     <div className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-on-surface-variant flex-shrink-0">
                                       {member.member_name[0]?.toUpperCase()}
                                     </div>
-                                    <span className="font-semibold text-on-surface">{member.member_name}</span>
+                                    <Link
+                                      to={`/groups/${groupId}/reports/member/${member.member_id}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="font-semibold text-on-surface hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                                    >
+                                      {member.member_name}
+                                    </Link>
                                   </div>
                                 </td>
                                 <td className={cn("px-3 py-3.5 text-right font-bold", net > 0 ? "text-primary" : net < 0 ? "text-error" : "text-outline")}>

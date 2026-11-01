@@ -39,7 +39,12 @@
     "delete": "Xóa hóa đơn",
     "uploading": "Đang tải lên...",
     "deleting": "Đang xóa...",
-    "confirm_delete": "Xóa ảnh hóa đơn này?"
+    "confirm_delete": "Xóa ảnh hóa đơn này?",
+    "title": "Hóa đơn / ảnh",
+    "remove_image": "Xóa ảnh",
+    "formats": "JPEG, PNG hoặc WebP",
+    "preview": "Xem trước hóa đơn",
+    "remove_named": "Bỏ {{name}}"
   },
   "validation": {
     "select_member": "Chọn ít nhất một thành viên để chia đều",
@@ -53,5 +58,6 @@
   "inactive_suffix": "(đã rời)",
   "sum_label": "Tổng:",
   "receipt_upload_failed": "Đã lưu chi phí nhưng không tải được ảnh hóa đơn. Mở chi phí để thử lại.",
-  "failed_save": "Không lưu được chi phí. Vui lòng thử lại."
+  "failed_save": "Không lưu được chi phí. Vui lòng thử lại.",
+  "main_currency": "{{code}} — chính"
 }

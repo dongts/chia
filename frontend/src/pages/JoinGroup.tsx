@@ -1,3 +1,4 @@
+import { formatNumber } from "@/utils/currency";
 import { toast } from "@/lib/feedback";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -110,7 +111,7 @@ export default function JoinGroup() {
           <>
             <p className="text-xs text-outline uppercase tracking-wide mb-1">{t("join.invited_to")}</p>
             <h1 className="text-xl font-bold text-on-surface mb-1">{preview.name}</h1>
-            <p className="text-xs text-outline mb-6">{t("join.members_count", { count: preview.member_count, currency: preview.currency_code })}</p>
+            <p className="text-xs text-outline mb-6">{t("join.members_count", { count: preview.member_count, n: formatNumber(preview.member_count), currency: preview.currency_code })}</p>
           </>
         )}
 

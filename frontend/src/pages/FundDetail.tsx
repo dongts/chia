@@ -8,6 +8,7 @@ import { listMembers } from "@/api/members";
 import { getGroup } from "@/api/groups";
 import type { FundDetail as FundDetailType, FundTransaction, GroupMember, Group } from "@/types";
 import { formatCurrency } from "@/utils/currency";
+import { formatDateCompact } from "@/utils/date";
 import { cn } from "@/lib/utils";
 import MoneyInput from "@/components/MoneyInput";
 import LoadError from "@/components/LoadError";
@@ -110,9 +111,9 @@ export default function FundDetailPage() {
         >
           <ArrowLeft size={16} /> {t("fund_detail.back")}
         </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-on-surface">{fund.name}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-on-surface break-words">{fund.name}</h1>
             {fund.description && (
               <p className="text-sm text-on-surface-variant mt-1">{fund.description}</p>
             )}
@@ -125,9 +126,9 @@ export default function FundDetailPage() {
               )}
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right ml-auto">
             <p className={cn(
-              "text-2xl font-bold",
+              "text-2xl font-bold whitespace-nowrap tabular-nums",
               fund.balance > 0 ? "text-primary" : "text-outline"
             )}>
               {formatCurrency(fund.balance, currency)}
@@ -201,7 +202,7 @@ export default function FundDetailPage() {
                       </span>
                       {" · "}
                       {tx.type === "holder_change"
-                        ? (tx.note || `Changed to ${tx.member_name}`)
+                        ? (tx.note || t("fund_detail.changed_to", { name: tx.member_name }))
                         : `${tx.member_name} ${formatCurrency(tx.amount, currency)}`}
                     </div>
                     {tx.note && tx.type !== "holder_change" && (
@@ -211,17 +212,17 @@ export default function FundDetailPage() {
                   <div className="flex items-center gap-2 ml-3 shrink-0">
                     <div className="text-right">
                       <p className="text-[11px] text-outline">
-                        {new Date(tx.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        {formatDateCompact(tx.created_at)}
                       </p>
                       <p className="text-[10px] text-outline">{t("fund_detail.by")} {tx.created_by_name}</p>
                     </div>
                     {(tx.type === "contribute" || tx.type === "withdraw") && (
                       <button
                         onClick={() => handleDeleteTransaction(tx.id)}
-                        className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                        title={t("delete", { ns: "common" })}
+                        className="p-2.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                        title={t("delete", { ns: "common" })} aria-label={t("delete", { ns: "common" })}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={15} />
                       </button>
                     )}
                   </div>
@@ -238,13 +239,13 @@ export default function FundDetailPage() {
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
           onClick={closeModal}
         >
-          <div
+          <div role="dialog" aria-modal="true"
             className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 pt-6 pb-2">
               <h3 className="text-lg font-bold text-on-surface capitalize">{showModal === "contribute" ? t("fund_detail.contribute") : t("fund_detail.withdraw")}</h3>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={closeModal}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >
@@ -279,7 +280,7 @@ export default function FundDetailPage() {
                   type="text"
                   value={txNote}
                   onChange={(e) => setTxNote(e.target.value)}
-                  placeholder="e.g. Tiền phạt thua trận"
+                  placeholder={t("fund_detail.note_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>

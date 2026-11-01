@@ -1,5 +1,5 @@
 import { toast, confirmDialog } from "@/lib/feedback";
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 import { copyText } from "@/native";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -21,6 +21,7 @@ import LoadError from "@/components/LoadError";
 import PaymentInfoModal from "@/components/PaymentInfoModal";
 import PaymentMethodCards from "@/components/PaymentMethodCards";
 import { formatCurrency, formatNumber } from "@/utils/currency";
+import { formatDate, formatDateCompact, formatDateWithWeekday, parseDay, relativeDay, toDayKey } from "@/utils/date";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 
@@ -28,30 +29,17 @@ type Tab = "expenses" | "balances" | "settlements" | "funds";
 
 const PAGE_SIZE = 20;
 
-function formatRelativeDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  if (isSameDay(date, today)) return "Today";
-  if (isSameDay(date, yesterday)) return "Yesterday";
-  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-}
-
-function groupExpensesByDate(expenses: Expense[]): { date: string; label: string; expenses: Expense[] }[] {
+function groupExpensesByDate(
+  expenses: Expense[],
+  dayLabel: (date: string) => string,
+): { date: string; label: string; expenses: Expense[] }[] {
   const groups: { date: string; label: string; expenses: Expense[] }[] = [];
   let currentDate = "";
   for (const expense of expenses) {
-    const dateKey = new Date(expense.date).toDateString();
+    const dateKey = toDayKey(parseDay(expense.date));
     if (dateKey !== currentDate) {
       currentDate = dateKey;
-      groups.push({ date: dateKey, label: formatRelativeDate(expense.date), expenses: [] });
+      groups.push({ date: dateKey, label: dayLabel(expense.date), expenses: [] });
     }
     groups[groups.length - 1].expenses.push(expense);
   }
@@ -191,6 +179,7 @@ export default function GroupView() {
   const [expensesHasMore, setExpensesHasMore] = useState(true);
   const [loadingMoreExpenses, setLoadingMoreExpenses] = useState(false);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  const [creatingFund, setCreatingFund] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -247,6 +236,20 @@ export default function GroupView() {
       setLoadingMoreExpenses(false);
     }
   }
+
+  // Escape closes whichever modal is open
+  useEffect(() => {
+    if (!showGiveMoney && !showTransfer && !showCreateFund && !showAddMember) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setShowGiveMoney(false);
+      setShowTransfer(false);
+      setShowCreateFund(false);
+      setShowAddMember(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showGiveMoney, showTransfer, showCreateFund, showAddMember]);
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -348,6 +351,18 @@ export default function GroupView() {
       window.history.replaceState({}, "");
     }
   }, [location.state]);
+
+  // "Settle balance" from member analytics: once data is loaded, open the suggested
+  // settlement that involves that member, or fall back to the Balances tab.
+  const settleMemberId = (location.state as { settleMember?: string } | null)?.settleMember;
+  useEffect(() => {
+    if (!settleMemberId || loading) return;
+    const s = suggestedSettlements.find((x) => x.from_member === settleMemberId || x.to_member === settleMemberId);
+    if (s) openTransferModal("settle_up", s.from_member, s.to_member, s.amount);
+    else setTab("balances");
+    window.history.replaceState({}, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settleMemberId, loading]);
 
   function openTransferModal(type: "transfer" | "settle_up" | "gift", from?: string, to?: string, amount?: number, settlementId?: string, note?: string) {
     setTransferType(type);
@@ -455,61 +470,64 @@ export default function GroupView() {
 
   if (!group) return loadFailed ? <LoadError onRetry={loadAll} showBack /> : null;
 
-  const dateGroups = groupExpensesByDate(visibleExpenses);
+  const dateGroups = groupExpensesByDate(visibleExpenses, (d) => {
+    const rel = relativeDay(d);
+    return rel ? t(`relative_time.${rel}`, { ns: "common" }) : formatDateWithWeekday(d);
+  });
 
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <button aria-label={t("back", { ns: "common" })}
             onClick={() => navigate("/dashboard")}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-on-surface">{group.name}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-on-surface break-words line-clamp-2">{group.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-xs text-on-surface-variant">{group.member_count != null ? formatNumber(group.member_count) : "?"} {t("members")}</span>
+              <span className="text-xs text-on-surface-variant">{group.member_count != null ? t("members_count", { count: group.member_count, n: formatNumber(group.member_count) }) : ""}</span>
               <span className="text-outline">·</span>
               <span className="text-xs font-medium text-outline">{group.currency_code}</span>
               {group.created_at && (
                 <>
                   <span className="text-outline">·</span>
-                  <span className="text-xs text-outline">{t("created")} {new Date(group.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <span className="text-xs text-outline">{t("created")} {formatDate(group.created_at)}</span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center flex-shrink-0">
           <button
             onClick={() => setShowAddMember(true)}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={t("add_member")}
+            title={t("add_member")} aria-label={t("add_member")}
           >
             <UserPlus size={18} />
           </button>
           <button
             onClick={copyInviteCode}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={copied ? t("copied") : t("share_invite_link")}
+            title={copied ? t("copied") : t("share_invite_link")} aria-label={copied ? t("copied") : t("share_invite_link")}
           >
             {copied ? <Check size={18} className="text-primary" /> : <Share2 size={18} />}
           </button>
           <Link
             to={`/groups/${groupId}/reports`}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={t("reports", { ns: "common" })}
+            title={t("reports", { ns: "common" })} aria-label={t("reports", { ns: "common" })}
           >
             <BarChart3 size={18} />
           </Link>
           <Link
             to={`/groups/${groupId}/settings`}
             className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
-            title={t("settings.title")}
+            title={t("settings.title")} aria-label={t("settings.title")}
           >
             <Settings size={18} />
           </Link>
@@ -560,7 +578,7 @@ export default function GroupView() {
                   </div>
                   <button
                     onClick={() => openTransferModal("settle_up", s.from_member, s.to_member, s.amount)}
-                    className="flex-shrink-0 text-[11px] font-medium bg-primary hover:bg-primary-dim text-on-primary px-3 py-1 rounded-full transition-colors"
+                    className="flex-shrink-0 text-xs font-medium bg-primary hover:bg-primary-dim text-on-primary px-3.5 py-2 rounded-full transition-colors"
                   >
                     {t("suggested_settlements.settle")}
                   </button>
@@ -624,10 +642,10 @@ export default function GroupView() {
           <div className="flex items-center gap-2">
             {/* Mobile: filter toggle button */}
             <div className="relative md:hidden">
-              <button
+              <button aria-label={t("filter", { ns: "common" })}
                 onClick={() => setFilterOpen(!filterOpen)}
                 className={cn(
-                  "flex items-center justify-center w-9 h-9 rounded-full transition-colors",
+                  "flex items-center justify-center w-10 h-10 rounded-full transition-colors",
                   (filterCategory || filterPaidBy)
                     ? "bg-primary-container/20 text-primary"
                     : "bg-surface-container text-outline hover:text-on-surface-variant"
@@ -760,8 +778,8 @@ export default function GroupView() {
                 </thead>
                 <tbody>
                   {dateGroups.map((dg) => (
-                    <>
-                      <tr key={`date-${dg.date}`}>
+                    <Fragment key={dg.date}>
+                      <tr>
                         <td colSpan={5} className="px-4 pt-4 pb-1">
                           <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{dg.label}</p>
                         </td>
@@ -776,11 +794,11 @@ export default function GroupView() {
                               <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
                               <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors min-w-0">{expense.description}</Link>
                               {expense.receipt_url && (
-                                <span title="Has receipt"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
+                                <span title={t("has_receipt")} aria-label={t("has_receipt")} role="img"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
                               {expense.splits[0]?.split_type && (
-                                <span className="hidden sm:inline text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium capitalize flex-shrink-0">
-                                  {expense.splits[0].split_type}
+                                <span className="hidden sm:inline text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                                  {t(`split_types.${expense.splits[0].split_type}`, { ns: "common" })}
                                 </span>
                               )}
                               {expense.fund_deductions?.length > 0 && expense.fund_deductions.map((d) => (
@@ -790,11 +808,11 @@ export default function GroupView() {
                               ))}
                             </div>
                             <p className="text-xs text-outline sm:hidden mt-0.5 truncate">
-                              {expense.payer_name ?? t("expense_table.unknown_payer")} · {new Date(expense.date).toLocaleDateString()}
+                              {expense.payer_name ?? t("expense_table.unknown_payer")}
                             </p>
                           </td>
                           <td className="px-4 py-3 text-on-surface-variant hidden sm:table-cell">{expense.payer_name ?? t("expense_table.unknown_payer")}</td>
-                          <td className="px-4 py-3 text-outline hidden sm:table-cell">{new Date(expense.date).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-outline hidden sm:table-cell whitespace-nowrap">{formatDateCompact(expense.date)}</td>
                           <td className="px-2 sm:px-4 py-3 text-right font-semibold text-on-surface whitespace-nowrap">
                             {expense.currency_code !== group.currency_code ? (
                               <div>
@@ -811,23 +829,23 @@ export default function GroupView() {
                             <div className="flex gap-0.5 justify-end">
                               <Link
                                 to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                                className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                                title={t("edit", { ns: "common" })}
+                                className="p-2.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                                title={t("edit", { ns: "common" })} aria-label={t("edit", { ns: "common" })}
                               >
-                                <Pencil size={13} />
+                                <Pencil size={15} />
                               </Link>
                               <button
                                 onClick={() => handleDeleteExpense(expense.id)}
-                                className="p-1.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                                title={t("delete", { ns: "common" })}
+                                className="p-2.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                                title={t("delete", { ns: "common" })} aria-label={t("delete", { ns: "common" })}
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={15} />
                               </button>
                             </div>
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -839,8 +857,8 @@ export default function GroupView() {
             <div className="text-center space-y-2">
               <p className="text-xs text-outline">
                 {hasMore
-                  ? t("expenses.showing_loaded", { shown: filteredExpenses.length })
-                  : t("expenses.all_loaded", { shown: filteredExpenses.length })}
+                  ? t("expenses.showing_loaded", { count: filteredExpenses.length, n: formatNumber(filteredExpenses.length) })
+                  : t("expenses.all_loaded", { count: filteredExpenses.length, n: formatNumber(filteredExpenses.length) })}
               </p>
               {hasMore && loadMoreFailed && (
                 <LoadError compact onRetry={() => setLoadMoreFailed(false)} />
@@ -902,7 +920,7 @@ export default function GroupView() {
                     <Link
                       to={`/groups/${groupId}/reports/member/${b.member_id}`}
                       className="flex items-center gap-3 min-w-0 group/member rounded-xl -m-1 p-1 hover:bg-surface-container/40 transition-colors"
-                      title={t("balances.view_analytics", { name: b.member_name })}
+                      title={t("balances.view_analytics", { name: b.member_name })} aria-label={t("balances.view_analytics", { name: b.member_name })}
                     >
                       <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-sm font-bold text-on-surface-variant flex-shrink-0">
                         {b.member_name[0]?.toUpperCase()}
@@ -916,14 +934,14 @@ export default function GroupView() {
                         <button
                           onClick={() => { setPaymentInfoMemberId(b.member_id); setPaymentInfoAmount(undefined); }}
                           className="p-2 text-outline hover:text-primary hover:bg-primary-container/20 rounded-full transition-colors"
-                          title="Payment info"
+                          title={t("payment_info")} aria-label={t("payment_info")}
                         >
                           <Landmark size={16} />
                         </button>
                       )}
                       <span
                         className={cn(
-                          "font-bold text-sm",
+                          "font-bold text-sm whitespace-nowrap tabular-nums",
                           isPositive ? "text-primary" : isNegative ? "text-error" : "text-outline"
                         )}
                       >
@@ -972,11 +990,11 @@ export default function GroupView() {
             settlements.map((s) => (
               <div
                 key={s.id}
-                className="bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-4 flex items-center justify-between"
+                className="bg-surface-container-lowest rounded-2xl shadow-editorial px-4 py-4 flex items-center justify-between gap-3"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
                     s.type === "gift"
                       ? "bg-secondary-container/30 text-secondary"
                       : s.type === "transfer"
@@ -985,22 +1003,22 @@ export default function GroupView() {
                   )}>
                     {s.type === "gift" ? <Gift size={18} /> : s.type === "transfer" ? <ArrowLeftRight size={18} /> : <Check size={18} />}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <span className="font-semibold text-on-surface">{s.from_member_name ?? "?"}</span>
-                      <ArrowRight size={12} className="text-outline" />
-                      <span className="font-semibold text-on-surface">{s.to_member_name ?? "?"}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-sm min-w-0">
+                      <span className="font-semibold text-on-surface truncate">{s.from_member_name ?? "?"}</span>
+                      <ArrowRight size={12} className="text-outline flex-shrink-0" />
+                      <span className="font-semibold text-on-surface truncate">{s.to_member_name ?? "?"}</span>
                     </div>
                     {s.description && (
-                      <p className="text-xs text-on-surface-variant mt-0.5">{s.description}</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5 truncate">{s.description}</p>
                     )}
                     <p className="text-[11px] text-outline mt-0.5">
-                      {new Date(s.settled_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                      {formatDate(s.settled_at)}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-primary text-sm">
+                <div className="text-right flex-shrink-0">
+                  <p className="font-bold text-primary text-sm whitespace-nowrap tabular-nums">
                     {formatCurrency(Number(s.amount), group.currency_code)}
                   </p>
                   <span className={cn(
@@ -1015,8 +1033,8 @@ export default function GroupView() {
                     s.type || "settle_up",
                     s.from_member, s.to_member, Number(s.amount), s.id, s.description ?? ""
                   )}
-                  className="p-1.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
-                  title={t("edit", { ns: "common" })}
+                  className="p-2.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                  title={t("edit", { ns: "common" })} aria-label={t("edit", { ns: "common" })}
                 >
                   <Pencil size={14} />
                 </button>
@@ -1057,21 +1075,21 @@ export default function GroupView() {
                   !fund.is_active && "opacity-50"
                 )}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-on-surface text-sm">{fund.name}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-semibold text-on-surface text-sm truncate">{fund.name}</span>
                       {!fund.is_active && (
                         <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-0.5 rounded-full font-medium uppercase tracking-wide">
                           {t("funds.closed")}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-on-surface-variant mt-1">
-                      {t("funds.holder")}: {fund.holder_name} · {formatNumber(fund.transaction_count)} {t("funds.transactions")}
+                    <p className="text-xs text-on-surface-variant mt-1 truncate">
+                      {t("funds.holder")}: {fund.holder_name} · {t("funds.transactions_count", { count: fund.transaction_count, n: formatNumber(fund.transaction_count) })}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className={cn(
                       "text-base font-bold",
                       fund.balance > 0 ? "text-primary" : "text-outline"
@@ -1093,7 +1111,7 @@ export default function GroupView() {
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
           onClick={() => setShowGiveMoney(false)}
         >
-          <div
+          <div role="dialog" aria-modal="true"
             className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1107,7 +1125,7 @@ export default function GroupView() {
                   <p className="text-xs text-outline">{t("give_money_modal.subtitle")}</p>
                 </div>
               </div>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setShowGiveMoney(false)}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >
@@ -1266,7 +1284,7 @@ export default function GroupView() {
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
           onClick={() => setShowTransfer(false)}
         >
-          <div
+          <div role="dialog" aria-modal="true"
             className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1296,7 +1314,7 @@ export default function GroupView() {
                   )}
                 </div>
               </div>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setShowTransfer(false)}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >
@@ -1393,13 +1411,13 @@ export default function GroupView() {
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
           onClick={() => setShowCreateFund(false)}
         >
-          <div
+          <div role="dialog" aria-modal="true"
             className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 pt-6 pb-2">
               <h3 className="text-lg font-bold text-on-surface">{t("fund_modal.title")}</h3>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setShowCreateFund(false)}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >
@@ -1413,7 +1431,7 @@ export default function GroupView() {
                   type="text"
                   value={newFundName}
                   onChange={(e) => setNewFundName(e.target.value)}
-                  placeholder="e.g. Quỹ tiền phạt"
+                  placeholder={t("fund_modal.name_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-container transition-colors"
                 />
               </div>
@@ -1451,7 +1469,8 @@ export default function GroupView() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!newFundName.trim() || !groupId) return;
+                    if (!newFundName.trim() || !groupId || creatingFund) return;
+                    setCreatingFund(true);
                     try {
                       await createFund(groupId, {
                         name: newFundName.trim(),
@@ -1465,9 +1484,11 @@ export default function GroupView() {
                       await loadAll();
                     } catch {
                       toast.error(t("fund_modal.failed_create"));
+                    } finally {
+                      setCreatingFund(false);
                     }
                   }}
-                  disabled={!newFundName.trim()}
+                  disabled={!newFundName.trim() || creatingFund}
                   className="flex-1 bg-primary hover:bg-primary-dim disabled:opacity-50 text-on-primary font-medium py-2.5 rounded-full text-sm transition-colors"
                 >
                   {t("fund_modal.create")}
@@ -1484,7 +1505,7 @@ export default function GroupView() {
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center"
           onClick={() => setShowAddMember(false)}
         >
-          <div
+          <div role="dialog" aria-modal="true"
             className="bg-surface-container-lowest rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-editorial-xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1495,7 +1516,7 @@ export default function GroupView() {
                 </div>
                 <h3 className="text-lg font-bold text-on-surface">{t("add_member_modal.title")}</h3>
               </div>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setShowAddMember(false)}
                 className="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded-full transition-colors"
               >

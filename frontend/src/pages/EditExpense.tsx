@@ -223,7 +223,7 @@ export default function EditExpense() {
     <div className="max-w-lg lg:max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <button
+        <button aria-label={t("back", { ns: "common" })}
           onClick={() => navigate(`/groups/${groupId}`)}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
         >
@@ -367,7 +367,7 @@ export default function EditExpense() {
                       </p>
                     )}
                   </div>
-                  <button
+                  <button aria-label={t("close", { ns: "common" })}
                     type="button"
                     onClick={() => removeFundDeduction(i)}
                     className="mt-2 w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-error hover:bg-error-container/10 transition-colors"
@@ -462,7 +462,7 @@ export default function EditExpense() {
 
         {/* Receipt / Image Card */}
         <div className="bg-surface-container-lowest rounded-2xl shadow-editorial p-6 space-y-4">
-          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("receipt.upload")} / Image</h2>
+          <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">{t("receipt.title")}</h2>
           {receiptUrl ? (
             <div className="space-y-3">
               <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
@@ -491,7 +491,7 @@ export default function EditExpense() {
                 className="flex items-center gap-2 text-error hover:text-error/80 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-error-container/10 transition-colors"
               >
                 <Trash2 size={14} />
-                Remove Image
+                {t("receipt.remove_image")}
               </button>
             </div>
           ) : (
@@ -504,7 +504,7 @@ export default function EditExpense() {
               <span className="text-xs text-on-surface-variant font-medium">
                 {uploadingReceipt ? t("receipt.uploading") : t("receipt.upload")}
               </span>
-              <span className="text-[10px] text-outline">JPEG, PNG, or WebP</span>
+              <span className="text-[10px] text-outline">{t("receipt.formats")}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"

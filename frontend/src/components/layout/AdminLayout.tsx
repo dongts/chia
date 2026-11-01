@@ -100,7 +100,7 @@ export default function AdminLayout() {
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-30 bg-surface-container-lowest/80 backdrop-blur-lg border-b border-outline-variant/15 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-surface-container">
+          <button aria-label="Menu" onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-surface-container">
             <Menu size={20} className="text-on-surface" />
           </button>
           <h1 className="text-lg font-bold text-on-surface">Admin Panel</h1>

@@ -14,7 +14,7 @@ export default function LanguageSwitcher({ compact = false }: { compact?: boolea
           i18n.changeLanguage(next.code);
         }}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-on-surface-variant hover:bg-surface-container transition-colors"
-        title={`Switch to ${SUPPORTED_LANGUAGES.find((l) => l.code !== i18n.language)?.label}`}
+        title={`Switch to ${SUPPORTED_LANGUAGES.find((l) => l.code !== i18n.language)?.label}`} aria-label={`Switch to ${SUPPORTED_LANGUAGES.find((l) => l.code !== i18n.language)?.label}`}
       >
         <span>{current.flag}</span>
         <span className="uppercase font-medium">{current.code}</span>

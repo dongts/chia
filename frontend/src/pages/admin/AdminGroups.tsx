@@ -113,7 +113,7 @@ function MergeMemberInline({ memberName, sourceUserId, groupUsers, onClose, onMe
         <p className="text-sm font-semibold text-on-surface">
           Merge "{memberName}" into:
         </p>
-        <button onClick={onClose} className="text-outline hover:text-on-surface-variant"><X size={14} /></button>
+        <button aria-label="Close" onClick={onClose} className="text-outline hover:text-on-surface-variant p-2 -m-1 rounded-full hover:bg-surface-container"><X size={14} /></button>
       </div>
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
@@ -213,7 +213,7 @@ function MergeGroupMemberInline({ groupId, sourceMemberId, sourceMemberName, mem
         <p className="text-sm font-semibold text-on-surface">
           Merge "{sourceMemberName}" into:
         </p>
-        <button onClick={onClose} className="text-outline hover:text-on-surface-variant"><X size={14} /></button>
+        <button aria-label="Close" onClick={onClose} className="text-outline hover:text-on-surface-variant p-2 -m-1 rounded-full hover:bg-surface-container"><X size={14} /></button>
       </div>
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
@@ -294,8 +294,8 @@ function GroupExpenses({ groupId }: { groupId: string }) {
   if (expenses.length === 0) return <p className="text-sm text-outline">No expenses</p>;
 
   return (
-    <div className="rounded-lg border border-outline-variant/15 overflow-hidden bg-surface-container-lowest">
-      <table className="w-full text-sm">
+    <div className="rounded-lg border border-outline-variant/15 overflow-x-auto bg-surface-container-lowest">
+      <table className="w-full text-sm min-w-[520px]">
         <thead>
           <tr className="bg-surface border-b border-outline-variant/10">
             <th className="text-left px-3 py-2 font-medium text-on-surface-variant">Description</th>
@@ -314,7 +314,7 @@ function GroupExpenses({ groupId }: { groupId: string }) {
               <td className="px-3 py-2 text-outline">{formatDate(exp.date)}</td>
               <td className="px-3 py-2 text-right">
                 <button disabled={deletingId === exp.id} onClick={() => deleteExpense(exp.id)}
-                  className="p-1 rounded text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-40" title="Delete"><Trash2 size={13} /></button>
+                  className="p-2 rounded-full text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-40" title="Delete" aria-label="Delete"><Trash2 size={13} /></button>
               </td>
             </tr>
           ))}
@@ -378,8 +378,8 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
         <td className="px-4 py-3 text-outline">{formatDate(group.created_at)}</td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-end gap-1">
-            <button onClick={onAddMember} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add member"><Plus size={15} /></button>
-            <button disabled={deletingId === group.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
+            <button onClick={onAddMember} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add member" aria-label="Add member"><Plus size={15} /></button>
+            <button disabled={deletingId === group.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete" aria-label="Delete"><Trash2 size={15} /></button>
           </div>
         </td>
       </tr>
@@ -404,14 +404,14 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                             <input type="text" value={renameValue} onChange={(e) => setRenameValue(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") handleRename(m.id); if (e.key === "Escape") setRenamingId(null); }}
                               autoFocus className="border border-outline-variant/15 rounded px-1.5 py-0.5 text-sm w-24 focus:outline-none focus:ring-1 focus:ring-primary" />
-                            <button onClick={() => handleRename(m.id)} disabled={savingRename} className="text-primary hover:text-primary"><Check size={13} /></button>
-                            <button onClick={() => setRenamingId(null)} className="text-outline hover:text-on-surface-variant"><X size={13} /></button>
+                            <button aria-label="Save" onClick={() => handleRename(m.id)} disabled={savingRename} className="text-primary hover:text-primary p-2 -m-1 rounded-full hover:bg-surface-container"><Check size={13} /></button>
+                            <button aria-label="Close" onClick={() => setRenamingId(null)} className="text-outline hover:text-on-surface-variant p-2 -m-1 rounded-full hover:bg-surface-container"><X size={13} /></button>
                           </>
                         ) : (
                           <>
                             <span className="font-medium">{m.display_name}</span>
                             <button onClick={() => { setRenamingId(m.id); setRenameValue(m.display_name); }}
-                              className="text-outline-variant hover:text-on-surface-variant" title="Rename"><Pencil size={11} /></button>
+                              className="text-outline-variant hover:text-on-surface-variant p-2 -m-1 rounded-full hover:bg-surface-container" title="Rename" aria-label="Rename"><Pencil size={14} /></button>
                           </>
                         )}
                         {m.email && <span className="text-xs text-outline">{m.email}</span>}
@@ -426,14 +426,14 @@ function GroupRow({ group, isExpanded, expandedDetail, loadingDetail, showExpens
                               setMergeMemberUserId(m.user_id);
                               setMergeType(m.user_id ? "user" : "member");
                             }}
-                            className="text-outline-variant hover:text-primary transition-colors" title="Merge this member into another"
-                          ><Merge size={11} /></button>
+                            className="text-outline-variant hover:text-primary transition-colors p-2 -m-1 rounded-full hover:bg-surface-container" title="Merge this member into another" aria-label="Merge this member into another"
+                          ><Merge size={14} /></button>
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteMember(m.id, m.display_name); }}
                           disabled={deletingMemberId === m.id}
-                          className="text-outline-variant hover:text-error transition-colors disabled:opacity-50" title="Permanently delete member"
-                        ><Trash2 size={11} /></button>
+                          className="text-outline-variant hover:text-error transition-colors disabled:opacity-50 p-2 -m-1 rounded-full hover:bg-surface-container" title="Permanently delete member" aria-label="Permanently delete member"
+                        ><Trash2 size={14} /></button>
                       </span>
                     ))}
                   </div>
@@ -573,8 +573,8 @@ export default function AdminGroups() {
       <div className="space-y-4">
         {/* Add member modal */}
         {addMemberGroupId && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAddMemberGroupId(null)}>
-            <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setAddMemberGroupId(null)}>
+            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm shadow-editorial-xl" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-on-surface mb-4">Add Member to Group</h3>
               <input type="text" placeholder="Display name" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)}
                 className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -605,7 +605,8 @@ export default function AdminGroups() {
           ) : groups.length === 0 ? (
             <p className="text-center text-outline text-sm py-10">No groups found</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="bg-surface border-b border-outline-variant/10">
                   <th className="text-left px-4 py-3 font-medium text-on-surface-variant w-6" />
@@ -640,6 +641,7 @@ export default function AdminGroups() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -647,8 +649,8 @@ export default function AdminGroups() {
           <div className="flex items-center justify-between text-sm text-on-surface-variant">
             <span>{formatNumber(page * limit + 1)}–{formatNumber(Math.min((page + 1) * limit, total))} of {formatNumber(total)}</span>
             <div className="flex gap-1">
-              <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
-              <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
+              <button aria-label="Previous page" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
+              <button aria-label="Next page" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
             </div>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useRef, useEffect } from "react";
 import type { CurrencyInfo } from "@/utils/currencies";
 import { CURRENCIES } from "@/utils/currencies";
@@ -21,11 +22,12 @@ export default function CurrencySelect({
   onChange,
   allowedCodes,
   extraOptions,
-  placeholder = "Select currency",
+  placeholder,
   className = "",
   disabled = false,
   compact = false,
 }: CurrencySelectProps) {
+  const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +67,7 @@ export default function CurrencySelect({
   const selectedCurrency = CURRENCIES.find((c) => c.code === value);
   const displayText = selectedCurrency
     ? `${selectedCurrency.code} — ${selectedCurrency.name}`
-    : value || placeholder;
+    : value || placeholder || t("currency.select");
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -102,7 +104,8 @@ export default function CurrencySelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search currency..."
+              placeholder={t("currency.search")}
+              aria-label={t("currency.search")}
               className="w-full border border-outline-variant/15 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -150,7 +153,7 @@ export default function CurrencySelect({
             ))}
 
             {filtered.length === 0 && (
-              <p className="px-3 py-4 text-sm text-outline text-center">No currencies found</p>
+              <p className="px-3 py-4 text-sm text-outline text-center">{t("currency.none")}</p>
             )}
           </div>
         </div>

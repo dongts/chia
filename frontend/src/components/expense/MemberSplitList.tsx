@@ -94,6 +94,7 @@ export default function MemberSplitList({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("search_members", { count: members.length })}
+            aria-label={t("search_members", { count: members.length })}
             className="w-full pl-8 pr-3 py-2 border border-outline-variant/15 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
@@ -175,10 +176,11 @@ export default function MemberSplitList({
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     {getPerPersonAmount(m.id) != null && (
-                      <span className="text-xs text-primary font-medium">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
+                      <span className="hidden min-[400px]:inline text-xs text-primary font-medium whitespace-nowrap">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
                     )}
                     <div className="flex items-center gap-1">
-                      <input type="number" min="0" max="100" step="0.01"
+                      <input type="number" min="0" max="100" step="0.01" inputMode="decimal"
+                        aria-label={`${m.display_name} %`}
                         value={percentValues[m.id] ?? ""}
                         onChange={(e) => onPercentChange(m.id, e.target.value)}
                         placeholder="0"
@@ -195,19 +197,22 @@ export default function MemberSplitList({
                     </div>
                     <span className="text-sm text-on-surface flex-1 truncate">{m.display_name}</span>
                     {getPerPersonAmount(m.id) != null && (
-                      <span className="text-xs text-primary font-medium">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
+                      <span className="hidden min-[400px]:inline text-xs text-primary font-medium whitespace-nowrap">{formatAmount(getPerPersonAmount(m.id)!, currencyCode)}</span>
                     )}
                     <div className="flex items-center gap-1">
                       <button type="button"
                         onClick={() => onShareChange(m.id, String(Math.max(0, parseFloat(shareValues[m.id] || "0") - 1)))}
-                        className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">−</button>
-                      <input type="number" min="0" step="1"
+                        aria-label={`${m.display_name} −1`}
+                        className="w-10 h-10 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">−</button>
+                      <input type="number" min="0" step="1" inputMode="numeric"
+                        aria-label={m.display_name}
                         value={shareValues[m.id] ?? "1"}
                         onChange={(e) => onShareChange(m.id, e.target.value)}
                         className="w-12 text-center border border-outline-variant/15 rounded-lg py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
                       <button type="button"
                         onClick={() => onShareChange(m.id, String(parseFloat(shareValues[m.id] || "0") + 1))}
-                        className="w-8 h-8 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">+</button>
+                        aria-label={`${m.display_name} +1`}
+                        className="w-10 h-10 rounded-lg border border-outline-variant/15 text-on-surface-variant hover:bg-surface-container flex items-center justify-center text-lg font-medium">+</button>
                     </div>
                   </div>
                 )}

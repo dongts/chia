@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { listGroups } from "@/api/groups";
@@ -14,23 +14,8 @@ import type { GroupListItem } from "@/types";
 import type { Notification } from "@/types";
 import { cn } from "@/lib/utils";
 import type { TFunction } from "i18next";
-import { formatAmount, formatCurrency, formatNumber, getNumberLocale } from "@/utils/currency";
-
-function formatRelativeTime(dateStr: string, t: TFunction): string {
-  const date = new Date(dateStr);
-  const diffMs = Date.now() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  const locale = getNumberLocale();
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
-  if (diffMins < 1) return t("relative_time.just_now");
-  if (diffMins < 60) return rtf.format(-diffMins, "minute");
-  if (diffHours < 24) return rtf.format(-diffHours, "hour");
-  if (diffDays === 1) return t("relative_time.yesterday");
-  if (diffDays < 7) return rtf.format(-diffDays, "day");
-  return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
-}
+import { formatAmount, formatCurrency, formatNumber } from "@/utils/currency";
+import { formatRelativeTime } from "@/utils/date";
 
 function getNotificationText(notification: Notification, t: TFunction, currencyCode?: string): string {
   const { type, data } = notification;
@@ -86,6 +71,11 @@ export default function AppLayout() {
     if (!notification.read) {
       markRead(notification.id);
     }
+    // Take the user to the group the notification is about
+    if (notification.group_id && groups.some((g) => g.id === notification.group_id)) {
+      setNotifOpen(false);
+      navigate(`/groups/${notification.group_id}`);
+    }
   }
 
   return (
@@ -97,11 +87,18 @@ export default function AppLayout() {
             <Sprout size={20} className="flex-shrink-0" />
             {showIOSInstructions ? (
               <p className="text-sm font-medium">
-                Install Chia: tap{" "}
-                <span className="inline-flex items-center justify-center w-6 h-6 border border-white/50 rounded align-middle mx-0.5">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                </span>
-                {" "}then <strong>"Add to Home Screen"</strong>
+                <Trans
+                  t={t}
+                  i18nKey="install_ios"
+                  components={{
+                    b: <strong />,
+                    icon: (
+                      <span className="inline-flex items-center justify-center w-6 h-6 border border-white/50 rounded align-middle mx-0.5" aria-label="Share">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                      </span>
+                    ),
+                  }}
+                />
               </p>
             ) : (
               <p className="text-sm font-medium truncate">{t("install_banner")}</p>
@@ -116,7 +113,7 @@ export default function AppLayout() {
                 {t("install")}
               </button>
             )}
-            <button onClick={dismissBanner} className="text-white/70 hover:text-white p-1">
+            <button aria-label={t("close", { ns: "common" })} onClick={dismissBanner} className="text-white/70 hover:text-white p-2.5 -m-1.5 rounded-full">
               <X size={18} />
             </button>
           </div>
@@ -151,7 +148,7 @@ export default function AppLayout() {
                 <p className="text-[10px] text-outline uppercase tracking-wider leading-none">{t("split_expenses")}</p>
               </div>
             </Link>
-            <button className="md:hidden text-on-surface-variant hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
+            <button aria-label={t("close", { ns: "common" })} className="md:hidden text-on-surface-variant hover:text-on-surface" onClick={() => setSidebarOpen(false)}>
               <X size={20} />
             </button>
           </div>
@@ -251,7 +248,7 @@ export default function AppLayout() {
             <div className="flex items-center justify-between px-4 md:px-6 py-3">
               {/* Left: hamburger (mobile) + logo */}
               <div className="flex items-center gap-3">
-                <button
+                <button aria-label={t("menu", { ns: "common" })}
                   className="md:hidden text-on-surface-variant hover:text-on-surface"
                   onClick={() => setSidebarOpen(true)}
                 >
@@ -271,7 +268,7 @@ export default function AppLayout() {
                   <button
                     onClick={async () => { await install(); }}
                     className="md:hidden p-2 rounded-xl text-primary hover:bg-primary-container/20"
-                    title="Install Chia"
+                    title={t("install_app")} aria-label={t("install_app")}
                   >
                     <Download size={20} />
                   </button>
@@ -304,7 +301,7 @@ export default function AppLayout() {
                               {t("mark_all_read")}
                             </button>
                           )}
-                          <button
+                          <button aria-label={t("close", { ns: "common" })}
                             onClick={() => setNotifOpen(false)}
                             className="text-outline hover:text-on-surface-variant p-1 rounded-lg hover:bg-surface-container"
                           >
@@ -346,7 +343,7 @@ export default function AppLayout() {
                                     {getNotificationText(n, t, groups.find((g) => g.id === n.group_id)?.currency_code)}
                                   </p>
                                   <p className="text-[11px] text-outline mt-0.5">
-                                    {formatRelativeTime(n.created_at, t)}
+                                    {formatRelativeTime(n.created_at, (k) => t(k))}
                                   </p>
                                 </div>
                               </button>

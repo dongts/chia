@@ -38,11 +38,13 @@
     "filtered_empty_title": "No expenses match filters",
     "filtered_empty_subtitle": "Try adjusting your filters",
     "showing": "Showing {{shown}} of {{total}} expenses",
-    "showing_loaded": "Showing {{shown}} expenses",
-    "all_loaded": "All {{shown}} expenses loaded",
     "loading_more": "Loading more...",
     "confirm_delete": "Delete this expense?",
-    "failed_delete": "Failed to delete expense"
+    "failed_delete": "Failed to delete expense",
+    "showing_loaded_one": "Showing {{n}} expense",
+    "showing_loaded_other": "Showing {{n}} expenses",
+    "all_loaded_one": "{{n}} expense loaded",
+    "all_loaded_other": "All {{n}} expenses loaded"
   },
   "actions": {
     "transfer": "Transfer",
@@ -100,7 +102,9 @@
     "holder": "Holder",
     "transactions": "transactions",
     "balance": "Balance",
-    "closed": "Closed"
+    "closed": "Closed",
+    "transactions_count_one": "{{n}} transaction",
+    "transactions_count_other": "{{n}} transactions"
   },
   "transfer_modal": {
     "title_edit": "Edit Transfer",
@@ -135,7 +139,8 @@
     "holder_default": "Myself (default)",
     "cancel": "Cancel",
     "create": "Create Fund",
-    "failed_create": "Failed to create fund"
+    "failed_create": "Failed to create fund",
+    "name_placeholder": "e.g. Penalty fund"
   },
   "add_member_modal": {
     "title": "Add Member",
@@ -262,11 +267,12 @@
       "add_contribution": "Add Contribution",
       "record_withdrawal": "Record Withdrawal",
       "saving": "Saving..."
-    }
+    },
+    "changed_to": "Changed to {{name}}",
+    "note_placeholder": "e.g. Lost match penalty"
   },
   "join": {
     "invited_to": "You're invited to",
-    "members_count": "{{count}} members · {{currency}}",
     "choose_identity": "Are you one of these people?",
     "join_as_new": "I'm not on the list — join as someone new",
     "join_first": "Join this group",
@@ -284,6 +290,12 @@
     "success_subtitle": "Redirecting to the group...",
     "success_go_now": "Go now",
     "error_title": "Couldn't join",
-    "error_go_dashboard": "Go to Dashboard"
-  }
+    "error_go_dashboard": "Go to Dashboard",
+    "members_count_one": "{{n}} member · {{currency}}",
+    "members_count_other": "{{n}} members · {{currency}}"
+  },
+  "members_count_one": "{{n}} member",
+  "members_count_other": "{{n}} members",
+  "has_receipt": "Has receipt",
+  "payment_info": "Payment info"
 }

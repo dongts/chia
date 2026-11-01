@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import CurrencySelect from "@/components/CurrencySelect";
 import { getCurrencyName } from "@/utils/currencies";
 import { formatCurrency } from "@/utils/currency";
+import { formatRelativeTime } from "@/utils/date";
 import MoneyInput from "@/components/MoneyInput";
 import LoadError from "@/components/LoadError";
 import type { ComponentProps } from "react";
@@ -366,20 +367,6 @@ export default function GroupSettings() {
     }
   }
 
-  function relativeTime(isoString: string): string {
-    const now = Date.now();
-    const then = new Date(isoString).getTime();
-    const diffMs = now - then;
-    const diffMinutes = Math.floor(diffMs / 60000);
-    if (diffMinutes < 1) return "just now";
-    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
-    return new Date(isoString).toLocaleDateString();
-  }
-
   function ActionIcon({ action }: { action: MemberLogAction }) {
     const cls = "w-4 h-4 flex-shrink-0";
     if (action === "joined" || action === "claimed") return <UserPlus className={cls} />;
@@ -435,7 +422,7 @@ export default function GroupSettings() {
     <div className="max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <button
+        <button aria-label={t("back", { ns: "common" })}
           onClick={() => navigate(`/groups/${groupId}`)}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
         >
@@ -484,7 +471,7 @@ export default function GroupSettings() {
                   <p className="text-sm font-medium text-on-surface">{t("settings.require_verified")}</p>
                   <p className="text-xs text-outline mt-0.5">{t("settings.require_verified_hint")}</p>
                 </div>
-                <button
+                <button role="switch" aria-checked={requireVerified}
                   type="button"
                   onClick={() => setRequireVerified((v) => !v)}
                   className={cn(
@@ -507,7 +494,7 @@ export default function GroupSettings() {
                     {t("settings.allow_log_behalf_hint")}
                   </p>
                 </div>
-                <button
+                <button role="switch" aria-checked={allowLogOnBehalf}
                   type="button"
                   onClick={() => setAllowLogOnBehalf((v) => !v)}
                   className={cn(
@@ -568,27 +555,29 @@ export default function GroupSettings() {
           {currencies.length > 0 && (
             <div className="space-y-2 mb-4">
               {currencies.map((gc) => (
-                <div key={gc.id} className="flex items-center gap-2 bg-surface-container-high/50 rounded-xl px-4 py-3">
+                <div key={gc.id} className="flex flex-wrap items-center gap-x-2 gap-y-2 bg-surface-container-high/50 rounded-xl px-4 py-3">
                   <span className="text-sm font-semibold text-on-surface w-12">{gc.currency_code}</span>
-                  <span className="text-xs text-outline truncate max-w-[100px]">{getCurrencyName(gc.currency_code)}</span>
-                  <span className="text-xs text-outline">1 {gc.currency_code} =</span>
-                  <BlurSaveMoneyInput
-                    key={String(gc.exchange_rate)}
-                    initial={String(Number(gc.exchange_rate))}
-                    maxDecimals={6}
-                    disabled={!isAdminOrOwner}
-                    aria-label={`1 ${gc.currency_code} = ? ${group.currency_code}`}
-                    onSave={(v) => handleUpdateCurrencyRate(gc.id, v)}
-                    containerClassName="w-28"
-                    className="h-auto bg-surface-container-lowest rounded-lg px-2 py-1.5 text-right"
-                  />
-                  <span className="text-xs text-outline">{group.currency_code}</span>
+                  <span className="text-xs text-outline truncate flex-1 min-w-0">{getCurrencyName(gc.currency_code)}</span>
+                  <div className="flex items-center gap-2 order-last sm:order-none w-full sm:w-auto">
+                    <span className="text-xs text-outline whitespace-nowrap">1 {gc.currency_code} =</span>
+                    <BlurSaveMoneyInput
+                      key={String(gc.exchange_rate)}
+                      initial={String(Number(gc.exchange_rate))}
+                      maxDecimals={6}
+                      disabled={!isAdminOrOwner}
+                      aria-label={`1 ${gc.currency_code} = ? ${group.currency_code}`}
+                      onSave={(v) => handleUpdateCurrencyRate(gc.id, v)}
+                      containerClassName="flex-1 sm:flex-none sm:w-32"
+                      className="h-10 bg-surface-container-lowest rounded-lg px-3 text-right"
+                    />
+                    <span className="text-xs text-outline">{group.currency_code}</span>
+                  </div>
                   {isAdminOrOwner && (
-                    <button
+                    <button aria-label={t("delete", { ns: "common" })}
                       onClick={() => handleDeleteCurrency(gc.id, gc.currency_code)}
-                      className="ml-auto text-outline-variant hover:text-error transition-colors"
+                      className="p-2.5 -m-1.5 rounded-full text-outline-variant hover:text-error hover:bg-error-container/20 transition-colors"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
@@ -599,16 +588,16 @@ export default function GroupSettings() {
           {/* Add currency form */}
           {isAdminOrOwner && (
             <form onSubmit={handleAddCurrency} className="space-y-2">
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="w-full sm:w-auto sm:flex-1 min-w-0">
                   <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currency")}</label>
                   <CurrencySelect
                     value={newCurrencyCode}
                     onChange={setNewCurrencyCode}
                   />
                 </div>
-                <div className="w-28">
-                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block">{t("settings.currencies.rate_label", { code: group.currency_code })}</label>
+                <div className="flex-1 sm:flex-none sm:w-36 min-w-0">
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5 block truncate">{t("settings.currencies.rate_label", { code: group.currency_code })}</label>
                   <MoneyInput
                     required
                     value={newCurrencyRate}
@@ -654,7 +643,7 @@ export default function GroupSettings() {
                         <p className="text-xs text-outline mt-0.5">{pm.bank_name}</p>
                       )}
                     </div>
-                    <button
+                    <button role="switch" aria-checked={enabled}
                       type="button"
                       disabled={togglingId === pm.id}
                       onClick={() => handleTogglePaymentMethod(pm.id, enabled)}
@@ -690,12 +679,13 @@ export default function GroupSettings() {
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
                 placeholder={t("settings.members.new_member_placeholder")}
-                className="flex-1 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
+                aria-label={t("settings.members.new_member_placeholder")}
+                className="flex-1 min-w-0 bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="submit"
                 disabled={addingMember || !newMemberName.trim()}
-                className="bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold px-4 py-3 rounded-full text-sm transition-colors whitespace-nowrap"
+                className="flex-shrink-0 bg-primary hover:bg-primary-dim disabled:opacity-60 text-on-primary font-semibold px-4 py-3 rounded-full text-sm transition-colors whitespace-nowrap"
               >
                 {addingMember ? t("settings.members.adding") : t("settings.members.add")}
               </button>
@@ -721,19 +711,19 @@ export default function GroupSettings() {
                             onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
                             autoFocus placeholder={t("settings.members.display_name_placeholder")}
                             className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-primary" />
-                          <button onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
-                            className="p-1 text-primary hover:bg-primary-container/20 rounded-full disabled:opacity-50"><Check size={14} /></button>
-                          <button onClick={() => setRenamingMemberId(null)}
-                            className="p-1 text-outline hover:bg-surface-container rounded-full"><X size={14} /></button>
+                          <button aria-label={t("save", { ns: "common" })} onClick={handleRenameMember} disabled={savingRename || !renamingValue.trim()}
+                            className="p-2.5 -m-1 text-primary hover:bg-primary-container/20 rounded-full disabled:opacity-50"><Check size={16} /></button>
+                          <button aria-label={t("close", { ns: "common" })} onClick={() => setRenamingMemberId(null)}
+                            className="p-2.5 -m-1 text-outline hover:bg-surface-container rounded-full"><X size={16} /></button>
                         </div>
                         <input type="text" value={renamingNicknames} onChange={(e) => setRenamingNicknames(e.target.value)}
                           onKeyDown={(e) => { if (e.key === "Enter") handleRenameMember(); if (e.key === "Escape") setRenamingMemberId(null); }}
                           placeholder={t("settings.members.nicknames_placeholder")}
-                          className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-xs w-48 focus:outline-none focus:ring-2 focus:ring-primary text-outline" />
+                          className="bg-surface-container-high/50 border-0 rounded-lg px-2 py-1 text-xs w-48 max-w-full focus:outline-none focus:ring-2 focus:ring-primary text-outline" />
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5">
-                        <div>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="min-w-0">
                           <p className={cn("text-sm font-medium text-on-surface truncate", !m.is_active && "line-through")}>
                             {m.display_name}
                             {!m.is_active && (
@@ -746,7 +736,7 @@ export default function GroupSettings() {
                         </div>
                         {isAdminOrOwner && (
                           <button onClick={() => { setRenamingMemberId(m.id); setRenamingValue(m.display_name); setRenamingNicknames(m.nicknames || ""); }}
-                            className="p-0.5 text-outline-variant hover:text-on-surface-variant rounded" title="Edit"><Pencil size={12} /></button>
+                            className="p-2.5 -m-1.5 flex-shrink-0 text-outline-variant hover:text-on-surface-variant rounded-full hover:bg-surface-container" title={t("edit", { ns: "common" })} aria-label={t("edit", { ns: "common" })}><Pencil size={14} /></button>
                         )}
                       </div>
                     )}
@@ -815,7 +805,7 @@ export default function GroupSettings() {
                           m.claimed_user?.email || m.claimed_user?.display_name || m.display_name,
                         )
                       }
-                      title={t("settings.members.unclaim_tooltip")}
+                      title={t("settings.members.unclaim_tooltip")} aria-label={t("settings.members.unclaim_tooltip")}
                       className="p-1.5 text-outline-variant hover:text-on-surface-variant hover:bg-surface-container rounded-full transition-colors"
                     >
                       <Unlink size={14} />
@@ -825,7 +815,7 @@ export default function GroupSettings() {
                     m.is_active ? (
                       <button
                         onClick={() => handleRemoveMember(m.id, m.display_name)}
-                        title={t("settings.members.deactivate_tooltip")}
+                        title={t("settings.members.deactivate_tooltip")} aria-label={t("settings.members.deactivate_tooltip")}
                         className="p-1.5 text-outline-variant hover:text-error hover:bg-error-container/10 rounded-full transition-colors"
                       >
                         <Trash2 size={14} />
@@ -833,7 +823,7 @@ export default function GroupSettings() {
                     ) : (
                       <button
                         onClick={() => handleReactivateMember(m.id)}
-                        title={t("settings.members.reactivate_tooltip")}
+                        title={t("settings.members.reactivate_tooltip")} aria-label={t("settings.members.reactivate_tooltip")}
                         className="p-1.5 text-outline-variant hover:text-primary hover:bg-primary-container/10 rounded-full transition-colors"
                       >
                         <RotateCcw size={14} />
@@ -903,7 +893,7 @@ export default function GroupSettings() {
                       <span className="font-semibold">{entry.member_name}</span>{" "}
                       <span className="text-on-surface-variant">{entry.detail}</span>
                     </p>
-                    <p className="text-xs text-outline mt-0.5">{relativeTime(entry.created_at)}</p>
+                    <p className="text-xs text-outline mt-0.5">{formatRelativeTime(entry.created_at, (k) => t(k, { ns: "common" }))}</p>
                   </div>
                 </div>
               ))}
@@ -947,7 +937,7 @@ export default function GroupSettings() {
               <h3 className="text-base font-semibold text-on-surface">
                 {t("settings.members.settle_prompt.title", { name: settleUpPrompt.member.display_name })}
               </h3>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setSettleUpPrompt(null)}
                 className="p-1 text-outline hover:text-on-surface rounded-full"
               >

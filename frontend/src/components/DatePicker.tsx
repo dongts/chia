@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const DAY_NAMES = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+import { formatDateWithWeekday, formatMonthYear, weekdayNamesMondayFirst } from "@/utils/date";
 
 interface DatePickerProps {
   value: string; // YYYY-MM-DD
@@ -21,21 +20,41 @@ function parseDate(s: string): Date {
 }
 
 export default function DatePicker({ value, onChange, className }: DatePickerProps) {
+  const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
+  // Open the popover towards whichever side has room (the picker sits in a right-hand column on phones)
+  const [alignRight, setAlignRight] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const selected = value ? parseDate(value) : new Date();
   const [viewYear, setViewYear] = useState(selected.getFullYear());
   const [viewMonth, setViewMonth] = useState(selected.getMonth());
 
-  // Close on outside click
+  // Close on outside click / Escape
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    if (open) document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    if (open) {
+      document.addEventListener("mousedown", handle);
+      document.addEventListener("keydown", onKey);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handle);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
+
+  function toggle() {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setAlignRight(rect.left + 300 > window.innerWidth - 8);
+    }
+    setOpen(!open);
+  }
 
   // Sync view when value changes externally
   useEffect(() => {
@@ -87,16 +106,16 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
   const today = toDateStr(new Date());
 
   // Format display value
-  const displayText = value
-    ? parseDate(value).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })
-    : "Select date";
+  const displayText = value ? formatDateWithWeekday(parseDate(value)) : t("date_picker.select");
 
   return (
     <div ref={ref} className={cn("relative", className)}>
       {/* Trigger button */}
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className="w-full h-12 flex items-center justify-between bg-surface-container-high/50 rounded-xl px-4 text-sm text-on-surface hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors text-left"
       >
         <span className={value ? "text-on-surface" : "text-outline"}>{displayText}</span>
@@ -105,23 +124,32 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
 
       {/* Dropdown calendar */}
       {open && (
-        <div className="absolute top-full left-0 mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-editorial-xl p-4 w-[300px]">
+        <div
+          role="dialog"
+          aria-label={t("date_picker.select")}
+          className={cn(
+            "absolute top-full mt-2 z-50 bg-surface-container-lowest rounded-2xl shadow-editorial-xl p-4 w-[300px] max-w-[calc(100vw-2rem)]",
+            alignRight ? "right-0" : "left-0"
+          )}
+        >
           {/* Month/Year header */}
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+              aria-label={t("date_picker.prev_month")}
+              className="p-2.5 -m-1 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-sm font-bold text-on-surface">
-              {MONTH_NAMES[viewMonth]} {viewYear}
+            <span className="text-sm font-bold text-on-surface capitalize" aria-live="polite">
+              {formatMonthYear(viewYear, viewMonth)}
             </span>
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+              aria-label={t("date_picker.next_month")}
+              className="p-2.5 -m-1 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
             >
               <ChevronRight size={16} />
             </button>
@@ -129,7 +157,7 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
 
           {/* Day names header */}
           <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map((d) => (
+            {weekdayNamesMondayFirst().map((d) => (
               <div key={d} className="text-center text-[10px] font-semibold text-outline uppercase py-1">
                 {d}
               </div>
@@ -146,6 +174,8 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
                 <button
                   key={i}
                   type="button"
+                  aria-label={formatDateWithWeekday(parseDate(cell.dateStr))}
+                  aria-pressed={isSelected}
                   onClick={() => {
                     onChange(cell.dateStr);
                     setOpen(false);
@@ -174,7 +204,7 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
               onClick={() => { onChange(today); setOpen(false); }}
               className="flex-1 text-xs font-semibold text-primary bg-primary-container/15 hover:bg-primary-container/25 py-2 rounded-full transition-colors"
             >
-              Today
+              {t("relative_time.today")}
             </button>
             <button
               type="button"
@@ -186,7 +216,7 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
               }}
               className="flex-1 text-xs font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high py-2 rounded-full transition-colors"
             >
-              Yesterday
+              {t("relative_time.yesterday")}
             </button>
           </div>
         </div>

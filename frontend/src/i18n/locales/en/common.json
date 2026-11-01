@@ -45,7 +45,7 @@
   "mark_all_read": "Mark all read",
   "all_caught_up": "You're all caught up!",
   "install_banner": "Install Chia for a better experience",
-  "install_ios": "Install Chia: tap {{share}} then \"Add to Home Screen\"",
+  "install_ios": "Install Chia: tap <icon></icon> then <b>Add to Home Screen</b>",
   "install": "Install",
   "split_expenses": "Split expenses",
   "update_available": "Update available",
@@ -70,7 +70,8 @@
   },
   "relative_time": {
     "just_now": "Just now",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "today": "Today"
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -115,5 +116,26 @@
   "load_error_detail": "Check your connection and try again.",
   "load_more_failed": "Couldn't load more.",
   "remove": "Remove",
-  "error_generic": "Something went wrong. Please try again."
+  "error_generic": "Something went wrong. Please try again.",
+  "date_picker": {
+    "select": "Select date",
+    "prev_month": "Previous month",
+    "next_month": "Next month"
+  },
+  "menu": "Menu",
+  "filter": "Filter",
+  "previous": "Previous",
+  "payment": {
+    "info_title": "Payment info — {{name}}",
+    "none_shared": "No payment methods shared",
+    "view_qr": "View QR code",
+    "qr_for": "QR code for {{label}}",
+    "save_qr": "Save QR image",
+    "qr_code": "QR code"
+  },
+  "currency": {
+    "select": "Select currency",
+    "search": "Search currency...",
+    "none": "No currencies found"
+  }
 }

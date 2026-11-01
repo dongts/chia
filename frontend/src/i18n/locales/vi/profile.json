@@ -52,7 +52,7 @@
     "qr_auto_hint": "QR sẽ được tạo tự động kèm số tiền khi người khác xem",
     "qr_image": "Ảnh mã QR",
     "change_qr": "Đổi QR",
-    "upload_qr": "Tải lên QR",
+    "upload_qr": "Tải ảnh QR lên",
     "save": "Lưu",
     "saving": "Đang lưu...",
     "cancel": "Hủy",
@@ -62,6 +62,11 @@
     "confirm_delete": "Xóa phương thức thanh toán này?",
     "failed_save": "Không thể lưu phương thức thanh toán",
     "failed_delete": "Không thể xóa phương thức thanh toán",
-    "failed_upload_qr": "Không thể tải lên ảnh QR"
+    "failed_upload_qr": "Không thể tải lên ảnh QR",
+    "label_placeholder": "VD: Vietcombank, MoMo",
+    "phone_placeholder": "VD: 0901 234 567",
+    "view_vietqr": "Xem VietQR",
+    "bank_autofilled": "Tự điền theo ngân hàng đã chọn ở trên",
+    "bank_placeholder": "VD: PayPal, Wise"
   }
 }

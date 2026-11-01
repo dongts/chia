@@ -38,11 +38,13 @@
     "filtered_empty_title": "Không có chi phí phù hợp",
     "filtered_empty_subtitle": "Thử thay đổi bộ lọc",
     "showing": "Hiển thị {{shown}} / {{total}} chi phí",
-    "showing_loaded": "Hiển thị {{shown}} chi phí",
-    "all_loaded": "Đã tải tất cả {{shown}} chi phí",
     "loading_more": "Đang tải thêm...",
     "confirm_delete": "Xóa chi phí này?",
-    "failed_delete": "Không thể xóa chi phí"
+    "failed_delete": "Không thể xóa chi phí",
+    "showing_loaded_one": "Hiển thị {{n}} chi phí",
+    "showing_loaded_other": "Hiển thị {{n}} chi phí",
+    "all_loaded_one": "Đã tải {{n}} chi phí",
+    "all_loaded_other": "Đã tải tất cả {{n}} chi phí"
   },
   "actions": {
     "transfer": "Chuyển tiền",
@@ -100,7 +102,9 @@
     "holder": "Người giữ quỹ",
     "transactions": "giao dịch",
     "balance": "Số dư",
-    "closed": "Đã đóng"
+    "closed": "Đã đóng",
+    "transactions_count_one": "{{n}} giao dịch",
+    "transactions_count_other": "{{n}} giao dịch"
   },
   "transfer_modal": {
     "title_edit": "Sửa giao dịch",
@@ -135,7 +139,8 @@
     "holder_default": "Tôi giữ (mặc định)",
     "cancel": "Hủy",
     "create": "Tạo quỹ",
-    "failed_create": "Không thể tạo quỹ"
+    "failed_create": "Không thể tạo quỹ",
+    "name_placeholder": "VD: Quỹ tiền phạt"
   },
   "add_member_modal": {
     "title": "Thêm thành viên",
@@ -262,11 +267,12 @@
       "add_contribution": "Thêm đóng góp",
       "record_withdrawal": "Ghi nhận rút tiền",
       "saving": "Đang lưu..."
-    }
+    },
+    "changed_to": "Đổi sang {{name}}",
+    "note_placeholder": "VD: Tiền phạt thua trận"
   },
   "join": {
     "invited_to": "Bạn được mời vào",
-    "members_count": "{{count}} thành viên · {{currency}}",
     "choose_identity": "Bạn có phải là một trong những người này không?",
     "join_as_new": "Tôi không có trong danh sách — tham gia với tên mới",
     "join_first": "Tham gia nhóm",
@@ -284,6 +290,12 @@
     "success_subtitle": "Đang chuyển hướng đến nhóm...",
     "success_go_now": "Đến ngay",
     "error_title": "Không thể tham gia",
-    "error_go_dashboard": "Về trang chính"
-  }
+    "error_go_dashboard": "Về trang chính",
+    "members_count_one": "{{n}} thành viên · {{currency}}",
+    "members_count_other": "{{n}} thành viên · {{currency}}"
+  },
+  "members_count_one": "{{n}} thành viên",
+  "members_count_other": "{{n}} thành viên",
+  "has_receipt": "Có hóa đơn",
+  "payment_info": "Thông tin thanh toán"
 }

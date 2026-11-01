@@ -244,7 +244,7 @@ export default function Profile() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="text-outline hover:text-on-surface-variant">
+        <button aria-label={t("back", { ns: "common" })} onClick={() => navigate(-1)} className="text-outline hover:text-on-surface-variant">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-2xl font-bold text-on-surface">{t("title")}</h1>
@@ -439,7 +439,7 @@ export default function Profile() {
                   required
                   value={formLabel}
                   onChange={(e) => setFormLabel(e.target.value)}
-                  placeholder="e.g. Kaspi, Bank Transfer"
+                  placeholder={t("payment_methods.label_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -475,7 +475,7 @@ export default function Profile() {
                   type="text"
                   value={formBankName}
                   onChange={(e) => setFormBankName(e.target.value)}
-                  placeholder={formBankBin ? "Auto-filled from selection above" : "e.g. PayPal, Wise, etc."}
+                  placeholder={formBankBin ? t("payment_methods.bank_autofilled") : t("payment_methods.bank_placeholder")}
                   className="w-full bg-surface-container-high/50 border-0 rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -485,7 +485,7 @@ export default function Profile() {
                   type="text"
                   value={formAccountNumber}
                   onChange={(e) => setFormAccountNumber(e.target.value)}
-                  placeholder="e.g. +7 777 123 4567"
+                  placeholder={t("payment_methods.phone_placeholder")}
                   className="w-full border border-outline-variant/15 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -594,7 +594,7 @@ export default function Profile() {
                         type="button"
                         onClick={() => setQrModal(buildVietQrUrl({ bankBin: pm.bank_bin!, accountNumber: pm.account_number! }))}
                         className="block w-14 h-14 rounded-lg overflow-hidden border border-outline-variant/15 hover:opacity-80 transition-opacity"
-                        title="View VietQR"
+                        title={t("payment_methods.view_vietqr")} aria-label={t("payment_methods.view_vietqr")}
                       >
                         <img
                           src={buildVietQrUrl({ bankBin: pm.bank_bin!, accountNumber: pm.account_number! })}
@@ -607,7 +607,7 @@ export default function Profile() {
                         type="button"
                         onClick={() => setQrModal(resolveUploadUrl(pm.qr_image_url))}
                         className="block w-14 h-14 rounded-lg overflow-hidden border border-outline-variant/15 hover:opacity-80 transition-opacity"
-                        title="View QR code"
+                        title={t("payment.view_qr", { ns: "common" })} aria-label={t("payment.view_qr", { ns: "common" })}
                       >
                         <img
                           src={resolveUploadUrl(pm.qr_image_url)!}
@@ -638,7 +638,7 @@ export default function Profile() {
                           type="button"
                           onClick={() => qrInputRefs.current[pm.id]?.click()}
                           className="mt-1 w-14 text-center text-xs text-outline hover:text-primary transition-colors"
-                          title="Upload QR image"
+                          title={t("payment_methods.upload_qr")} aria-label={t("payment_methods.upload_qr")}
                         >
                           {pm.qr_image_url ? t("payment_methods.change") : t("payment_methods.upload")}
                         </button>
@@ -664,20 +664,20 @@ export default function Profile() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center flex-shrink-0 -mr-2">
                     <button
                       type="button"
                       onClick={() => openEditForm(pm)}
-                      className="text-outline hover:text-tertiary transition-colors"
-                      title={t("edit", { ns: "common" })}
+                      className="p-2.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                      title={t("edit", { ns: "common" })} aria-label={t("edit", { ns: "common" })}
                     >
                       <Pencil size={15} />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeletePaymentMethod(pm.id)}
-                      className="text-outline hover:text-error transition-colors"
-                      title={t("delete", { ns: "common" })}
+                      className="p-2.5 rounded-full text-outline hover:text-error hover:bg-error-container/20 transition-colors"
+                      title={t("delete", { ns: "common" })} aria-label={t("delete", { ns: "common" })}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -697,7 +697,7 @@ export default function Profile() {
         >
           <img
             src={qrModal}
-            alt="QR code"
+            alt={t("payment.qr_code", { ns: "common" })}
             className="max-w-xs max-h-[80vh] rounded-xl shadow-editorial-xl"
             onClick={(e) => e.stopPropagation()}
           />

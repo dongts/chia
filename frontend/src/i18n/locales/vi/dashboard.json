@@ -22,7 +22,6 @@
   "no_groups_title": "Chưa có nhóm nào",
   "no_groups_subtitle": "Tạo nhóm đầu tiên để bắt đầu chia chi phí với bạn bè và gia đình.",
   "settle_cta": "Sẵn sàng thanh toán?",
-  "settle_cta_detail": "Bạn có {{count}} khoản chưa thanh toán trong {{groups}} nhóm",
   "settle_now": "Thanh toán ngay",
   "you_owe": "bạn nợ",
   "owed_to_you": "được nợ",
@@ -30,5 +29,9 @@
   "groups_count_one": "{{n}} nhóm",
   "groups_count_other": "{{n}} nhóm",
   "members_count_one": "{{n}} thành viên",
-  "members_count_other": "{{n}} thành viên"
+  "members_count_other": "{{n}} thành viên",
+  "there": "bạn",
+  "group_ready": "<b>{{name}}</b> đã sẵn sàng. Mời mọi người để bắt đầu chia chi phí.",
+  "settle_cta_detail_one": "Bạn đang nợ ở {{n}} nhóm",
+  "settle_cta_detail_other": "Bạn đang nợ ở {{n}} nhóm"
 }

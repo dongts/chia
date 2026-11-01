@@ -290,7 +290,7 @@ export default function AddExpense() {
     <div className="max-w-lg lg:max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <button
+        <button aria-label={t("back", { ns: "common" })}
           onClick={() => navigate(`/groups/${groupId}`)}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
         >
@@ -321,13 +321,14 @@ export default function AddExpense() {
           )}
 
           {!nlExpanded ? (
-            <div
+            <button
+              type="button"
               onClick={() => { setNlExpanded(true); setTimeout(() => nlInputRef.current?.focus(), 100); }}
-              className="flex items-center gap-2.5 bg-surface-container-lowest/80 border border-outline-variant/20 rounded-xl px-4 py-3 hover:border-primary/30 transition-colors group"
+              className="w-full text-left flex items-center gap-2.5 bg-surface-container-lowest/80 border border-outline-variant/20 rounded-xl px-4 py-3 hover:border-primary/30 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Sparkles size={15} className="text-primary/60 group-hover:text-primary transition-colors" />
               <span className="text-sm text-outline group-hover:text-on-surface-variant transition-colors">{t("ai_input.collapsed")}</span>
-            </div>
+            </button>
           ) : (
             <div className="relative">
               <label className="text-xs font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
@@ -401,7 +402,7 @@ export default function AddExpense() {
                   type="button"
                   onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
                   className="w-12 h-12 flex-shrink-0 rounded-xl border border-primary/30 bg-primary-container/10 flex items-center justify-center text-primary hover:bg-error-container/20 hover:text-error hover:border-error/30 transition-colors relative overflow-hidden"
-                  title={receiptFile.name}
+                  title={receiptFile.name} aria-label={t("receipt.remove_named", { name: receiptFile.name })}
                 >
                   {receiptPreview ? (
                     <img src={receiptPreview} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />
@@ -411,7 +412,7 @@ export default function AddExpense() {
                   <X size={16} className="relative z-10" />
                 </button>
               ) : (
-                <label className="w-12 h-12 flex-shrink-0 rounded-xl bg-surface-container-high/50 flex items-center justify-center cursor-pointer hover:bg-surface-container-high/70 transition-colors text-outline hover:text-on-surface-variant">
+                <label aria-label={t("receipt.upload")} title={t("receipt.upload")} className="w-12 h-12 flex-shrink-0 rounded-xl bg-surface-container-high/50 flex items-center justify-center cursor-pointer focus-within:ring-2 focus-within:ring-primary hover:bg-surface-container-high/70 transition-colors text-outline hover:text-on-surface-variant">
                   <Paperclip size={18} />
                   <input
                     type="file"
@@ -439,7 +440,7 @@ export default function AddExpense() {
                   <CurrencySelect
                     value={currencyCode}
                     allowedCodes={[group.currency_code, ...allowedCurrencies.map((c) => c.currency_code)]}
-                    extraOptions={[{ code: group.currency_code, label: `${group.currency_code} — Main` }]}
+                    extraOptions={[{ code: group.currency_code, label: t("main_currency", { code: group.currency_code }) }]}
                     onChange={(code) => {
                       setCurrencyCode(code);
                       if (code === group.currency_code) {
@@ -516,7 +517,7 @@ export default function AddExpense() {
           {receiptFile && (
             <div className="relative rounded-xl overflow-hidden border border-outline-variant/10">
               {receiptPreview ? (
-                <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-32 object-contain bg-surface-container" />
+                <img src={receiptPreview} alt={t("receipt.preview")} className="w-full max-h-32 object-contain bg-surface-container" />
               ) : (
                 <div className="flex items-center gap-2 px-4 py-3 bg-surface-container">
                   <FileText size={16} className="text-outline" />
@@ -580,7 +581,7 @@ export default function AddExpense() {
                       </p>
                     )}
                   </div>
-                  <button
+                  <button aria-label={t("close", { ns: "common" })}
                     type="button"
                     onClick={() => removeFundDeduction(i)}
                     className="mt-2 w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-error hover:bg-error-container/10 transition-colors"

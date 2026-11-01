@@ -64,7 +64,7 @@ export default function SelectDropdown({
           type="button"
           onClick={() => { setOpen(!open); setSearch(""); }}
           className="w-12 h-12 flex items-center justify-center bg-surface-container-high/50 rounded-xl text-lg hover:bg-surface-container-high/70 focus:outline-none focus:ring-2 focus:ring-primary transition-colors flex-shrink-0"
-          title={selected?.label || placeholder}
+          title={selected?.label || placeholder} aria-label={selected?.label || placeholder}
         >
           {selected?.icon || placeholder}
         </button>

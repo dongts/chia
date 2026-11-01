@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ArrowRightLeft, MoreVertical } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft } from "lucide-react";
 import client from "@/api/client";
 import { formatCurrency, formatCompactCurrency } from "@/utils/currency";
+import { formatDateCompact } from "@/utils/date";
 import { cn } from "@/lib/utils";
 
 // --- Types ---
@@ -82,7 +83,7 @@ const DONUT_DOT_CLASSES = [
 ];
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatDateCompact(iso);
 }
 
 function formatCompact(amount: number, currencyCode: string = "USD"): string {
@@ -293,7 +294,7 @@ function TransactionTabs({
 
   const tabButtonClass = (active: boolean) =>
     cn(
-      "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-colors px-2",
+      "flex-1 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-colors px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
       active
         ? "bg-primary text-on-primary"
         : "text-on-surface-variant hover:bg-surface-container-high/40",
@@ -301,14 +302,14 @@ function TransactionTabs({
 
   return (
     <div className="bg-surface-container-lowest rounded-2xl shadow-editorial overflow-hidden">
-      <div className="p-2 flex gap-1.5 border-b border-outline-variant/20">
-        <button className={tabButtonClass(tab === "activity")} onClick={() => setTab("activity")}>
+      <div role="tablist" className="p-2 flex gap-1.5 border-b border-outline-variant/20">
+        <button role="tab" aria-selected={tab === "activity"} className={tabButtonClass(tab === "activity")} onClick={() => setTab("activity")}>
           {t("tab_affecting_balance")}
         </button>
-        <button className={tabButtonClass(tab === "paid")} onClick={() => setTab("paid")}>
+        <button role="tab" aria-selected={tab === "paid"} className={tabButtonClass(tab === "paid")} onClick={() => setTab("paid")}>
           {t("tab_paid_by_member")}
         </button>
-        <button className={tabButtonClass(tab === "owed")} onClick={() => setTab("owed")}>
+        <button role="tab" aria-selected={tab === "owed"} className={tabButtonClass(tab === "owed")} onClick={() => setTab("owed")}>
           {t("tab_owed_by_member")}
         </button>
       </div>
@@ -379,7 +380,7 @@ export default function MemberAnalytics() {
       {/* ============ DESKTOP HEADER ============ */}
       <div className="hidden sm:block mb-8">
         <div className="flex items-center gap-3 mb-1">
-          <button
+          <button aria-label={t("back", { ns: "common" })}
             onClick={() => navigate(`/groups/${groupId}/reports`)}
             className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
           >
@@ -399,7 +400,7 @@ export default function MemberAnalytics() {
       <div className="sm:hidden mb-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <button
+            <button aria-label={t("back", { ns: "common" })}
               onClick={() => navigate(`/groups/${groupId}/reports`)}
               className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant"
             >
@@ -407,9 +408,6 @@ export default function MemberAnalytics() {
             </button>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">{t("member_details")}</p>
           </div>
-          <button className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface-variant">
-            <MoreVertical size={18} />
-          </button>
         </div>
       </div>
 
@@ -475,9 +473,14 @@ export default function MemberAnalytics() {
               t={t}
             />
 
-            <button className="w-full py-3.5 rounded-2xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 transition-colors">
-              {t("settle_balance")}
-            </button>
+            {Math.abs(net) >= 0.01 && (
+              <button
+                onClick={() => navigate(`/groups/${groupId}`, { state: { settleMember: memberId } })}
+                className="w-full py-3.5 rounded-2xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                {t("settle_balance")}
+              </button>
+            )}
           </div>
 
           {/* ==================== DESKTOP LAYOUT ==================== */}

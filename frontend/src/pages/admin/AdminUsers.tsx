@@ -225,16 +225,16 @@ function UserRow({ user, isExpanded, isEditing, editForm, saving, deletingId, ex
           <div className="flex items-center justify-end gap-1">
             {isEditing ? (
               <>
-                <button disabled={saving} onClick={onSaveEdit} className="p-1.5 rounded-lg text-primary hover:bg-primary-container/20 disabled:opacity-50" title="Save"><Check size={15} /></button>
-                <button onClick={onCancelEdit} className="p-1.5 rounded-lg text-outline hover:bg-surface-container" title="Cancel"><X size={15} /></button>
+                <button disabled={saving} onClick={onSaveEdit} className="p-1.5 rounded-lg text-primary hover:bg-primary-container/20 disabled:opacity-50" title="Save" aria-label="Save"><Check size={15} /></button>
+                <button onClick={onCancelEdit} className="p-1.5 rounded-lg text-outline hover:bg-surface-container" title="Cancel" aria-label="Cancel"><X size={15} /></button>
               </>
             ) : (
               <>
-                <button onClick={onStartEdit} className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container" title="Edit"><Pencil size={15} /></button>
-                <button onClick={onResetPassword} className="p-1.5 rounded-lg text-outline hover:text-amber-600 hover:bg-amber-50" title="Reset password"><KeyRound size={15} /></button>
-                <button onClick={onAddToGroup} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add to group"><UserPlus size={15} /></button>
-                <button onClick={onMerge} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20" title="Merge into another user"><Merge size={15} /></button>
-                <button disabled={deletingId === user.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete"><Trash2 size={15} /></button>
+                <button onClick={onStartEdit} className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container" title="Edit" aria-label="Edit"><Pencil size={15} /></button>
+                <button onClick={onResetPassword} className="p-1.5 rounded-lg text-outline hover:text-amber-600 hover:bg-amber-50" title="Reset password" aria-label="Reset password"><KeyRound size={15} /></button>
+                <button onClick={onAddToGroup} className="p-1.5 rounded-lg text-outline hover:text-tertiary hover:bg-tertiary-container/20" title="Add to group" aria-label="Add to group"><UserPlus size={15} /></button>
+                <button onClick={onMerge} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20" title="Merge into another user" aria-label="Merge into another user"><Merge size={15} /></button>
+                <button disabled={deletingId === user.id} onClick={onDelete} className="p-1.5 rounded-lg text-outline hover:text-error hover:bg-error-container/20 disabled:opacity-50" title="Delete" aria-label="Delete"><Trash2 size={15} /></button>
               </>
             )}
           </div>
@@ -396,8 +396,8 @@ export default function AdminUsers() {
       <div className="space-y-4">
         {/* Reset password modal */}
         {resetPwUserId && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setResetPwUserId(null)}>
-            <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setResetPwUserId(null)}>
+            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm shadow-editorial-xl" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-on-surface mb-4">Reset Password</h3>
               <input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -412,8 +412,8 @@ export default function AdminUsers() {
 
         {/* Add to group modal */}
         {addToGroupUserId && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={() => setAddToGroupUserId(null)}>
-            <div className="bg-surface-container-lowest rounded-2xl p-6 w-96 shadow-editorial-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setAddToGroupUserId(null)}>
+            <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm shadow-editorial-xl" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-on-surface mb-4">Add User to Group</h3>
               <select value={addGroupId} onChange={(e) => setAddGroupId(e.target.value)}
                 className="w-full border border-outline-variant/15 rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary">
@@ -463,7 +463,8 @@ export default function AdminUsers() {
           ) : users.length === 0 ? (
             <p className="text-center text-outline text-sm py-10">No users found</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="bg-surface border-b border-outline-variant/10">
                   <th className="text-left px-4 py-3 font-medium text-on-surface-variant w-6" />
@@ -491,6 +492,7 @@ export default function AdminUsers() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -498,8 +500,8 @@ export default function AdminUsers() {
           <div className="flex items-center justify-between text-sm text-on-surface-variant">
             <span>{formatNumber(page * limit + 1)}–{formatNumber(Math.min((page + 1) * limit, total))} of {formatNumber(total)}</span>
             <div className="flex gap-1">
-              <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
-              <button disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
+              <button aria-label="Previous page" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronLeft size={16} /></button>
+              <button aria-label="Next page" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)} className="p-1.5 rounded-lg hover:bg-surface-container disabled:opacity-40"><ChevronRightIcon size={16} /></button>
             </div>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PaymentMethod } from "@/types";
 import { resolveUploadUrl } from "@/utils/uploads";
 import { buildVietQrUrl, fetchVietBanks, type VietBank } from "@/utils/vietnamBanks";
@@ -31,6 +32,7 @@ function getQrUrl(m: PaymentMethod, amount?: number, qrMessage?: string): string
 }
 
 export default function PaymentMethodCards({ methods, compact = false, amount, qrMessage }: PaymentMethodCardsProps) {
+  const { t } = useTranslation("common");
   const [viewingQr, setViewingQr] = useState<{ url: string; label: string } | null>(null);
   const [banks, setBanks] = useState<VietBank[]>([]);
 
@@ -71,10 +73,10 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
                 <img src={getBankLogo(m.bank_bin)!} alt="" className="w-8 h-8 rounded object-contain flex-shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-on-surface">{m.label}</p>
+                  <p className="text-sm font-semibold text-on-surface break-words">{m.label}</p>
                   {m.bank_name && <p className="text-xs text-on-surface-variant mt-0.5">{m.bank_name}</p>}
                   {m.account_number && (
-                    <p className="text-sm text-on-surface mt-1 font-mono">{m.account_number}</p>
+                    <p className="text-sm text-on-surface mt-1 font-mono break-all select-all">{m.account_number}</p>
                   )}
                   {m.account_holder && (
                     <p className="text-xs text-on-surface-variant mt-0.5">{m.account_holder}</p>
@@ -86,11 +88,11 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
                     type="button"
                     onClick={() => setViewingQr({ url: qrUrl, label: m.label })}
                     className="flex-shrink-0 hover:opacity-80 transition-opacity"
-                    title="View QR code"
+                    title={t("payment.view_qr")} aria-label={t("payment.view_qr")}
                   >
                     <img
                       src={qrUrl}
-                      alt={`QR for ${m.label}`}
+                      alt={t("payment.qr_for", { label: m.label })}
                       className={compact ? "w-16 h-16 rounded object-cover" : "w-24 h-24 rounded-lg object-cover"}
                     />
                   </button>
@@ -112,16 +114,16 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-on-surface">{viewingQr.label}</p>
-              <button
+              <button aria-label={t("close", { ns: "common" })}
                 onClick={() => setViewingQr(null)}
-                className="p-1 text-outline hover:text-on-surface-variant rounded-lg hover:bg-surface-container"
+                className="p-2.5 -m-1.5 text-outline hover:text-on-surface-variant rounded-lg hover:bg-surface-container"
               >
                 <X size={18} />
               </button>
             </div>
             <img
               src={viewingQr.url}
-              alt="QR code"
+              alt={t("payment.qr_for", { label: viewingQr.label })}
               className="w-full rounded-xl"
             />
             <button
@@ -129,7 +131,7 @@ export default function PaymentMethodCards({ methods, compact = false, amount, q
               className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dim text-on-primary font-medium py-2.5 rounded-lg text-sm transition-colors"
             >
               <Download size={16} />
-              Save QR Image
+              {t("payment.save_qr")}
             </button>
           </div>
         </div>
