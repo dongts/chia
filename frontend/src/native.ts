@@ -61,9 +61,11 @@ export async function nativeGoogleSignIn(webClientId: string): Promise<string> {
     await SocialLogin.initialize({ google: { webClientId, mode: "online" } });
     googleInitialised = webClientId;
   }
+  // No custom scopes: the plugin adds openid/email/profile itself and refuses
+  // extra scopes unless MainActivity is customised.
   const { result } = await SocialLogin.login({
     provider: "google",
-    options: { scopes: ["email", "profile"] },
+    options: {},
   });
   if (result.responseType !== "online" || !result.idToken) {
     throw new Error("Google sign-in returned no ID token");
