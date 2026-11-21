@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import type { CurrencyInfo } from "@/utils/currencies";
 import { CURRENCIES } from "@/utils/currencies";
 import { ChevronDown } from "lucide-react";
+import { hasFinePointer } from "@/utils/device";
 
 interface CurrencySelectProps {
   value: string;
@@ -64,6 +65,9 @@ export default function CurrencySelect({
       )
     : currencies;
 
+  // Short lists (e.g. a group's few allowed currencies) don't need a search box.
+  const showSearch = currencies.length + (extraOptions?.length ?? 0) > 8;
+
   const selectedCurrency = CURRENCIES.find((c) => c.code === value);
   const displayText = selectedCurrency
     ? `${selectedCurrency.code} — ${selectedCurrency.name}`
@@ -76,7 +80,7 @@ export default function CurrencySelect({
         disabled={disabled}
         onClick={() => {
           setOpen(!open);
-          if (!open) {
+          if (!open && showSearch && hasFinePointer()) {
             setTimeout(() => inputRef.current?.focus(), 50);
           }
         }}
@@ -96,9 +100,9 @@ export default function CurrencySelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-surface-container-lowest border border-outline-variant/15 rounded-lg shadow-editorial-lg max-h-64 overflow-hidden">
+        <div className={`absolute z-50 mt-1 ${compact ? "left-0 min-w-56" : "w-full"} bg-surface-container-lowest border border-outline-variant/15 rounded-lg shadow-editorial-lg max-h-64 overflow-hidden`}>
           {/* Search input */}
-          <div className="p-2 border-b border-outline-variant/10">
+          {showSearch && <div className="p-2 border-b border-outline-variant/10">
             <input
               ref={inputRef}
               type="text"
@@ -108,7 +112,7 @@ export default function CurrencySelect({
               aria-label={t("currency.search")}
               className="w-full border border-outline-variant/15 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-          </div>
+          </div>}
 
           {/* Options */}
           <div className="max-h-48 overflow-y-auto">

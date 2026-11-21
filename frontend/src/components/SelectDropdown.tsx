@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Search } from "lucide-react";
+import { hasFinePointer } from "@/utils/device";
 import { cn } from "@/lib/utils";
 
 export interface SelectOption {
@@ -47,7 +48,7 @@ export default function SelectDropdown({
   }, [open]);
 
   useEffect(() => {
-    if (open && searchable) {
+    if (open && searchable && hasFinePointer()) {
       setTimeout(() => searchRef.current?.focus(), 0);
     }
   }, [open, searchable]);
