@@ -16,7 +16,7 @@ import type { Group, GroupMember, GroupCurrencyRead, Category, SplitType, SplitI
 import { cn } from "@/lib/utils";
 import { formatAmount, formatCurrency, formatNumber } from "@/utils/currency";
 import CurrencySelect from "@/components/CurrencySelect";
-import DatePicker from "@/components/DatePicker";
+import DatePicker, { DateQuickPicks } from "@/components/DatePicker";
 import SelectDropdown from "@/components/SelectDropdown";
 import MoneyInput from "@/components/MoneyInput";
 import MemberSplitList from "@/components/expense/MemberSplitList";
@@ -512,6 +512,7 @@ export default function AddExpense() {
               </div>
             </div>
           </div>
+          <DateQuickPicks value={date} onChange={setDate} className="-mt-1" />
 
           {/* Receipt preview (if uploaded) */}
           {receiptFile && (

@@ -14,6 +14,53 @@ function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Local calendar date `offset` days before today, as YYYY-MM-DD. */
+function daysAgo(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - offset);
+  return toDateStr(d);
+}
+
+function quickPickLabel(t: (key: string, opts?: Record<string, unknown>) => string, offset: number): string {
+  if (offset === 0) return t("relative_time.today");
+  if (offset === 1) return t("relative_time.yesterday");
+  return t("relative_time.days_ago", { count: offset });
+}
+
+const QUICK_PICK_OFFSETS = [0, 1, 2];
+
+/**
+ * Always-visible chips for the most common dates (today / yesterday / 2 days ago),
+ * so logging an expense a day or two after the fact is a single tap.
+ */
+export function DateQuickPicks({ value, onChange, className }: DatePickerProps) {
+  const { t } = useTranslation("common");
+  return (
+    <div className={cn("flex gap-2", className)} role="group" aria-label={t("date_picker.select")}>
+      {QUICK_PICK_OFFSETS.map((offset) => {
+        const dateStr = daysAgo(offset);
+        const active = value === dateStr;
+        return (
+          <button
+            key={offset}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(dateStr)}
+            className={cn(
+              "flex-1 min-h-10 px-3 text-xs font-semibold rounded-full transition-colors",
+              active
+                ? "bg-primary text-on-primary"
+                : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+            )}
+          >
+            {quickPickLabel(t, offset)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function parseDate(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
@@ -199,25 +246,21 @@ export default function DatePicker({ value, onChange, className }: DatePickerPro
 
           {/* Quick actions */}
           <div className="flex gap-2 mt-3 pt-3 border-t border-outline-variant/10">
-            <button
-              type="button"
-              onClick={() => { onChange(today); setOpen(false); }}
-              className="flex-1 text-xs font-semibold text-primary bg-primary-container/15 hover:bg-primary-container/25 py-2 rounded-full transition-colors"
-            >
-              {t("relative_time.today")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const y = new Date();
-                y.setDate(y.getDate() - 1);
-                onChange(toDateStr(y));
-                setOpen(false);
-              }}
-              className="flex-1 text-xs font-semibold text-on-surface-variant bg-surface-container hover:bg-surface-container-high py-2 rounded-full transition-colors"
-            >
-              {t("relative_time.yesterday")}
-            </button>
+            {QUICK_PICK_OFFSETS.map((offset) => (
+              <button
+                key={offset}
+                type="button"
+                onClick={() => { onChange(daysAgo(offset)); setOpen(false); }}
+                className={cn(
+                  "flex-1 text-xs font-semibold py-2 rounded-full transition-colors",
+                  offset === 0
+                    ? "text-primary bg-primary-container/15 hover:bg-primary-container/25"
+                    : "text-on-surface-variant bg-surface-container hover:bg-surface-container-high"
+                )}
+              >
+                {quickPickLabel(t, offset)}
+              </button>
+            ))}
           </div>
         </div>
       )}
