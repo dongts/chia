@@ -790,9 +790,9 @@ export default function GroupView() {
                           className="border-b border-outline-variant/5 last:border-0 hover:bg-surface-container/40 transition-colors"
                         >
                           <td className="px-3 sm:px-4 py-3 max-w-0 w-full">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="text-base flex-shrink-0">{getCategoryIcon(expense.category_id)}</span>
-                              <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} className="font-medium text-on-surface truncate hover:text-primary transition-colors min-w-0">{expense.description}</Link>
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <span className="text-base flex-shrink-0 leading-5">{getCategoryIcon(expense.category_id)}</span>
+                              <Link to={`/groups/${groupId}/expenses/${expense.id}/edit`} title={expense.description} className="font-medium text-on-surface leading-5 break-words [overflow-wrap:anywhere] hover:text-primary transition-colors min-w-0">{expense.description}</Link>
                               {expense.receipt_url && (
                                 <span title={t("has_receipt")} aria-label={t("has_receipt")} role="img"><ImageIcon size={12} className="text-outline flex-shrink-0" /></span>
                               )}
@@ -807,7 +807,7 @@ export default function GroupView() {
                                 </span>
                               ))}
                             </div>
-                            <p className="text-xs text-outline sm:hidden mt-0.5 truncate">
+                            <p className="text-xs text-outline sm:hidden mt-0.5 pl-[30px] truncate">
                               {expense.payer_name ?? t("expense_table.unknown_payer")}
                             </p>
                           </td>
@@ -829,7 +829,7 @@ export default function GroupView() {
                             <div className="flex gap-0.5 justify-end">
                               <Link
                                 to={`/groups/${groupId}/expenses/${expense.id}/edit`}
-                                className="p-2.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
+                                className="hidden sm:inline-flex p-2.5 rounded-full text-outline hover:text-tertiary hover:bg-tertiary-container/20 transition-colors"
                                 title={t("edit", { ns: "common" })} aria-label={t("edit", { ns: "common" })}
                               >
                                 <Pencil size={15} />
